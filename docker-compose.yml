@@ -1,0 +1,7 @@
+services: 
+  central-service:
+    build: ./central-service
+  rtc-service:
+    build: ./rtc-service
+  worker-service:
+    build: ./worker-service
