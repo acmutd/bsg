@@ -1,7 +1,24 @@
 services: 
   central-service:
     build: ./central-service
+    depends_on:
+      - db
+    ports:
+      - 5000:5000
   rtc-service:
     build: ./rtc-service
   worker-service:
     build: ./worker-service
+  db: 
+    image: postgres
+    restart: always
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: bsgdev
+      POSTGRES_PASSWORD: bsgdev
+      POSTGRES_DB: bsg
+    volumes:
+      - db-volume:/var/lib/postgresql/data
+
+volumes:
+  db-volume:
