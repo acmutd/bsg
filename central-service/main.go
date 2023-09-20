@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/auth"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"google.golang.org/appengine/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -20,30 +26,37 @@ func main() {
 	if err := db.AutoMigrate(&models.ExampleModel{}); err != nil {
 		fmt.Println("Error migrate ExampleModel")
 	}
-
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		var data []models.ExampleModel
-		result := db.Find(&data)
-		if result.Error != nil {
-			return result.Error
+
+	app, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+	}
+
+	e.Use(middleware.CORS())
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ctx := appengine.NewContext(c.Request())
+			authToken := c.Request().Header.Get("Authorization")
+			authClient, err := app.Auth(ctx)
+			if err != nil {
+				log.Printf("something is wrong with auth client : %v\n", err)
+				return err
+			}
+			token, err := authClient.VerifyIDToken(ctx, authToken)
+			if err != nil {
+				log.Printf("Error verifying token: %v\n", err)
+				return echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
+			}
+			c.Set("authToken", token)
+			return next(c)
 		}
-		return c.JSON(http.StatusOK, map[string]int{
-			"count": int(result.RowsAffected),
-		})
 	})
 
-	e.POST("/", func(c echo.Context) error {
-		data := models.ExampleModel{
-			Name:    "test",
-			Message: "Hello world",
-		}
-		result := db.Create(&data)
-		fmt.Printf("Created user with id %d\n", data.ID)
-		if result.Error != nil {
-			return result.Error
-		}
-		return c.JSON(http.StatusCreated, data)
+	e.GET("/", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"msg": fmt.Sprintf("Welcome, user with id %s", c.Get("authToken").(*auth.Token).UID),
+		})
 	})
 
 	e.Logger.Fatal(e.Start(":5000"))

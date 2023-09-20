@@ -1,4 +1,4 @@
-FROM golang:1.21.0-alpine AS builder
+FROM golang:1.21.0-alpine
 
 WORKDIR /app
 
@@ -10,10 +10,5 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./central-service
 
-FROM scratch
+CMD ["/app/central-service"]
 
-COPY --from=builder /app/central-service /app/central-service
-
-WORKDIR /app
-
-ENTRYPOINT ["/app/central-service"]

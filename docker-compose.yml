@@ -5,6 +5,8 @@ services:
       - db
     ports:
       - 5000:5000
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS="./serviceKey.json"
   rtc-service:
     build: ./rtc-service
   worker-service:
