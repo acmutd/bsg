@@ -33,19 +33,18 @@ func initws(wsHandler *Handler) {
 
 	// Create a new chat room
 	router.POST("/ws/createRoom", wsHandler.CreateRoom)
-
-	// Join a chat room
-	// requestHandler.GET("/room/:roomId", wsHandler.JoinRoom)
 }
 
 func main() {
 
 	// Create a new chat room manager
 	chatRoomManager := NewManager()
-	wb := NewHandler(chatRoomManager)
+
+	// Create a new websocket handler
+	wbHandler := NewHandler(chatRoomManager)
 
 	// Initialize the server
-	initws(wb)
+	initws(wbHandler)
 	InfoLogger.Println("Starting the server on port", wsPort)
 	router.Run(wsHost + ":" + wsPort)
 }
