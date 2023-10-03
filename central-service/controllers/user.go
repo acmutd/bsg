@@ -1,0 +1,91 @@
+package controllers
+
+import (
+	"log"
+	"net/http"
+
+	"firebase.google.com/go/auth"
+	"github.com/acmutd/bsg/central-service/models"
+	"github.com/acmutd/bsg/central-service/services"
+	"github.com/labstack/echo/v4"
+)
+
+type UserController struct {
+	userService *services.UserService
+}
+
+func InitializeUserController() UserController {
+	return UserController{nil}
+}
+
+func (controller *UserController) SetUserService(service *services.UserService) {
+	controller.userService = service
+}
+
+func (controller *UserController) ValidateUserRequest(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		authToken, err := controller.userService.GenerateAuthToken(c.Request())
+		if err != nil {
+			log.Printf("Error generating auth token: %v\n", err)
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"msg": "Invalid credentials",
+			})
+		}
+		c.Set("authToken", authToken)
+		return next(c)
+	}
+}
+
+func (controller *UserController) CreateNewUserEndpoint(c echo.Context) error {
+	var userData services.UserModifiableData
+	if err := c.Bind(&userData); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"msg": "Invalid data. Please try again",
+		})
+	}
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	newUser, err := controller.userService.CreateUser(userAuthID, &userData)
+	if err != nil {
+		log.Printf("Failed to create user object: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"msg": "Failed to create user. Please try again later",
+		})
+	}
+	return c.JSON(http.StatusCreated, map[string]models.User{
+		"data": *newUser,
+	})
+}
+
+func (controller *UserController) UpdateUserDataEnpoint(c echo.Context) error {
+	var userData services.UserModifiableData
+	if err := c.Bind(&userData); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"msg": "Invalid data. Please try again",
+		})
+	}
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	updatedUser, err := controller.userService.UpdateUserData(userAuthID, &userData)
+	if err != nil {
+		log.Printf("Failed to create user object: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"msg": "Failed to create user. Please try again later",
+		})
+	}
+	return c.JSON(http.StatusCreated, map[string]models.User{
+		"data": *updatedUser,
+	})
+}
+
+func (controller *UserController) FindUserByAuthIDEndpoint(c echo.Context) error {
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	searchedUser, err := controller.userService.FindUserByAuthID(userAuthID)
+	if err != nil {
+		log.Printf("Failed to create user object: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"msg": "Failed to create user. Please try again later",
+		})
+	}
+	return c.JSON(http.StatusCreated, map[string]models.User{
+		"data": *searchedUser,
+	})
+}
