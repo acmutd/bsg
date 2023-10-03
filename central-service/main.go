@@ -23,8 +23,8 @@ func main() {
 	if err != nil {
 		fmt.Println("Error connecting to the database")
 	}
-	if err := db.AutoMigrate(&models.ExampleModel{}); err != nil {
-		fmt.Println("Error migrate ExampleModel")
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		fmt.Println("Error migrating User schema")
 	}
 	e := echo.New()
 
