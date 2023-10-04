@@ -1,11 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
 
-	firebase "firebase.google.com/go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/driver/postgres"
@@ -27,30 +24,14 @@ func main() {
 	}
 	e := echo.New()
 
-	app, err := firebase.NewApp(context.Background(), nil)
-	if err != nil {
-		log.Fatalf("error initializing app: %v\n", err)
-	}
-
-	userService := services.InitializeUserService(db, app)
+	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController()
 	userController.SetUserService(&userService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
 
-	// e.GET("/", func(c echo.Context) error {
-	// 	return c.JSON(http.StatusOK, map[string]string{
-	// 		"msg": fmt.Sprintf("Welcome, user with id %s", c.Get("authToken").(*auth.Token).UID),
-	// 	})
-	// })
-	// e.POST("/", func(c echo.Context) error {
-	// 	var user models.User
-	// 	if err := c.Bind(&user); err != nil {
-	// 		return c.String(http.StatusBadRequest, "bad request")
-	// 	}
-	// 	return c.String(http.StatusOK, "good request")
-	// })
+	userController.InitializeRoutes(e.Group("/api/users"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }

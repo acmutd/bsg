@@ -1,3 +1,4 @@
+version: '3.7'
 services: 
   central-service:
     build: ./central-service
@@ -6,7 +7,7 @@ services:
     ports:
       - 5000:5000
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS="./serviceKey.json"
+      FIREBASE_CREDENTIALS_FILEPATH: '/app/serviceKey.json'
   rtc-service:
     build: ./rtc-service
   worker-service:

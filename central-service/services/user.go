@@ -1,19 +1,20 @@
 package services
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
 
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/auth"
 	"github.com/acmutd/bsg/central-service/models"
-	"google.golang.org/appengine/v2"
+	"google.golang.org/api/option"
 	"gorm.io/gorm"
 )
 
 type UserService struct {
-	db          *gorm.DB
-	firebaseApp *firebase.App
+	db *gorm.DB
 }
 
 type UserModifiableData struct {
@@ -23,19 +24,23 @@ type UserModifiableData struct {
 	Email     string `json:"email"`
 }
 
-func InitializeUserService(db *gorm.DB, firebaseApp *firebase.App) UserService {
-	return UserService{db, firebaseApp}
+func InitializeUserService(db *gorm.DB) UserService {
+	return UserService{db}
 }
 
 func (service *UserService) GenerateAuthToken(request *http.Request) (*auth.Token, error) {
-	ctx := appengine.NewContext(request)
+	firebaseApp, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile(os.Getenv("FIREBASE_CREDENTIALS_FILEPATH")))
+	if err != nil {
+		log.Fatalf("error initializing app: %v\n", err)
+		return nil, err
+	}
 	authToken := request.Header.Get("Authorization")
-	authClient, err := service.firebaseApp.Auth(ctx)
+	authClient, err := firebaseApp.Auth(context.Background())
 	if err != nil {
 		log.Printf("something is wrong with auth client: %v\n", err)
 		return nil, err
 	}
-	return authClient.VerifyIDToken(ctx, authToken)
+	return authClient.VerifyIDToken(context.Background(), authToken)
 }
 
 func (service *UserService) CreateUser(authID string, userData *UserModifiableData) (*models.User, error) {
@@ -77,4 +82,16 @@ func (service *UserService) UpdateUserData(authID string, userData *UserModifiab
 		return nil, result.Error
 	}
 	return searchedUser, nil
+}
+
+func (service *UserService) FindUserByUserID(userID string) (*models.User, error) {
+	var user models.User
+	result := service.db.Where("ID = ?", userID).First(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &user, nil
 }
