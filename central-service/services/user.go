@@ -93,6 +93,9 @@ func (service *UserService) FindUserByUserID(userID string) (*models.User, error
 	var user models.User
 	result := service.db.Where("ID = ?", userID).First(&user)
 	if result.Error != nil {
+		if result.Error.Error() == "record not found" {
+			return nil, nil
+		}
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {

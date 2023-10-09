@@ -29,9 +29,7 @@ func (controller *UserController) ValidateUserRequest(next echo.HandlerFunc) ech
 		authToken, err := controller.userService.GenerateAuthToken(c.Request())
 		if err != nil {
 			log.Printf("Error generating auth token: %v\n", err)
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"msg": "Invalid credentials",
-			})
+			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 		}
 		c.Set("authToken", authToken)
 		return next(c)
