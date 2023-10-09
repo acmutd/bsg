@@ -28,6 +28,7 @@ func InitializeUserService(db *gorm.DB) UserService {
 	return UserService{db}
 }
 
+// Generate auth data based on token provided by user in request header
 func (service *UserService) GenerateAuthToken(request *http.Request) (*auth.Token, error) {
 	firebaseApp, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile(os.Getenv("FIREBASE_CREDENTIALS_FILEPATH")))
 	if err != nil {
@@ -43,6 +44,7 @@ func (service *UserService) GenerateAuthToken(request *http.Request) (*auth.Toke
 	return authClient.VerifyIDToken(context.Background(), authToken)
 }
 
+// Create a user and persist their information in the DB
 func (service *UserService) CreateUser(authID string, userData *UserModifiableData) (*models.User, error) {
 	newUser := models.User{
 		FirstName: userData.FirstName,
@@ -57,6 +59,7 @@ func (service *UserService) CreateUser(authID string, userData *UserModifiableDa
 	return &newUser, nil
 }
 
+// Function used to interact with database to find user by auth id
 func (service *UserService) FindUserByAuthID(authID string) (*models.User, error) {
 	var user models.User
 	result := service.db.Where("auth_id = ?", authID).First(&user)
@@ -69,6 +72,7 @@ func (service *UserService) FindUserByAuthID(authID string) (*models.User, error
 	return &user, nil
 }
 
+// Function used to update user data for user with given auth id
 func (service *UserService) UpdateUserData(authID string, userData *UserModifiableData) (*models.User, error) {
 	searchedUser, err := service.FindUserByAuthID(authID)
 	if err != nil {
@@ -84,6 +88,7 @@ func (service *UserService) UpdateUserData(authID string, userData *UserModifiab
 	return searchedUser, nil
 }
 
+// Function to find user by user id
 func (service *UserService) FindUserByUserID(userID string) (*models.User, error) {
 	var user models.User
 	result := service.db.Where("ID = ?", userID).First(&user)

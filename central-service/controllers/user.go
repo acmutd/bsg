@@ -18,10 +18,12 @@ func InitializeUserController() UserController {
 	return UserController{nil}
 }
 
+// Setter used to update user service for controller
 func (controller *UserController) SetUserService(service *services.UserService) {
 	controller.userService = service
 }
 
+// Milddleware used to validate whether user request contains authorization token
 func (controller *UserController) ValidateUserRequest(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		authToken, err := controller.userService.GenerateAuthToken(c.Request())
@@ -36,6 +38,7 @@ func (controller *UserController) ValidateUserRequest(next echo.HandlerFunc) ech
 	}
 }
 
+// An endpoint containing logic used to create a new user based on provided parameters
 func (controller *UserController) CreateNewUserEndpoint(c echo.Context) error {
 	var userData services.UserModifiableData
 	if err := c.Bind(&userData); err != nil {
@@ -52,6 +55,7 @@ func (controller *UserController) CreateNewUserEndpoint(c echo.Context) error {
 	})
 }
 
+// An endpoint containing logic used to update a user data with provided parameters
 func (controller *UserController) UpdateUserDataEnpoint(c echo.Context) error {
 	var userData services.UserModifiableData
 	if err := c.Bind(&userData); err != nil {
@@ -68,6 +72,7 @@ func (controller *UserController) UpdateUserDataEnpoint(c echo.Context) error {
 	})
 }
 
+// An endpoint containing logic used to find user by auth id
 func (controller *UserController) FindUserByAuthIDEndpoint(c echo.Context) error {
 	userAuthID := c.Get("authToken").(*auth.Token).UID
 	searchedUser, err := controller.userService.FindUserByAuthID(userAuthID)
@@ -80,6 +85,7 @@ func (controller *UserController) FindUserByAuthIDEndpoint(c echo.Context) error
 	})
 }
 
+// An endpoint containing logic used to find user based on their user id
 func (controller *UserController) FindUserByUserIDEndpoint(c echo.Context) error {
 	targetUserID := c.QueryParam("userId")
 	if targetUserID == "" {
