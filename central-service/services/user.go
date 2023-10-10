@@ -50,6 +50,7 @@ func (service *UserService) CreateUser(authID string, userData *UserModifiableDa
 		FirstName: userData.FirstName,
 		LastName:  userData.LastName,
 		Handle:    userData.Handle,
+		Email:     userData.Email,
 		AuthID:    authID,
 	}
 	result := service.db.Create(&newUser)
@@ -62,7 +63,7 @@ func (service *UserService) CreateUser(authID string, userData *UserModifiableDa
 // Function used to interact with database to find user by auth id
 func (service *UserService) FindUserByAuthID(authID string) (*models.User, error) {
 	var user models.User
-	result := service.db.Where("auth_id = ?", authID).First(&user)
+	result := service.db.Where(&models.User{AuthID: authID}).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
