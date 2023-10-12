@@ -63,7 +63,7 @@ func (service *UserService) CreateUser(authID string, userData *UserModifiableDa
 // Function used to interact with database to find user by auth id
 func (service *UserService) FindUserByAuthID(authID string) (*models.User, error) {
 	var user models.User
-	result := service.db.Where(&models.User{AuthID: authID}).First(&user)
+	result := service.db.Where(&models.User{AuthID: authID}).Limit(1).Find(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -92,11 +92,8 @@ func (service *UserService) UpdateUserData(authID string, userData *UserModifiab
 // Function to find user by user id
 func (service *UserService) FindUserByUserID(userID string) (*models.User, error) {
 	var user models.User
-	result := service.db.Where("ID = ?", userID).First(&user)
+	result := service.db.Where("ID = ?", userID).Limit(1).Find(&user)
 	if result.Error != nil {
-		if result.Error.Error() == "record not found" {
-			return nil, nil
-		}
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {

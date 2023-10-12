@@ -146,3 +146,49 @@ func TestFindUserByUserID(t *testing.T) {
 		t.Fatal("Cannot find user")
 	}
 }
+
+func TestFindUserByInvalidUserID(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDb.Close()
+	dialector := postgres.New(postgres.Config{
+		Conn:       mockDb,
+		DriverName: "postgres",
+	})
+	db, _ := gorm.Open(dialector, &gorm.Config{})
+	userService := InitializeUserService(db)
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE ID =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}))
+	user, err := userService.FindUserByUserID("1")
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+	if user != nil {
+		t.Fatal("Found invalid user")
+	}
+}
+
+func TestFindUserByInvalidAuthID(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDb.Close()
+	dialector := postgres.New(postgres.Config{
+		Conn:       mockDb,
+		DriverName: "postgres",
+	})
+	db, _ := gorm.Open(dialector, &gorm.Config{})
+	userService := InitializeUserService(db)
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}))
+	user, err := userService.FindUserByAuthID("abc12345")
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+	if user != nil {
+		t.Fatal("Found invalid user")
+	}
+}
