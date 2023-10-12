@@ -17,10 +17,10 @@ func main() {
 	dsn := "host=db user=bsgdev password=bsgdev dbname=bsg port=5432 sslmode=disable Timezone=America/Chicago"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		fmt.Println("Error connecting to the database")
+		fmt.Printf("Error connecting to the database: %v\n", err)
 	}
 	if err := db.AutoMigrate(&models.User{}); err != nil {
-		fmt.Println("Error migrating User schema")
+		fmt.Printf("Error migrating User schema: %v\n", err)
 	}
 	e := echo.New()
 
