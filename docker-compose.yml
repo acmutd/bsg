@@ -8,6 +8,9 @@ services:
       - 5000:5000
     environment:
       FIREBASE_CREDENTIALS_FILEPATH: '/app/serviceKey.json'
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
   rtc-service:
     build: ./rtc-service
   worker-service:
@@ -17,9 +20,9 @@ services:
     restart: always
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
-      POSTGRES_USER: bsgdev
-      POSTGRES_PASSWORD: bsgdev
-      POSTGRES_DB: bsg
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-volume:/var/lib/postgresql/data
 

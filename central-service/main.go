@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -14,7 +15,7 @@ import (
 )
 
 func main() {
-	dsn := "host=db user=bsgdev password=bsgdev dbname=bsg port=5432 sslmode=disable Timezone=America/Chicago"
+	dsn := fmt.Sprintf("host=db user=%s password=%s dbname=%s port=5432 sslmode=disable Timezone=America/Chicago", os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Printf("Error connecting to the database: %v\n", err)
