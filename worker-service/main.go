@@ -1,7 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/acmutd/bsg/worker-service/lib"
+)
 
 func main() {
-	fmt.Println("Hello World! Welcom to worker service")
+	leetcode, err := lib.NewLeetcode("bsgvippro123", "bsgisdabest123");
+	if err != nil {
+		fmt.Println("Fail")
+	}
+	fmt.Println(leetcode)
+	fmt.Println()
+	lib.SubmitSolution("python", "")
 }
