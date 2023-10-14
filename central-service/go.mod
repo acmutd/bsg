@@ -1,3 +1,3 @@
 module github.com/acmutd/bsg/central-service
 
-go 1.21.0
+go 1.21
