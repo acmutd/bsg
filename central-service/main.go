@@ -26,8 +26,7 @@ func main() {
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
-	userController := controllers.InitializeUserController()
-	userController.SetUserService(&userService)
+	userController := controllers.InitializeUserController(&userService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)

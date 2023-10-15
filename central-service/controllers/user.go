@@ -14,13 +14,8 @@ type UserController struct {
 	userService *services.UserService
 }
 
-func InitializeUserController() UserController {
-	return UserController{nil}
-}
-
-// Setter used to update user service for controller
-func (controller *UserController) SetUserService(service *services.UserService) {
-	controller.userService = service
+func InitializeUserController(service *services.UserService) UserController {
+	return UserController{service}
 }
 
 // Milddleware used to validate whether user request contains authorization token
@@ -54,7 +49,7 @@ func (controller *UserController) CreateNewUserEndpoint(c echo.Context) error {
 }
 
 // An endpoint containing logic used to update a user data with provided parameters
-func (controller *UserController) UpdateUserDataEnpoint(c echo.Context) error {
+func (controller *UserController) UpdateUserDataEndpoint(c echo.Context) error {
 	var userData services.UserModifiableData
 	if err := c.Bind(&userData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
@@ -106,5 +101,5 @@ func (controller *UserController) InitializeRoutes(g *echo.Group) {
 	g.GET("/", controller.FindUserByUserIDEndpoint)
 	g.GET("/me", controller.FindUserByAuthIDEndpoint)
 	g.POST("/", controller.CreateNewUserEndpoint)
-	g.PUT("/", controller.UpdateUserDataEnpoint)
+	g.PUT("/", controller.UpdateUserDataEndpoint)
 }
