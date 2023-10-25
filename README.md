@@ -20,9 +20,16 @@ RTC Service will be a server that maintains socket connection between clients an
 ### Worker Service
 Worker Service will be responsible for carrying out computational-intensive tasks. 
 
-## Run the project
+## Setup the project for development
+
+Create a copy of the file `.env.template` and name the copy as `.env`. In Linux or MacOS, one can run the following command: 
+```bash
+$ cp .env.template .env
+```
+
+Fill out the environment variables in the `.env` file with any value of choosing. 
 
 Execute the following command to run the project: 
 ```bash
-$ docker compose up --build
+$ docker compose --env-file ./.env up --build --force-recreate
 ```
