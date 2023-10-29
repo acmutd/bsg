@@ -1,0 +1,77 @@
+package services
+
+import (
+	"github.com/acmutd/bsg/central-service/models"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+type RoomService struct {
+	db *gorm.DB
+}
+
+func InitializeRoomService(db *gorm.DB) RoomService {
+	return RoomService{db}
+}
+
+// Create a room and persist
+// User creating the room is the room leader
+func (service *RoomService) CreateRoom(adminID string, roomName string) (*models.Room, error) {
+	if len(roomName) < 4 {
+		return nil, RoomNameError{Message: "roomName must be at least 4 characters in length"}
+	}
+	newRoom := models.Room{
+		ID: uuid.New(),
+		Name: roomName,
+		Admin: adminID,
+	}
+	result := service.db.Create(&newRoom)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &newRoom, nil
+}
+
+
+// Find a room by parameters
+func (service *RoomService) FindRoomByParameters(roomID, roomName string) ([]models.Room, error) {
+	if roomName != "" {5
+		var room models.Room
+		result := service.db.Where("name = ?", roomName).Find(&room)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil, nil
+		}
+		return []models.Room{room}, nil
+	} else if roomID != "" {
+		var room models.Room
+		uuid, err := uuid.Parse(roomID)
+		if err!= nil {
+			return nil, RoomNameError{Message: "roomID could not be parsed"}
+		}
+		result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil, nil
+		}
+		return []models.Room{room}, nil
+	} else {
+		var rooms []models.Room
+		if err := service.db.Find(&rooms).Error; err != nil {
+			return nil, err
+		}
+		return rooms, nil
+	}
+}
+
+type RoomNameError struct{
+	Message string
+}
+
+func (e RoomNameError) Error() string {
+	return e.Message
+}
