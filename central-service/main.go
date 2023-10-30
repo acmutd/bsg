@@ -20,18 +20,21 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error connecting to the database: %v\n", err)
 	}
-	if err := db.AutoMigrate(&models.User{}); err != nil {
-		fmt.Printf("Error migrating User schema: %v\n", err)
+	if err := db.AutoMigrate(&models.User{}, &models.Problem{}); err != nil {
+		fmt.Printf("Error migrating schema: %v\n", err)
 	}
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController(&userService)
+	problemService := services.InitializeProblemService(db)
+	problemController := controllers.InitializeProblemController(&problemService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
+	problemController.InitializeRoutes(e.Group("/api/problems"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }
