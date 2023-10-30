@@ -79,7 +79,7 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 		}
 
 		pollingCount += 1
-		if pollingCount > 30 {
+		if pollingCount > 20 {
 			break
 		}
 		time.Sleep(500 * time.Millisecond)
