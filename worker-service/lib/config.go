@@ -13,3 +13,6 @@ var Uris_US utils.Uris = utils.Uris {
 	Submit:      "https://leetcode.com/problems/$slug/submit/",
 	Submission:  "https://leetcode.com/submissions/detail/$id/",
 }
+
+var CSRF_Token string
+var LEETCODE_SESSION string
