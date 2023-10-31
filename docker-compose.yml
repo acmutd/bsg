@@ -11,6 +11,7 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
+      MAX_NUM_ROUND_PER_ROOM: ${MAX_NUM_ROUND_PER_ROOM}
   rtc-service:
     build: ./rtc-service
   worker-service:
