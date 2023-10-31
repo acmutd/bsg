@@ -61,6 +61,7 @@ func Login(username string, password string) (string, string) {
 	// Enter your LeetCode username and password
 	emailField.SendKeys(username)
 	passwordField.SendKeys(password)
+	passwordField.Click()
 
 	// Click the login button
 	time.Sleep(1 * time.Second)

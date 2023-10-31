@@ -30,15 +30,15 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 	// Set the request headers
 	req.Header.Add("authority", "leetcode.com")
 	req.Header.Add("method", "POST")
-	req.Header.Add("path", "/problems/two-sum/submit/")
+	req.Header.Add("path", "/problems/" + problemSlug + "/submit/")
 	req.Header.Add("scheme", "https")
 	req.Header.Add("Accept", "*/*")
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
 	req.Header.Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", "csrftoken="+CSRF_Token+";LEETCODE_SESSION="+LEETCODE_SESSION+";")
+	req.Header.Add("Cookie", "csrftoken=" + CSRF_Token + ";LEETCODE_SESSION=" + LEETCODE_SESSION + ";")
 	req.Header.Add("Origin", "https://leetcode.com")
-	req.Header.Add("Referer", "https://leetcode.com/problems/two-sum/")
+	req.Header.Add("Referer", "https://leetcode.com/problems/" + problemSlug + "/")
 	req.Header.Add("X-Csrftoken", CSRF_Token)
 
 	// Perform the HTTP request
@@ -51,10 +51,12 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 	// Retrieve submission ID from the response body
 	body, err := io.ReadAll(resp.Body)
 	submissionID, err := parseSubmissionID(string(body))
+	if err != nil {
+		return "Submit Failed", errors.New("Error parsing submission ID: " + err.Error())
+	}
 
 	// Poll the submission status
-	pollingCount := 0
-	for {
+	for pollingCount := 0; pollingCount < 20; pollingCount++ {
 		url := "https://leetcode.com/submissions/detail/" + submissionID + "/check/"
 		method := "GET"
 		req, err := http.NewRequest(method, url, nil)
@@ -63,7 +65,7 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 		}
 		req.Header.Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Cookie", "csrftoken="+CSRF_Token+";LEETCODE_SESSION="+LEETCODE_SESSION+";")
+		req.Header.Add("Cookie", "csrftoken=" + CSRF_Token + ";LEETCODE_SESSION=" + LEETCODE_SESSION + ";")
 
 		// Perform the HTTP request
 		resp, err := client.Do(req)
@@ -78,10 +80,6 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 			return string(body), nil
 		}
 
-		pollingCount += 1
-		if pollingCount > 20 {
-			break
-		}
 		time.Sleep(500 * time.Millisecond)
 	}
 	return "Submit Failed", errors.New("Submit not sucess")
