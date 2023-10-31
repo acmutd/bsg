@@ -32,40 +32,21 @@ func (service *RoomService) CreateRoom(adminID string, roomName string) (*models
 	return &newRoom, nil
 }
 
-
-// Find a room by parameters
-func (service *RoomService) FindRoomByParameters(roomID, roomName string) ([]models.Room, error) {
-	if roomName != "" {5
-		var room models.Room
-		result := service.db.Where("name = ?", roomName).Find(&room)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil, nil
-		}
-		return []models.Room{room}, nil
-	} else if roomID != "" {
-		var room models.Room
-		uuid, err := uuid.Parse(roomID)
-		if err!= nil {
-			return nil, RoomNameError{Message: "roomID could not be parsed"}
-		}
-		result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil, nil
-		}
-		return []models.Room{room}, nil
-	} else {
-		var rooms []models.Room
-		if err := service.db.Find(&rooms).Error; err != nil {
-			return nil, err
-		}
-		return rooms, nil
+// Find a room by id
+func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
+	var room models.Room
+	uuid, err := uuid.Parse(roomID)
+	if err!= nil {
+		return nil, RoomNameError{Message: "roomID could not be parsed"}
 	}
+	result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &room, nil
 }
 
 type RoomNameError struct{

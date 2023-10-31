@@ -41,17 +41,16 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 // Endpoint for finding a room by id
 func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 	targetRoomID := c.QueryParam("roomId")
-	targetRoomName := c.QueryParam("roomName")
-	rooms, err := controller.roomService.FindRoomByParameters(targetRoomID, targetRoomName)
+	rooms, err := controller.roomService.FindRoomByID(targetRoomID)
 	if err != nil {
-		log.Printf("Failed to search for room with id %s and name %s: %v\n", targetRoomID, targetRoomName, err)
+		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	if rooms == nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Room not found")
 	}
-	return c.JSON(http.StatusOK, map[string][]models.Room{
-		"data": rooms,
+	return c.JSON(http.StatusOK, map[string]models.Room{
+		"data": *rooms,
 	})
 }
 
