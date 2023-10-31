@@ -78,6 +78,9 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	// TODO: Add logic for problem generation
 	// TODO: Change usage of ID to UUID
 	redisKey := fmt.Sprintf("%d_mostRecentRound", room.ID)
-	service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0)
+	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
+	if err != nil {
+		return nil, err
+	}
 	return &newRound, nil
 }
