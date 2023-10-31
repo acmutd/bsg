@@ -31,8 +31,10 @@ services:
     image: bitnami/redis:latest
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis-volume:/bitnami/redis/data
 
 volumes:
   db-volume:
-  cache: 
+  redis-volume: 
     driver: local
