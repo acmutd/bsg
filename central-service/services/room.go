@@ -20,6 +20,9 @@ func (service *RoomService) CreateRoom(adminID string, roomName string) (*models
 	if len(roomName) < 4 {
 		return nil, RoomNameError{Message: "roomName must be at least 4 characters in length"}
 	}
+	if len(roomName) >= 32 {
+		return nil, RoomNameError{Message: "roomName must be under 32 characters in length"}
+	}
 	newRoom := models.Room{
 		ID: uuid.New(),
 		Name: roomName,
