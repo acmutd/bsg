@@ -1,12 +1,18 @@
 package services
 
 import (
+	"context"
+	"fmt"
+	"strconv"
+
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type RoundService struct {
 	db                  *gorm.DB
+	rdb                 *redis.Client
 	MaxNumRoundsPerRoom int
 }
 
@@ -26,9 +32,10 @@ func (r *RoundServiceError) Error() string {
 	return r.Message
 }
 
-func InitializeRoundService(db *gorm.DB, maxNumRoundsPerRoom int) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, maxNumRoundsPerRoom int) RoundService {
 	return RoundService{
 		db:                  db,
+		rdb:                 rdb,
 		MaxNumRoundsPerRoom: maxNumRoundsPerRoom,
 	}
 }
@@ -69,5 +76,8 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	}
 	service.db.Model(&room).Association("Rounds").Append(&newRound)
 	// TODO: Add logic for problem generation
+	// TODO: Change usage of ID to UUID
+	redisKey := fmt.Sprintf("%d_mostRecentRound", room.ID)
+	service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0)
 	return &newRound, nil
 }

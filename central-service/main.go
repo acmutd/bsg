@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -26,6 +27,13 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error connecting to the database: %v\n", err)
 	}
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "redis-cache:6379",
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
+	})
+
 	if err := db.AutoMigrate(&models.User{}); err != nil {
 		fmt.Printf("Error migrating User schema: %v\n", err)
 	}
@@ -40,7 +48,7 @@ func main() {
 	roomService := services.InitializeRoomService(db)
 	roomController := controllers.InitializeRoomController(&roomService)
 
-	roundService := services.InitializeRoundService(db, maxNumRoundsPerRoom)
+	roundService := services.InitializeRoundService(db, rdb, maxNumRoundsPerRoom)
 	roundController := controllers.InitializeRoundController(&roundService)
 
 	e.Use(middleware.CORS())
