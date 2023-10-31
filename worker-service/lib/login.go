@@ -11,7 +11,7 @@ import (
 
 func Login(username string, password string) (string, string) {
 	// initialize a Chrome browser instance on port 4444
-	_, err := selenium.NewChromeDriverService("../chromedriver", 4444)
+	_, err := selenium.NewChromeDriverService("../drivers/chromedriver", 4444)
 
 	if err != nil {
 		log.Fatal("Error: ", err)
