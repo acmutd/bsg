@@ -21,11 +21,8 @@ type RoomDTO struct {
 // Create a room and persist
 // User creating the room is the room leader
 func (service *RoomService) CreateRoom(adminID string, room* RoomDTO) (*models.Room, error) {
-	if len(room.Name) < 4 {
-		return nil, RoomNameError{Message: "roomName must be at least 4 characters in length"}
-	}
-	if len(room.Name) >= 32 {
-		return nil, RoomNameError{Message: "roomName must be under 32 characters in length"}
+	err := validateRoomName(room.Name); if err != nil {
+		return nil, err
 	}
 	newRoom := models.Room{
 		ID: uuid.New(),
@@ -62,4 +59,18 @@ type RoomNameError struct{
 
 func (e RoomNameError) Error() string {
 	return e.Message
+}
+
+// Validates a room name
+func validateRoomName(name string) error {
+	if len(name) <= 0 {
+		return RoomNameError{Message: "roomName missing"}
+	}
+	if len(name) < 4 {
+		return RoomNameError{Message: "roomName must be at least 4 characters in length"}
+	}
+	if len(name) >= 32 {
+		return RoomNameError{Message: "roomName must be under 32 characters in length"}
+	}
+	return nil;
 }
