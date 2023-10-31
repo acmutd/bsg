@@ -21,7 +21,7 @@ type RoomDTO struct {
 // Create a room and persist
 // User creating the room is the room leader
 func (service *RoomService) CreateRoom(adminID string, room* RoomDTO) (*models.Room, error) {
-	err := validateRoomName(room.Name); if err != nil {
+	if err := validateRoomName(room.Name); err != nil {
 		return nil, err
 	}
 	newRoom := models.Room{

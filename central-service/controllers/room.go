@@ -47,7 +47,7 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	if rooms == nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Room not found")
+		return echo.NewHTTPError(http.StatusNotFound, "Room not found")
 	}
 	return c.JSON(http.StatusOK, map[string]models.Room{
 		"data": *rooms,
