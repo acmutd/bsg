@@ -4,6 +4,7 @@ services:
     build: ./central-service
     depends_on:
       - db
+      - redis-cache
     ports:
       - 5000:5000
     environment:
