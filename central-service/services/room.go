@@ -14,18 +14,22 @@ func InitializeRoomService(db *gorm.DB) RoomService {
 	return RoomService{db}
 }
 
+type RoomDTO struct {
+	Name string `json:"roomName"`
+}
+
 // Create a room and persist
 // User creating the room is the room leader
-func (service *RoomService) CreateRoom(adminID string, roomName string) (*models.Room, error) {
-	if len(roomName) < 4 {
+func (service *RoomService) CreateRoom(adminID string, room* RoomDTO) (*models.Room, error) {
+	if len(room.Name) < 4 {
 		return nil, RoomNameError{Message: "roomName must be at least 4 characters in length"}
 	}
-	if len(roomName) >= 32 {
+	if len(room.Name) >= 32 {
 		return nil, RoomNameError{Message: "roomName must be under 32 characters in length"}
 	}
 	newRoom := models.Room{
 		ID: uuid.New(),
-		Name: roomName,
+		Name: room.Name,
 		Admin: adminID,
 	}
 	result := service.db.Create(&newRoom)

@@ -20,16 +20,16 @@ func InitializeRoomController(service *services.RoomService) RoomController {
 
 // Endpoint for creating a new room given an admin and a roomName
 func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
-	roomName := c.QueryParam("roomName")
-	if roomName == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Room name is missing")
+	var roomDTO services.RoomDTO
+	if err := c.Bind(&roomDTO); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
 	userAuthID := c.Get("authToken").(*auth.Token).UID
-	newRoom, err := controller.roomService.CreateRoom(userAuthID, roomName)
+	newRoom, err := controller.roomService.CreateRoom(userAuthID, &roomDTO)
 	if err != nil {
 		log.Printf("Failed to create room object: %v\n", err)
 		if _, ok := err.(services.RoomNameError); ok {
-			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create room. " + err.Error())
+			return echo.NewHTTPError(http.StatusBadRequest, "Failed to create room. " + err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create room. Please try again later")
 	}
