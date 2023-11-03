@@ -4,10 +4,16 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/joho/godotenv"
 )
 
 func TestLoginSuccess(t *testing.T) {
 	// Get the username and password environment variables
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		t.Error("Error loading .env file")
+	}
 	username := os.Getenv("LEETCODE_USERNAME")
 	password := os.Getenv("LEETCODE_PASSWORD")
 	// Login into LeetCode
@@ -19,6 +25,10 @@ func TestLoginSuccess(t *testing.T) {
 
 func TestLoginFail(t *testing.T) {
 	// Get the username and password environment variables
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		t.Error("Error loading .env file")
+	}
 	username := os.Getenv("LEETCODE_USERNAME")
 	password := "abcd1234"
 	// Login into LeetCode
@@ -30,6 +40,10 @@ func TestLoginFail(t *testing.T) {
 
 func TestSubmitSuccess(t *testing.T) {
 	// Get the username and password environment variables
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		t.Error("Error loading .env file")
+	}
 	username := os.Getenv("LEETCODE_USERNAME")
 	password := os.Getenv("LEETCODE_PASSWORD")
 	// Login into LeetCode
@@ -44,6 +58,10 @@ func TestSubmitSuccess(t *testing.T) {
 
 func TestSubmitFail(t *testing.T) {
 	// Get the username and password environment variables
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		t.Error("Error loading .env file")
+	}
 	username := os.Getenv("LEETCODE_USERNAME")
 	password := "abcd1234"
 	// Login into LeetCode

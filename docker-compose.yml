@@ -15,6 +15,9 @@ services:
     build: ./rtc-service
   worker-service:
     build: ./worker-service
+    environment:
+      LEETCODE_USERNAME: ${LEETCODE_USERNAME}
+      LEETCODE_PASSWORD: ${LEETCODE_PASSWORD}
   db: 
     image: postgres
     restart: always
