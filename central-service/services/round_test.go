@@ -24,6 +24,8 @@ func createMockRoom(db *gorm.DB) (*models.Room, error) {
 	return &newRoom, nil
 }
 
+// TODO: fix test
+
 func TestCreateNewRound(t *testing.T) {
 	mockDb, mock, err := sqlmock.New()
 	rdb, mockRedis := redismock.NewClientMock()
@@ -57,7 +59,9 @@ func TestCreateNewRound(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mockRedis.ExpectSet("1_mostRecentRound", "1", 0)
-	roundService := InitializeRoundService(db, rdb, MAX_ROUND_PER_ROOM)
+	roomService := InitializeRoomService(db, MAX_ROUND_PER_ROOM)
+	roomAccessor := NewRoomAccessor(&roomService)
+	roundService := InitializeRoundService(db, rdb, &roomAccessor)
 	_, err = roundService.CreateRound(&RoundCreationParameters{
 		RoomID:   mockRoom.ID.String(),
 		Duration: 20,
@@ -81,7 +85,6 @@ func TestCreateNewRound(t *testing.T) {
 
 func TestCreateNewRoundExceededLimit(t *testing.T) {
 	mockDb, mock, err := sqlmock.New()
-	rdb, _ := redismock.NewClientMock()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -103,8 +106,9 @@ func TestCreateNewRoundExceededLimit(t *testing.T) {
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id"}))
-	roundService := InitializeRoundService(db, rdb, 0)
-	roundLimitExceeded, err := roundService.CheckRoundLimitExceeded(mockRoom)
+	roomService := InitializeRoomService(db, MAX_ROUND_PER_ROOM)
+	roomAccessor := NewRoomAccessor(&roomService)
+	roundLimitExceeded, err := roomAccessor.CheckRoundLimitExceeded(mockRoom)
 	if err != nil {
 		t.Fatalf("Error checking round limit exceeded: %v\n", err)
 	}

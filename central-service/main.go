@@ -45,10 +45,11 @@ func main() {
 	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController(&userService)
 
-	roomService := services.InitializeRoomService(db)
+	roomService := services.InitializeRoomService(db, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 
-	roundService := services.InitializeRoundService(db, rdb, maxNumRoundsPerRoom)
+	roomAccessor := services.NewRoomAccessor(&roomService)
+	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
 	roundController := controllers.InitializeRoundController(&roundService)
 
 	e.Use(middleware.CORS())

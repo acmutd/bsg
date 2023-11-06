@@ -11,9 +11,9 @@ import (
 )
 
 type RoundService struct {
-	db                  *gorm.DB
-	rdb                 *redis.Client
-	MaxNumRoundsPerRoom int
+	db           *gorm.DB
+	rdb          *redis.Client
+	roomAccessor *RoomAccessor
 }
 
 type RoundCreationParameters struct {
@@ -32,34 +32,23 @@ func (r *RoundServiceError) Error() string {
 	return r.Message
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, maxNumRoundsPerRoom int) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor) RoundService {
 	return RoundService{
-		db:                  db,
-		rdb:                 rdb,
-		MaxNumRoundsPerRoom: maxNumRoundsPerRoom,
+		db:           db,
+		rdb:          rdb,
+		roomAccessor: roomAccessor,
 	}
-}
-
-func (service *RoundService) CheckRoundLimitExceeded(room *models.Room) (bool, error) {
-	var rounds []models.Round
-	err := service.db.Model(room).Association("Rounds").Find(&rounds)
-	if err != nil {
-		return true, err
-	}
-	return len(rounds) >= service.MaxNumRoundsPerRoom, nil
 }
 
 func (service *RoundService) CreateRound(params *RoundCreationParameters) (*models.Round, error) {
-	// TODO: Move room query logic to RoomService
-	var room models.Room
-	result := service.db.Where("ID = ?", params.RoomID).Limit(1).Find(&room)
-	if result.Error != nil {
-		return nil, result.Error
+	targetRoom, err := service.roomAccessor.GetRoomByID(params.RoomID)
+	if err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if targetRoom == nil {
 		return nil, nil
 	}
-	roundLimitExceeded, err := service.CheckRoundLimitExceeded(&room)
+	roundLimitExceeded, err := service.roomAccessor.CheckRoundLimitExceeded(targetRoom)
 	if err != nil {
 		return nil, err
 	}
@@ -69,15 +58,15 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 			Message:    "Round limit exceeded",
 		}
 	}
-	newRound := models.Round{Duration: params.Duration, RoomID: room.ID}
-	result = service.db.Create(&newRound)
+	newRound := models.Round{Duration: params.Duration, RoomID: targetRoom.ID}
+	result := service.db.Create(&newRound)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	service.db.Model(&room).Association("Rounds").Append(&newRound)
+	service.db.Model(targetRoom).Association("Rounds").Append(&newRound)
 	// TODO: Add logic for problem generation
 	// TODO: Change usage of ID to UUID
-	redisKey := fmt.Sprintf("%d_mostRecentRound", room.ID)
+	redisKey := fmt.Sprintf("%s_mostRecentRound", params.RoomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
 		return nil, err
