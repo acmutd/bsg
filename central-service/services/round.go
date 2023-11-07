@@ -17,7 +17,6 @@ type RoundService struct {
 }
 
 type RoundCreationParameters struct {
-	// TODO: change type to string for uuid
 	// TODO: add parameters for problem generation
 	RoomID   string
 	Duration int
@@ -63,9 +62,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	service.db.Model(targetRoom).Association("Rounds").Append(&newRound)
 	// TODO: Add logic for problem generation
-	// TODO: Change usage of ID to UUID
 	redisKey := fmt.Sprintf("%s_mostRecentRound", params.RoomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
