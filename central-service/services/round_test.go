@@ -15,7 +15,6 @@ import (
 const MAX_ROUND_PER_ROOM = 20
 
 func createMockRoom(db *gorm.DB, roomUUID uuid.UUID) (*models.Room, error) {
-	// TODO: Use RoomService
 	newRoom := models.Room{
 		Name: "Hello World",
 		ID: roomUUID,
@@ -27,8 +26,6 @@ func createMockRoom(db *gorm.DB, roomUUID uuid.UUID) (*models.Room, error) {
 	}
 	return &newRoom, nil
 }
-
-// TODO: fix test
 
 func TestCreateNewRound(t *testing.T) {
 	mockDb, mock, err := sqlmock.New()
