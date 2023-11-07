@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/acmutd/bsg/central-service/models"
@@ -42,6 +43,7 @@ func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAc
 func (service *RoundService) CreateRound(params *RoundCreationParameters) (*models.Round, error) {
 	targetRoom, err := service.roomAccessor.GetRoomByID(params.RoomID)
 	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
 		return nil, err
 	}
 	if targetRoom == nil {
@@ -49,6 +51,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	}
 	roundLimitExceeded, err := service.roomAccessor.CheckRoundLimitExceeded(targetRoom)
 	if err != nil {
+		log.Printf("Error checking round limit: %v\n", err)
 		return nil, err
 	}
 	if roundLimitExceeded {
@@ -60,12 +63,14 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	newRound := models.Round{Duration: params.Duration, RoomID: targetRoom.ID}
 	result := service.db.Create(&newRound)
 	if result.Error != nil {
+		log.Printf("Error creating new round: %v\n", result.Error)
 		return nil, result.Error
 	}
 	// TODO: Add logic for problem generation
 	redisKey := fmt.Sprintf("%s_mostRecentRound", params.RoomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
+		log.Printf("Error setting value in redis instance: %v\n", err)
 		return nil, err
 	}
 	return &newRound, nil
