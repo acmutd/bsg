@@ -3,16 +3,18 @@ package services
 import (
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type RoomService struct {
 	db                  *gorm.DB
+	rdb                 *redis.Client
 	MaxNumRoundsPerRoom int
 }
 
-func InitializeRoomService(db *gorm.DB, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, maxNumRoundsPerRoom}
+func InitializeRoomService(db *gorm.DB, rdb *redis.Client, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, rdb, maxNumRoundsPerRoom}
 }
 
 type RoomDTO struct {
@@ -45,6 +47,8 @@ func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room
 	}
 	// find user by userID
 	// add user to room
+	// if round is started
+	// notify RTC
 	return room, nil
 }
 
