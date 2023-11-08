@@ -86,6 +86,7 @@ func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room
 	// find user by userID
 	// add user to room
 	// notify RTC
+	log.Println(service.rdb.ZRange(context.Background(), key, 0, 1))
 	return room, nil
 }
 
@@ -105,7 +106,7 @@ func (service *RoomService) LeaveRoom(userID string, roomID string) (*models.Roo
 	if result < 1 {
 		return nil, RoomServiceError{Message: "Are you in this room?"}
 	}
-	log.Println(result)
+	log.Println(service.rdb.ZRange(context.Background(), key, 0, 1))
 	// notify RTC
 	return room, nil
 }
