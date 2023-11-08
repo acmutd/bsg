@@ -7,11 +7,12 @@ import (
 )
 
 type RoomService struct {
-	db *gorm.DB
+	db                  *gorm.DB
+	MaxNumRoundsPerRoom int
 }
 
-func InitializeRoomService(db *gorm.DB) RoomService {
-	return RoomService{db}
+func InitializeRoomService(db *gorm.DB, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, maxNumRoundsPerRoom}
 }
 
 type RoomDTO struct {
