@@ -36,6 +36,17 @@ func (service *RoomService) CreateRoom(adminID string, room* RoomDTO) (*models.R
 	return &newRoom, nil
 }
 
+// Join a room
+func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		return nil, err
+	}
+	// find user by userID
+	// add user to room
+	return room, nil
+}
+
 // Find a room by id
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room

@@ -38,23 +38,38 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 	})
 }
 
+// Endpoint for joining a room
+func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	roomID := c.Param("roomID")
+	room, err := controller.roomService.JoinRoom(userAuthID, roomID)
+	if err != nil {
+		log.Printf("Failed to search for room with id %s: %v\n", roomID, err)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string]models.Room{
+		"data": *room,
+	})
+}
+
 // Endpoint for finding a room by id
 func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 	targetRoomID := c.QueryParam("roomId")
-	rooms, err := controller.roomService.FindRoomByID(targetRoomID)
+	room, err := controller.roomService.FindRoomByID(targetRoomID)
 	if err != nil {
 		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	if rooms == nil {
+	if room == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Room not found")
 	}
 	return c.JSON(http.StatusOK, map[string]models.Room{
-		"data": *rooms,
+		"data": *room,
 	})
 }
 
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
 	g.GET("/", controller.FindRoomEndpoint)
+	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 }
