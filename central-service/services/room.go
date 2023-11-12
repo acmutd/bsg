@@ -108,6 +108,14 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 	return room, nil
 }
 
+func (service *RoomService) isRoomLeader(roomID string, userID string) (bool, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		return false, err
+	}
+	return room.Admin == userID, nil
+}
+
 type RoomServiceError struct{
 	Message string
 }
