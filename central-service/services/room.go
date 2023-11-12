@@ -83,7 +83,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	// if round is already started
 	// create a participant object
 	// notify RTC
-	log.Println(service.rdb.ZRange(context.Background(), key, 0, -1))
+	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
 	return room, nil
 }
 
@@ -103,7 +103,23 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 	if result < 1 {
 		return nil, RoomServiceError{Message: "Are you in this room?"}
 	}
-	log.Println(service.rdb.ZRange(context.Background(), key, 0, -1))
+	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
+	wasAdmin, err := service.IsRoomAdmin(roomID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if wasAdmin {
+		result, err := service.FindRightfulRoomAdmin(roomID)
+		if err != nil {
+			if rsError, ok := err.(RoomServiceError); ok && rsError.Message == "Empty room" {
+				// notify RTC room is empty
+				log.Printf("Room %s is empty", roomID)
+			} else {
+				return nil, err
+			}
+		}
+		room.Admin = result
+	}
 	// notify RTC
 	return room, nil
 }
@@ -118,13 +134,16 @@ func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, err
 }
 
 // returns auth id of new room admin
-func (service *RoomService) FindRightfulRoomAdmin(roomID string) (*string, error) {
+func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error) {
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRange(context.Background(), key, 0, 0).Result()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return &result[0], nil
+	if len(result) == 0 {
+		return "", RoomServiceError{Message: "Empty room"}
+	}
+	return result[0], nil
 }
 
 type RoomServiceError struct{
