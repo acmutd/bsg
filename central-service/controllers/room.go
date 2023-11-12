@@ -25,7 +25,7 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
 	userAuthID := c.Get("authToken").(*auth.Token).UID
-	newRoom, err := controller.roomService.CreateRoom(userAuthID, &roomDTO)
+	newRoom, err := controller.roomService.CreateRoom(&roomDTO, userAuthID)
 	if err != nil {
 		log.Printf("Failed to create room object: %v\n", err)
 		if _, ok := err.(services.RoomServiceError); ok {
@@ -58,7 +58,7 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("authToken").(*auth.Token).UID
 	roomID := c.Param("roomID")
-	room, err := controller.roomService.JoinRoom(userAuthID, roomID)
+	room, err := controller.roomService.JoinRoom(roomID, userAuthID)
 	if err != nil {
 		log.Printf("Failed to join room with id %s: %v\n", roomID, err)
 		if _, ok := err.(services.RoomServiceError); ok {
@@ -75,7 +75,7 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("authToken").(*auth.Token).UID
 	roomID := c.Param("roomID")
-	room, err := controller.roomService.LeaveRoom(userAuthID, roomID)
+	room, err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
 		log.Printf("Failed to leave room with id %s: %v\n", roomID, err)
 		if _, ok := err.(services.RoomServiceError); ok {

@@ -27,7 +27,7 @@ type RoomDTO struct {
 
 // Create a room and persist
 // User creating the room is the room leader
-func (service *RoomService) CreateRoom(adminID string, room* RoomDTO) (*models.Room, error) {
+func (service *RoomService) CreateRoom(room* RoomDTO, adminID string) (*models.Room, error) {
 	if err := validateRoomName(room.Name); err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 }
 
 // Join a room
-func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room, error) {
+func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room
 }
 
 // Leave a room
-func (service *RoomService) LeaveRoom(userID string, roomID string) (*models.Room, error) {
+func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Room, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
 		return nil, err
