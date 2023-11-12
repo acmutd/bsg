@@ -9,7 +9,7 @@ This is a WebSocket server that provides real-time communication between users a
 ## Interacting with the Server
 
 To send messages to the RTC service, send messages to the following websocket: 
-`ws://localhost:8080/ws`
+`ws://localhost:8080/ws``
 
 ### Requests
 
@@ -29,7 +29,7 @@ To send an event to the server, send a JSON object with the following properties
 
 For example, to send a `Leave Room` request with the you would send the following JSON object:
 
-```json
+```
 {
     "request-type": "leave-room"
     "data": "{
