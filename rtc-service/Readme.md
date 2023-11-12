@@ -8,6 +8,9 @@ This is a WebSocket server that provides real-time communication between users a
 
 ## Interacting with the Server
 
+To send messages to the RTC service, send messages to the following websocket: 
+`ws://localhost:8080/ws`
+
 ### Requests
 
 Once you have connected to the server, you can send and receive messages in real-time. The server supports the following events:
