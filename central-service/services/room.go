@@ -66,9 +66,7 @@ func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room
 	if err != nil {
 		return nil, err
 	}
-	// is valid room
 	// add check to make sure they're not in other rooms?
-	// roomID_joinTimestamp
 	key := roomID + "_joinTimestamp"
 	member := redis.Z{
 		Score: float64(time.Now().Unix()),
@@ -82,15 +80,14 @@ func (service *RoomService) JoinRoom(userID string, roomID string) (*models.Room
 	if result < 1 {
 		return nil, RoomServiceError{Message: "Are you already in this room?"}
 	}
-	// if round is started
-	// find user by userID
-	// add user to room
+	// if round is already started
+	// create a participant object
 	// notify RTC
-	log.Println(service.rdb.ZRange(context.Background(), key, 0, 1))
+	log.Println(service.rdb.ZRange(context.Background(), key, 0, -1))
 	return room, nil
 }
 
-// Join a room
+// Leave a room
 func (service *RoomService) LeaveRoom(userID string, roomID string) (*models.Room, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
@@ -106,7 +103,7 @@ func (service *RoomService) LeaveRoom(userID string, roomID string) (*models.Roo
 	if result < 1 {
 		return nil, RoomServiceError{Message: "Are you in this room?"}
 	}
-	log.Println(service.rdb.ZRange(context.Background(), key, 0, 1))
+	log.Println(service.rdb.ZRange(context.Background(), key, 0, -1))
 	// notify RTC
 	return room, nil
 }
