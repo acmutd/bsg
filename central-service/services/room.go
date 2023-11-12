@@ -108,12 +108,23 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 	return room, nil
 }
 
-func (service *RoomService) isRoomLeader(roomID string, userID string) (bool, error) {
+// Returns whether a given user is the room admin
+func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
 		return false, err
 	}
 	return room.Admin == userID, nil
+}
+
+// returns auth id of new room admin
+func (service *RoomService) FindRightfulRoomAdmin(roomID string) (*string, error) {
+	key := roomID + "_joinTimestamp"
+	result, err := service.rdb.ZRange(context.Background(), key, 0, 0).Result()
+	if err != nil {
+		return nil, err
+	}
+	return &result[0], nil
 }
 
 type RoomServiceError struct{
