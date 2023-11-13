@@ -93,7 +93,6 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 	if err != nil {
 		return nil, err
 	}
-	// is valid room
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRem(context.Background(), key, userID).Result()
 	if err != nil {
@@ -114,7 +113,11 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 		if err != nil {
 			if rsError, ok := err.(RoomServiceError); ok && rsError.Message == "Empty room" {
 				// notify RTC room is empty
-				log.Printf("Room %s is empty", roomID)
+				log.Printf("Room %s is empty\n", roomID)
+				if resultCmd := service.rdb.Del(context.Background(), key); resultCmd.Err() != nil {
+					log.Printf("Error deleting key %s: %v\n", key, resultCmd.Err())
+					return nil, resultCmd.Err()
+				}
 			} else {
 				return nil, err
 			}
