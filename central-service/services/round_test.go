@@ -123,3 +123,6 @@ func TestCreateNewRoundExceededLimit(t *testing.T) {
 		t.Fatalf("Round limit not exceeded")
 	}
 }
+
+// TODO: add unit test for FindRoundByID
+// TODO: add unit test for InitiateRoundStart

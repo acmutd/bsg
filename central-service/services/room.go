@@ -27,13 +27,13 @@ type RoomDTO struct {
 
 // Create a room and persist
 // User creating the room is the room leader
-func (service *RoomService) CreateRoom(room* RoomDTO, adminID string) (*models.Room, error) {
+func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.Room, error) {
 	if err := validateRoomName(room.Name); err != nil {
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID: uuid.New(),
-		Name: room.Name,
+		ID:    uuid.New(),
+		Name:  room.Name,
 		Admin: adminID,
 	}
 	result := service.db.Create(&newRoom)
@@ -47,7 +47,7 @@ func (service *RoomService) CreateRoom(room* RoomDTO, adminID string) (*models.R
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
 	uuid, err := uuid.Parse(roomID)
-	if err!= nil {
+	if err != nil {
 		return nil, RoomServiceError{Message: "roomID could not be parsed"}
 	}
 	result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
@@ -68,7 +68,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	}
 	key := roomID + "_joinTimestamp"
 	member := redis.Z{
-		Score: float64(time.Now().Unix()),
+		Score:  float64(time.Now().Unix()),
 		Member: userID,
 	}
 	result, err := service.rdb.ZAdd(context.Background(), key, member).Result()
@@ -87,7 +87,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 }
 
 // Leave a room
-func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
+func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
 		}
 		if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
 			log.Printf("Error updating room admin in the database: %v\n", err)
-            return err
+			return err
 		}
 	}
 	return nil
@@ -168,7 +168,7 @@ func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 	return result, nil
 }
 
-type RoomServiceError struct{
+type RoomServiceError struct {
 	Message string
 }
 
@@ -187,5 +187,5 @@ func validateRoomName(name string) error {
 	if len(name) >= 32 {
 		return RoomServiceError{Message: "roomName must be under 32 characters in length"}
 	}
-	return nil;
+	return nil
 }

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -15,6 +17,7 @@ type RoundService struct {
 	db           *gorm.DB
 	rdb          *redis.Client
 	roomAccessor *RoomAccessor
+	roundScheduler *tasks.Scheduler
 }
 
 type RoundCreationParameters struct {
@@ -74,4 +77,37 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 		return nil, err
 	}
 	return &newRound, nil
+}
+
+func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) {
+	var round models.Round
+	result := service.db.Where("ID = ?", roundID).Limit(1).Find(&round)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &round, nil
+}
+
+func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error) {
+	roundStartTime := time.Now().Add(time.Second * 10)
+	result := service.db.Model(&models.Round{}).Where("ID = ?", roundID).Update("round_start_time", roundStartTime)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	_, err := service.roundScheduler.Add(&tasks.Task{
+		StartAfter: roundStartTime,
+		TaskFunc: func() error {
+			// TODO: Query list of users in redis sorted set corresponding to room
+			// TODO: Create participant object
+			// TODO: Send data to rtc service	
+			return nil
+		},
+	})
+	if err != nil {
+		return nil, err 
+	}
+	return &roundStartTime, nil
 }
