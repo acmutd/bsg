@@ -54,6 +54,12 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	return &room, nil
 }
 
+func (service *RoomService) CheckIfUserIsRoomAdmin(roomID string, userID uint) (bool, error) {
+	// TODO: add implementation
+	// TODO: add unit test for this function 
+	return true, nil
+}
+
 type RoomNameError struct{
 	Message string
 }

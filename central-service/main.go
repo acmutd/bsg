@@ -50,7 +50,7 @@ func main() {
 
 	roomAccessor := services.NewRoomAccessor(&roomService)
 	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
-	roundController := controllers.InitializeRoundController(&roundService)
+	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
