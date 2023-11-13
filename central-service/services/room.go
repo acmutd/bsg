@@ -104,6 +104,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 		return nil, RoomServiceError{Message: "Are you in this room?"}
 	}
 	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
+	// notify RTC user left room
 	wasAdmin, err := service.IsRoomAdmin(roomID, userID)
 	if err != nil {
 		return nil, err
@@ -120,7 +121,6 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 		}
 		room.Admin = result
 	}
-	// notify RTC
 	return room, nil
 }
 
