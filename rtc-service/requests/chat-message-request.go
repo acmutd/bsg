@@ -1,10 +1,15 @@
 package requests
 
+import (
+  // "encoding/json"
+  "github.com/gorilla/websocket"
+)
+
 // Request for a user to send a message to a room.
 type ChatMessageRequest struct {
-	UserID  string `json:"userID"`
-	RoomID  string `json:"roomID"`
-	Message string `json:"message"`
+  UserID  string `json:"userID"` // validate:"required"`
+	RoomID  string `json:"roomID"` // validate:"required"`
+	Message string `json:"message"` // validate:"required"`
 }
 
 // Returns the type of the request.
@@ -14,12 +19,10 @@ func (r *ChatMessageRequest) Type() string {
 
 // Validates the request.
 func (r *ChatMessageRequest) validate() error {
-	// This method will be completed in the future PR.
-	return nil
+  return nil
 }
 
 // Handles the request and returns a response.
-func (r *ChatMessageRequest) Handle(m *Message) (string, error) {
-	// This method will be completed in the future PR.
-	return "Chat Message Request", nil
+func (r *ChatMessageRequest) Handle(m *Message, c *websocket.Conn) (string, error) { 
+  return "Chat Message Request", nil
 }

@@ -1,10 +1,16 @@
 package requests
 
+import (
+  "encoding/json"
+
+  "github.com/gorilla/websocket"
+)
+
 // Struct for the leave-room request.
 // Request for a user to leave a room.
 type LeaveRoomRequest struct {
-	UserID string `json:"userID"`
-	RoomID string `json:"roomID"`
+	UserID string `json:"userID"` // validate:"required"`
+	RoomID string `json:"roomID"` // validate:"required"`
 }
 
 // Returns the type of the request.
@@ -18,7 +24,19 @@ func (r *LeaveRoomRequest) validate() error {
 }
 
 // Handles the request and returns a response.
-func (r *LeaveRoomRequest) Handle(m *Message) (string, error) {
-	// This method will be completed in the future PR.
-	return "Leave Room Request", nil
+func (r *LeaveRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+  err := json.Unmarshal([]byte(m.Data), &r)
+  
+  if err != nil {
+    return "Err", err;
+  }
+ 
+  room := rooms[r.RoomID]
+
+  if &room == nil {
+     return "Room Doesn't Exist", nil;
+  }
+
+  room.RemoveUser(r.UserID)
+  return "Leave Room Request", nil
 }

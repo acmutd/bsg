@@ -1,5 +1,7 @@
 package requests
 
+import "github.com/gorilla/websocket"
+
 type RequestType string
 
 // List of request types.
@@ -34,5 +36,5 @@ type Request interface {
 	validate() error
 
 	// Handles the request and returns a response.
-	Handle(*Message) (string, error)
+	Handle(*Message, *websocket.Conn) (string, error)
 }
