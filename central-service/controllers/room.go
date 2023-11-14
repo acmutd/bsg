@@ -40,7 +40,7 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 
 // Endpoint for finding a room by id
 func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
-	targetRoomID := c.QueryParam("roomId")
+	targetRoomID := c.Param("roomID")
 	room, err := controller.roomService.FindRoomByID(targetRoomID)
 	if err != nil {
 		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
@@ -90,7 +90,7 @@ func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
-	g.GET("/", controller.FindRoomEndpoint)
+	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 }
