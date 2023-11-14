@@ -75,7 +75,7 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("authToken").(*auth.Token).UID
 	roomID := c.Param("roomID")
-	room, err := controller.roomService.LeaveRoom(roomID, userAuthID)
+	err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
 		log.Printf("User id: %s failed to leave room with id %s: %v\n", userAuthID, roomID, err)
 		if _, ok := err.(services.RoomServiceError); ok {
@@ -83,8 +83,8 @@ func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	return c.JSON(http.StatusOK, map[string]models.Room{
-		"data": *room,
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Successfully Left Room",
 	})
 }
 

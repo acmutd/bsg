@@ -87,25 +87,25 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 }
 
 // Leave a room
-func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Room, error) {
+func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRem(context.Background(), key, userID).Result()
 	if err != nil {
 		log.Printf("Error removing user join timestamp in redis instance: %v\n", err)
-		return nil, err
+		return err
 	}
 	if result < 1 {
-		return nil, RoomServiceError{Message: "Are you in this room?"}
+		return RoomServiceError{Message: "Are you in this room?"}
 	}
 	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
 	// notify RTC user left room
 	wasAdmin, err := service.IsRoomAdmin(roomID, userID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if wasAdmin {
 		result, err := service.FindRightfulRoomAdmin(roomID)
@@ -115,19 +115,19 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 				log.Printf("Room %s is empty\n", roomID)
 				if resultCmd := service.rdb.Del(context.Background(), key); resultCmd.Err() != nil {
 					log.Printf("Error deleting key %s: %v\n", key, resultCmd.Err())
-					return nil, resultCmd.Err()
+					return resultCmd.Err()
 				}
 				// delete room from postgres?
 			} else {
-				return nil, err
+				return err
 			}
 		}
 		if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
 			log.Printf("Error updating room admin in the database: %v\n", err)
-            return nil, err
+            return err
 		}
 	}
-	return room, nil
+	return nil
 }
 
 // Returns whether a given user is the room admin
