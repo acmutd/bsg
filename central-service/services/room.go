@@ -66,7 +66,6 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err != nil {
 		return nil, err
 	}
-	// add check to make sure they're not in other rooms?
 	key := roomID + "_joinTimestamp"
 	member := redis.Z{
 		Score: float64(time.Now().Unix()),
@@ -122,7 +121,10 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 				return nil, err
 			}
 		}
-		room.Admin = result
+		if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
+			log.Printf("Error updating room admin in the database: %v\n", err)
+            return nil, err
+		}
 	}
 	return room, nil
 }
