@@ -103,6 +103,23 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
 	}
 	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
 	// notify RTC user left room
+	size, err := service.rdb.ZCard(context.Background(), key).Result()
+	if err != nil {
+		return err
+	}
+	if size <= 0 {
+		// notify RTC room is empty
+		if resultCmd := service.rdb.Del(context.Background(), key); resultCmd.Err() != nil {
+			log.Printf("Error deleting key %s: %v\n", key, resultCmd.Err())
+			return resultCmd.Err()
+		}
+		if err := service.db.Delete(room).Error; err != nil {
+			log.Printf("Error deleting room %s: %v\n", key, err)
+			return err
+		}
+		log.Printf("Deleted room %s\n", roomID)
+		return nil
+	}
 	wasAdmin, err := service.IsRoomAdmin(roomID, userID)
 	if err != nil {
 		return err
@@ -110,17 +127,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
 	if wasAdmin {
 		result, err := service.FindRightfulRoomAdmin(roomID)
 		if err != nil {
-			if rsError, ok := err.(RoomServiceError); ok && rsError.Message == "Empty room" {
-				// notify RTC room is empty
-				log.Printf("Room %s is empty\n", roomID)
-				if resultCmd := service.rdb.Del(context.Background(), key); resultCmd.Err() != nil {
-					log.Printf("Error deleting key %s: %v\n", key, resultCmd.Err())
-					return resultCmd.Err()
-				}
-				// delete room from postgres?
-			} else {
-				return err
-			}
+			return err
 		}
 		if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
 			log.Printf("Error updating room admin in the database: %v\n", err)
