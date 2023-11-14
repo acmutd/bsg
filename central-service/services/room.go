@@ -117,6 +117,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (*models.Roo
 					log.Printf("Error deleting key %s: %v\n", key, resultCmd.Err())
 					return nil, resultCmd.Err()
 				}
+				// delete room from postgres?
 			} else {
 				return nil, err
 			}
