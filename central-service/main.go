@@ -45,7 +45,7 @@ func main() {
 	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController(&userService)
 
-	roomService := services.InitializeRoomService(db, maxNumRoundsPerRoom)
+	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 
 	roomAccessor := services.NewRoomAccessor(&roomService)
