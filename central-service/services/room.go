@@ -159,6 +159,15 @@ func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error)
 	return result[0], nil
 }
 
+func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
+	key := roomID + "_joinTimestamp"
+	result, err := service.rdb.ZRange(context.Background(), key, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 type RoomServiceError struct{
 	Message string
 }
