@@ -23,18 +23,26 @@ func main() {
 	if err := db.AutoMigrate(&models.User{}, &models.Problem{}); err != nil {
 		fmt.Printf("Error migrating schema: %v\n", err)
 	}
+	if err := db.AutoMigrate(&models.Room{}); err != nil {
+		fmt.Printf("Error migrating Room schema: %v\n", err)
+	}
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController(&userService)
+
 	problemService := services.InitializeProblemService(db)
 	problemController := controllers.InitializeProblemController(&problemService)
+	
+	roomService := services.InitializeRoomService(db)
+	roomController := controllers.InitializeRoomController(&roomService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
 	problemController.InitializeRoutes(e.Group("/api/problems"))
+	roomController.InitializeRoutes(e.Group("/api/rooms"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }
