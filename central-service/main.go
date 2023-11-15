@@ -28,9 +28,9 @@ func main() {
 		fmt.Printf("Error connecting to the database: %v\n", err)
 	}
 
-  if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
 		fmt.Printf("Error migrating schema: %v\n", err)
-  }
+	}
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "redis-cache:6379",
@@ -45,7 +45,7 @@ func main() {
 
 	problemService := services.InitializeProblemService(db)
 	problemController := controllers.InitializeProblemController(&problemService)
-	
+
 	roomService := services.InitializeRoomService(db, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 

@@ -30,13 +30,13 @@ func (controller *ProblemController) FindProblemByProblemIDEndpoint(c echo.Conte
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problem ID specified")
 	}
 	searchedProblem, err := controller.problemService.FindProblemByProblemID(uintProblemID)
-	if searchedProblem == nil {
-		msg := fmt.Sprintf("Problem with id %s not found", targetProblemID)
-		return echo.NewHTTPError(http.StatusBadRequest, msg)
-	}
 	if err != nil {
 		log.Printf("Problem service failed to search for problem %s: %v\n", targetProblemID, err)
 		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	if searchedProblem == nil {
+		msg := fmt.Sprintf("Problem with id %s not found", targetProblemID)
+		return echo.NewHTTPError(http.StatusBadRequest, msg)
 	}
 	return c.JSON(http.StatusOK, map[string]models.Problem{
 		"data": *searchedProblem,
