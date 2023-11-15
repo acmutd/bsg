@@ -54,3 +54,13 @@ func (service *ProblemService) UpdateProblemData(problemId uint, problemData *mo
 	}
 	return searchResult, nil
 }
+
+func (service *ProblemService) FindProblems(count uint, offset uint) ([]models.Problem, error) {
+	var problems []models.Problem
+	count = min(count, 100) // count should not exceed 100
+	searchResult := service.db.Limit(int(count)).Offset(int(offset)).Find(&problems)
+	if searchResult.Error != nil {
+		return nil, searchResult.Error
+	}
+	return problems, nil
+}
