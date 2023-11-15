@@ -42,11 +42,11 @@ func (service *ProblemService) FindProblemByProblemID(problemId uint) (*models.P
 // Function to update problem with specified id
 func (service *ProblemService) UpdateProblemData(problemId uint, problemData *models.Problem) (*models.Problem, error) {
 	searchResult, err := service.FindProblemByProblemID(problemId)
-	if searchResult == nil {
-		return nil, gorm.ErrRecordNotFound
-	}
 	if err != nil {
 		return nil, err
+	}
+	if searchResult == nil {
+		return nil, gorm.ErrRecordNotFound
 	}
 	updateResult := service.db.Model(searchResult).Updates(problemData)
 	if updateResult.Error != nil {
