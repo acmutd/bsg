@@ -19,43 +19,6 @@ func InitializeProblemController(service *services.ProblemService) ProblemContro
 	return ProblemController{service}
 }
 
-// An endpoint containing logic used to create a new problem based on provided parameters
-func (controller *ProblemController) CreateNewProblemEndpoint(c echo.Context) error {
-	var problemData models.Problem // ID field is ignored
-	if err := c.Bind(&problemData); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problem data specified. Please try again")
-	}
-	newProblem, err := controller.problemService.CreateProblem(&problemData)
-	if err != nil {
-		log.Printf("Failed to create problem object: %v\n", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create object. Please try again later")
-	}
-	return c.JSON(http.StatusCreated, map[string]models.Problem{
-		"data": *newProblem,
-	})
-}
-
-// An endpoint containing logic used to update a problem data with provided parameters
-func (controller *ProblemController) UpdateProblemDataEndpoint(c echo.Context) error {
-	var problemData models.Problem
-	if err := c.Bind(&problemData); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problem data specified. Please try again")
-	}
-	problemID := c.QueryParam("problemId")
-	uintProblemID, err := stringToUint(problemID)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problem ID specified")
-	}
-	updatedProblem, err := controller.problemService.UpdateProblemData(uintProblemID, &problemData)
-	if err != nil {
-		log.Printf("Failed to update problem data: %v\n", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update problem data. Please try again later")
-	}
-	return c.JSON(http.StatusCreated, map[string]models.Problem{
-		"data": *updatedProblem,
-	})
-}
-
 // An endpoint containing logic used to find problem based on problem id
 func (controller *ProblemController) FindProblemByProblemIDEndpoint(c echo.Context) error {
 	targetProblemID := c.QueryParam("problemId")
@@ -81,9 +44,7 @@ func (controller *ProblemController) FindProblemByProblemIDEndpoint(c echo.Conte
 }
 
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
-	g.POST("/", controller.CreateNewProblemEndpoint)
 	g.GET("/", controller.FindProblemByProblemIDEndpoint)
-	g.PUT("/", controller.UpdateProblemDataEndpoint)
 }
 
 func stringToUint(s string) (uint, error) {
