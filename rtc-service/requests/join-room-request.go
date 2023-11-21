@@ -1,5 +1,7 @@
 package requests
 
+import "github.com/acmutd/bsg/rtc-service/response"
+
 // Request for a user to join a room.
 type JoinRoomRequest struct {
 	UserHandle string `json:"userHandle"`
@@ -17,8 +19,13 @@ func (r *JoinRoomRequest) validate() error {
 	return nil
 }
 
+// Returns the response type for the request.
+func (r *JoinRoomRequest) responseType() response.ResponseType {
+	return response.SYSTEM_ANNOUNCEMENT
+}
+
 // Handles the request and returns a response.
-func (r *JoinRoomRequest) Handle(m *Message) (string, error) {
+func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, error) {
 	// This method will be completed in the future PR.
-	return "Join Room Request", nil
+	return r.responseType(), "Join Room Request", nil
 }
