@@ -8,7 +8,8 @@ import (
 
 type Round struct {
 	ID       uint `gorm:"primaryKey" json:"id"`
-	RoundStartTime time.Time
+	LastUpdatedTime time.Time
 	Duration int
 	RoomID   uuid.UUID
+	Status	 string
 }

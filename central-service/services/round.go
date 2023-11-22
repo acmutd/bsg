@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
@@ -63,7 +64,12 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 			Message:    "Round limit exceeded",
 		}
 	}
-	newRound := models.Round{Duration: params.Duration, RoomID: targetRoom.ID}
+	newRound := models.Round{
+		Duration: params.Duration, 
+		RoomID: targetRoom.ID,
+		LastUpdatedTime: time.Now(),
+		Status: constants.ROUND_CREATED,
+	}
 	result := service.db.Create(&newRound)
 	if result.Error != nil {
 		log.Printf("Error creating new round: %v\n", result.Error)
@@ -93,7 +99,10 @@ func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) 
 
 func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error) {
 	roundStartTime := time.Now().Add(time.Second * 10)
-	result := service.db.Model(&models.Round{}).Where("ID = ?", roundID).Update("round_start_time", roundStartTime)
+	result := service.db.Model(&models.Round{}).Where("ID = ?", roundID).Updates(models.Round{
+		LastUpdatedTime: roundStartTime,
+		Status: constants.ROUND_STARTED,
+	})
 	if result.Error != nil {
 		return nil, result.Error
 	}

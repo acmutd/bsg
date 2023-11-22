@@ -1,8 +1,10 @@
 package services
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/acmutd/bsg/central-service/models"
@@ -25,6 +27,14 @@ func createMockRoom(db *gorm.DB, roomUUID uuid.UUID) (*models.Room, error) {
 		return nil, result.Error
 	}
 	return &newRoom, nil
+}
+
+type AnyTime struct{}
+
+// Match satisfies sqlmock.Argument interface
+func (a AnyTime) Match(v driver.Value) bool {
+	_, ok := v.(time.Time)
+	return ok
 }
 
 func TestCreateNewRound(t *testing.T) {
@@ -57,7 +67,7 @@ func TestCreateNewRound(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id"}))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").
-		WithArgs(int64(20), mockRoom.ID.String()).
+		WithArgs(AnyTime{}, int64(20), mockRoom.ID.String(), "created").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 		// WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
