@@ -60,12 +60,17 @@ func (controller *RoundController) ProcessRoundStartRequest(c echo.Context) erro
 		log.Printf("Error finding user with provided auth id: %v\n", err)
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unidentified request initiator. Please login and try again...")
 	}
-	userIsRoomAdmin, err := controller.roomService.CheckIfUserIsRoomAdmin(targetRound.RoomID.String(), requestInitiator.ID)
+	roomAdminID, err := controller.roomService.FindRightfulRoomAdmin(targetRound.RoomID.String())
 	if err != nil {
-		log.Printf("Error checking whether user is room admin: %v\n", err)
+		log.Printf("Error querying room admin: %v\n", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")
 	}
-	if !userIsRoomAdmin {
+	convertedRoomAdminID, err := strconv.ParseUint(roomAdminID, 10, 32)
+	if err != nil {
+		log.Printf("Error converting room admin id to uint: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")
+	}
+	if uint(convertedRoomAdminID) != requestInitiator.ID {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin...")
 	}
 	roundStartTime, err := controller.roundService.InitiateRoundStart(uint(roundID))
