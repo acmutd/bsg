@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"github.com/acmutd/bsg/worker-service/utils"
+	"github.com/acmutd/bsg/worker-service/leetcode-worker/utils"
 )
 
 var Uris_US utils.Uris = utils.Uris {

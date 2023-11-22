@@ -4,24 +4,26 @@ import (
 	"log"
 	"time"
 
-	"github.com/acmutd/bsg/worker-service/utils"
+	"github.com/acmutd/bsg/worker-service/leetcode-worker/utils"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
 )
 
-func Login(username string, password string) (string, string) {
+func Login(username string, password string, chromedriverPath string) (string, string) {
 	// initialize a Chrome browser instance on port 4444
-	_, err := selenium.NewChromeDriverService("../drivers/chromedriver", 4444)
+	service, err := selenium.NewChromeDriverService(chromedriverPath, 4444)
 
 	if err != nil {
-		log.Fatal("Error: ", err)
+		log.Fatal("Error:", err)
 	}
 
-	// Configure the browser options
+	defer service.Stop()
+
+	// configure the browser options
+
 	caps := selenium.Capabilities{}
 	caps.AddChrome(chrome.Capabilities{Args: []string{
-		// comment out this line for testing
-		// "--headless",
+		// "--headless", // comment out this line for testing
 	}})
 
 	// create a new remote client with the specified options
