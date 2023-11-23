@@ -4,6 +4,7 @@ services:
     build: ./central-service
     depends_on:
       - db
+      - redis-cache
     ports:
       - 5000:5000
     environment:
@@ -11,6 +12,8 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
+      MAX_NUM_ROUND_PER_ROOM: ${MAX_NUM_ROUND_PER_ROOM}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
   rtc-service:
     build: ./rtc-service
   worker-service:
@@ -28,6 +31,14 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-volume:/var/lib/postgresql/data
+  redis-cache: 
+    image: bitnami/redis:latest
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis-volume:/bitnami/redis/data
 
 volumes:
   db-volume:
+  redis-volume: 
+    driver: local
