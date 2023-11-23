@@ -15,9 +15,9 @@ import (
 )
 
 type RoundService struct {
-	db           *gorm.DB
-	rdb          *redis.Client
-	roomAccessor *RoomAccessor
+	db             *gorm.DB
+	rdb            *redis.Client
+	roomAccessor   *RoomAccessor
 	roundScheduler *tasks.Scheduler
 }
 
@@ -38,9 +38,9 @@ func (r *RoundServiceError) Error() string {
 
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler) RoundService {
 	return RoundService{
-		db:           db,
-		rdb:          rdb,
-		roomAccessor: roomAccessor,
+		db:             db,
+		rdb:            rdb,
+		roomAccessor:   roomAccessor,
 		roundScheduler: roundScheduler,
 	}
 }
@@ -70,10 +70,10 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 		}
 	}
 	newRound := models.Round{
-		Duration: params.Duration, 
-		RoomID: targetRoom.ID,
+		Duration:        params.Duration,
+		RoomID:          targetRoom.ID,
 		LastUpdatedTime: time.Now(),
-		Status: constants.ROUND_CREATED,
+		Status:          constants.ROUND_CREATED,
 	}
 	result := service.db.Create(&newRound)
 	if result.Error != nil {
@@ -104,10 +104,10 @@ func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) 
 
 func (service *RoundService) CreateRoundParticipant(participantAuthID string, roundID uint) error {
 	newParticipantEntry := models.RoundParticipant{
-		ParticipantAuthID: participantAuthID,
-		RoundID: roundID,
+		ParticipantAuthID:  participantAuthID,
+		RoundID:            roundID,
 		SolvedProblemCount: 0,
-		Score: 0,
+		Score:              0,
 	}
 	result := service.db.Create(&newParticipantEntry)
 	return result.Error
@@ -121,7 +121,7 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 	roundStartTime := time.Now().Add(time.Second * 10)
 	result := service.db.Model(targetRound).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
-		Status: constants.ROUND_STARTED,
+		Status:          constants.ROUND_STARTED,
 	})
 	if result.Error != nil {
 		return nil, result.Error
@@ -129,20 +129,20 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
 	_, err = service.roundScheduler.Add(&tasks.Task{
-		Interval: time.Duration(10 * time.Second),
-		RunOnce: true,
+		Interval:    time.Duration(10 * time.Second),
+		RunOnce:     true,
 		TaskContext: tasks.TaskContext{Context: ctx},
 		FuncWithTaskContext: func(ctx tasks.TaskContext) error {
 			roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
 			if !isValidType {
 				return &RoundServiceError{
-					Message: "Error get round service from context",
+					Message:    "Error get round service from context",
 					StatusCode: 500,
 				}
 			}
 			if roundService == nil {
 				return &RoundServiceError{
-					Message: "Round service is nil",
+					Message:    "Round service is nil",
 					StatusCode: 500,
 				}
 			}
@@ -153,7 +153,7 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 			err = roundService.db.Transaction(func(tx *gorm.DB) error {
 				oldDBConnection := roundService.db
 				roundService.SetDBConnection(tx)
-				for _, participantAuthID := range(activeRoomParticipants) {
+				for _, participantAuthID := range activeRoomParticipants {
 					if err = roundService.CreateRoundParticipant(participantAuthID, roundID); err != nil {
 						roundService.SetDBConnection(oldDBConnection)
 						return err
@@ -161,19 +161,19 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 				}
 				roundService.SetDBConnection(oldDBConnection)
 				return nil
-			});
+			})
 			if err != nil {
 				return err
 			}
-			// TODO: Send data to rtc service	
+			// TODO: Send data to rtc service
 			return nil
 		},
-		ErrFunc: func (e error) {
-			log.Printf("Error while attempting to scheduling round with id %d - %s", targetRound.ID, e);
+		ErrFunc: func(e error) {
+			log.Printf("Error while attempting to scheduling round with id %d - %s", targetRound.ID, e)
 		},
 	})
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 	return &roundStartTime, nil
 }
