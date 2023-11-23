@@ -38,6 +38,18 @@ func main() {
 		DB:       0,
 	})
 
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		fmt.Printf("Error migrating User schema: %v\n", err)
+	}
+	if err := db.AutoMigrate(&models.Room{}); err != nil {
+		fmt.Printf("Error migrating Room schema: %v\n", err)
+	}
+	if err := db.AutoMigrate(&models.Round{}); err != nil {
+		fmt.Printf("Error migrating Round schema: %v\n", err)
+	}
+	if err := db.AutoMigrate(&models.RoundParticipant{}); err != nil {
+		fmt.Printf("Error migrating RoundParticipant schema: %v\n", err)
+	}
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
@@ -49,7 +61,7 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 	roomAccessor := services.NewRoomAccessor(&roomService)
-  
+
 	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
 	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
 
