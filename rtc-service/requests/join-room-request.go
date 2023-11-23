@@ -2,8 +2,8 @@ package requests
 
 // Request for a user to join a room.
 type JoinRoomRequest struct {
-	UserID string `json:"userID"`
-	RoomID string `json:"roomID"`
+	UserHandle string `json:"userHandle"`
+	RoomID     string `json:"roomID"`
 }
 
 // Returns the type of the request.

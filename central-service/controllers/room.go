@@ -25,10 +25,10 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
 	userAuthID := c.Get("authToken").(*auth.Token).UID
-	newRoom, err := controller.roomService.CreateRoom(userAuthID, &roomDTO)
+	newRoom, err := controller.roomService.CreateRoom(&roomDTO, userAuthID)
 	if err != nil {
-		log.Printf("Failed to create room object: %v\n", err)
-		if _, ok := err.(services.RoomNameError); ok {
+		log.Printf("User id: %s failed to create room object: %v\n", userAuthID, err)
+		if _, ok := err.(services.RoomServiceError); ok {
 			return echo.NewHTTPError(http.StatusBadRequest, "Failed to create room. " + err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create room. Please try again later")
@@ -40,21 +40,57 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 
 // Endpoint for finding a room by id
 func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
-	targetRoomID := c.QueryParam("roomId")
-	rooms, err := controller.roomService.FindRoomByID(targetRoomID)
+	targetRoomID := c.Param("roomID")
+	room, err := controller.roomService.FindRoomByID(targetRoomID)
 	if err != nil {
 		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
-	if rooms == nil {
+	if room == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Room not found")
 	}
 	return c.JSON(http.StatusOK, map[string]models.Room{
-		"data": *rooms,
+		"data": *room,
+	})
+}
+
+// Endpoint for joining a room
+func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	roomID := c.Param("roomID")
+	room, err := controller.roomService.JoinRoom(roomID, userAuthID)
+	if err != nil {
+		log.Printf("User id: %s failed to join room with id %s: %v\n", userAuthID, roomID, err)
+		if _, ok := err.(services.RoomServiceError); ok {
+			return echo.NewHTTPError(http.StatusBadRequest, "Failed to join room. " + err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string]models.Room{
+		"data": *room,
+	})
+}
+
+// Endpoint for leaving a room
+func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	roomID := c.Param("roomID")
+	err := controller.roomService.LeaveRoom(roomID, userAuthID)
+	if err != nil {
+		log.Printf("User id: %s failed to leave room with id %s: %v\n", userAuthID, roomID, err)
+		if _, ok := err.(services.RoomServiceError); ok {
+			return echo.NewHTTPError(http.StatusBadRequest, "Failed to leave room. " + err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Successfully Left Room",
 	})
 }
 
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
-	g.GET("/", controller.FindRoomEndpoint)
+	g.GET("/:roomID", controller.FindRoomEndpoint)
+	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
+	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 }

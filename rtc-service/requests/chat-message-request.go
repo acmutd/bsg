@@ -2,9 +2,9 @@ package requests
 
 // Request for a user to send a message to a room.
 type ChatMessageRequest struct {
-	UserID  string `json:"userID"`
-	RoomID  string `json:"roomID"`
-	Message string `json:"message"`
+	UserHandle string `json:"userHandle"`
+	RoomID     string `json:"roomID"`
+	Message    string `json:"message"`
 }
 
 // Returns the type of the request.

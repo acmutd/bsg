@@ -3,8 +3,8 @@ package requests
 // Struct for the leave-room request.
 // Request for a user to leave a room.
 type LeaveRoomRequest struct {
-	UserID string `json:"userID"`
-	RoomID string `json:"roomID"`
+	UserHandle string `json:"userHandle"`
+	RoomID     string `json:"roomID"`
 }
 
 // Returns the type of the request.
