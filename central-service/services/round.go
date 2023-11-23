@@ -36,12 +36,17 @@ func (r *RoundServiceError) Error() string {
 	return r.Message
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler) RoundService {
 	return RoundService{
 		db:           db,
 		rdb:          rdb,
 		roomAccessor: roomAccessor,
+		roundScheduler: roundScheduler,
 	}
+}
+
+func (service *RoundService) SetDBConnection(db *gorm.DB) {
+	service.db = db
 }
 
 func (service *RoundService) CreateRound(params *RoundCreationParameters) (*models.Round, error) {
@@ -97,22 +102,74 @@ func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) 
 	return &round, nil
 }
 
+func (service *RoundService) CreateRoundParticipant(participantAuthID string, roundID uint) error {
+	newParticipantEntry := models.RoundParticipant{
+		ParticipantAuthID: participantAuthID,
+		RoundID: roundID,
+		SolvedProblemCount: 0,
+		Score: 0,
+	}
+	result := service.db.Create(&newParticipantEntry)
+	return result.Error
+}
+
 func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error) {
+	targetRound, err := service.FindRoundByID(roundID)
+	if err != nil {
+		return nil, err
+	}
 	roundStartTime := time.Now().Add(time.Second * 10)
-	result := service.db.Model(&models.Round{}).Where("ID = ?", roundID).Updates(models.Round{
+	result := service.db.Model(targetRound).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
 		Status: constants.ROUND_STARTED,
 	})
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	_, err := service.roundScheduler.Add(&tasks.Task{
-		StartAfter: roundStartTime,
-		TaskFunc: func() error {
-			// TODO: Query list of users in redis sorted set corresponding to room
-			// TODO: Create participant object
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
+	_, err = service.roundScheduler.Add(&tasks.Task{
+		Interval: time.Duration(10 * time.Second),
+		RunOnce: true,
+		TaskContext: tasks.TaskContext{Context: ctx},
+		FuncWithTaskContext: func(ctx tasks.TaskContext) error {
+			roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
+			if !isValidType {
+				return &RoundServiceError{
+					Message: "Error get round service from context",
+					StatusCode: 500,
+				}
+			}
+			if roundService == nil {
+				return &RoundServiceError{
+					Message: "Round service is nil",
+					StatusCode: 500,
+				}
+			}
+			activeRoomParticipants, err := roundService.roomAccessor.GetRoomService().FindActiveUsers(targetRound.RoomID.String())
+			if err != nil {
+				return err
+			}
+			err = roundService.db.Transaction(func(tx *gorm.DB) error {
+				oldDBConnection := roundService.db
+				roundService.SetDBConnection(tx)
+				for _, participantAuthID := range(activeRoomParticipants) {
+					if err = roundService.CreateRoundParticipant(participantAuthID, roundID); err != nil {
+						roundService.SetDBConnection(oldDBConnection)
+						return err
+					}
+				}
+				roundService.SetDBConnection(oldDBConnection)
+				return nil
+			});
+			if err != nil {
+				return err
+			}
 			// TODO: Send data to rtc service	
 			return nil
+		},
+		ErrFunc: func (e error) {
+			log.Printf("Error while attempting to scheduling round with id %d - %s", targetRound.ID, e);
 		},
 	})
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/go-redis/redismock/v9"
 	"github.com/google/uuid"
+	"github.com/madflojo/tasks"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -74,7 +75,8 @@ func TestCreateNewRound(t *testing.T) {
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoom.ID.String()), "1", 0).SetVal("OK")
 	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
 	roomAccessor := NewRoomAccessor(&roomService)
-	roundService := InitializeRoundService(db, rdb, &roomAccessor)
+	roundScheduler := tasks.New()
+	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		RoomID:   mockRoom.ID.String(),
 		Duration: 20,

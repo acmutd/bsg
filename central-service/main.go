@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -61,8 +62,9 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 	roomAccessor := services.NewRoomAccessor(&roomService)
-
-	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
+	roundScheduler := tasks.New()
+	defer roundScheduler.Stop()
+	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler)
 	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
 
 	e.Use(middleware.CORS())
