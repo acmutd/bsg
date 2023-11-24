@@ -153,7 +153,7 @@ func TestFindRoundByID(t *testing.T) {
 	roomUUID := uuid.New()
 	mock.ExpectBegin()
 	mock.ExpectExec("INSERT INTO \"rooms\" (.+) VALUES (.+)").
-		WithArgs(roomUUID.String(), "1", "Hello World").
+		WithArgs(roomUUID.String(), "abc12345", "Hello World").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	mockRoom, err := createMockRoom(db, roomUUID)
@@ -162,7 +162,7 @@ func TestFindRoundByID(t *testing.T) {
 	}
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(roomUUID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "room_name", "admin"}).AddRow(roomUUID.String(), "Hello World", "1"))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "room_name", "admin"}).AddRow(roomUUID.String(), "Hello World", "abc12345"))
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(roomUUID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id"}))
