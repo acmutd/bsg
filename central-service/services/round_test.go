@@ -844,5 +844,6 @@ func TestRoundEndTransition(t *testing.T) {
 	if len(roundScheduler.Tasks()) != 1 {
 		t.Fatalf("Expected 1 task in queue, but %d found", len(roundScheduler.Tasks()))
 	}
-	for ;len(roundScheduler.Tasks()) == 1; {}
+	for len(roundScheduler.Tasks()) == 1 {
+	}
 }

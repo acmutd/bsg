@@ -44,10 +44,10 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 	room, err := controller.roomService.FindRoomByID(targetRoomID)
 	if err != nil {
 		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
+		if _, ok := err.(services.RoomServiceError); ok {
+			return echo.NewHTTPError(http.StatusNotFound, "Room not found")
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError)
-	}
-	if room == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Room not found")
 	}
 	return c.JSON(http.StatusOK, map[string]models.Room{
 		"data": *room,
