@@ -92,8 +92,9 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
 	if err != nil {
 		return err
 	}
-	key := roomID + "_joinTimestamp"
-	result, err := service.rdb.ZRem(context.Background(), key, userID).Result()
+	joinKey := roomID + "_joinTimestamp"
+	leaderboardKey := roomID + "_leaderboard"
+	result, err := service.rdb.ZRem(context.Background(), joinKey, userID).Result()
 	if err != nil {
 		log.Printf("Error removing user join timestamp in redis instance: %v\n", err)
 		return err
@@ -101,20 +102,24 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (error) {
 	if result < 1 {
 		return RoomServiceError{Message: "Are you in this room?"}
 	}
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
-	// notify RTC user left room
-	size, err := service.rdb.ZCard(context.Background(), key).Result()
+	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	// TODO: notify RTC user left room
+	size, err := service.rdb.ZCard(context.Background(), joinKey).Result()
 	if err != nil {
 		return err
 	}
 	if size <= 0 {
-		// notify RTC room is empty
-		if resultCmd := service.rdb.Del(context.Background(), key); resultCmd.Err() != nil {
-			log.Printf("Error deleting key %s: %v\n", key, resultCmd.Err())
+		// TODO: notify RTC room is empty
+		if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
+			log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
+			return resultCmd.Err()
+		}
+		if resultCmd := service.rdb.Del(context.Background(), leaderboardKey); resultCmd.Err() != nil {
+			log.Printf("Error deleting key %s: %v\n", leaderboardKey, resultCmd.Err())
 			return resultCmd.Err()
 		}
 		if err := service.db.Delete(room).Error; err != nil {
-			log.Printf("Error deleting room %s: %v\n", key, err)
+			log.Printf("Error deleting room %s: %v\n", roomID, err)
 			return err
 		}
 		log.Printf("Deleted room %s\n", roomID)
