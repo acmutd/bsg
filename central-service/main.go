@@ -28,27 +28,28 @@ func main() {
 		fmt.Printf("Error connecting to the database: %v\n", err)
 	}
 
+	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
+		fmt.Printf("Error migrating schema: %v\n", err)
+	}
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "redis-cache:6379",
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
 
-	if err := db.AutoMigrate(&models.User{}); err != nil {
-		fmt.Printf("Error migrating User schema: %v\n", err)
-	}
-	if err := db.AutoMigrate(&models.Room{}); err != nil {
-		fmt.Printf("Error migrating Room schema: %v\n", err)
-	}
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController(&userService)
 
+	problemService := services.InitializeProblemService(db)
+	problemController := controllers.InitializeProblemController(&problemService)
+
 	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
-
 	roomAccessor := services.NewRoomAccessor(&roomService)
+  
 	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
 	roundController := controllers.InitializeRoundController(&roundService)
 
@@ -56,8 +57,8 @@ func main() {
 	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
+	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
-
 	roundController.InitializeRoutes(e.Group("/api/rounds"))
 
 	e.Logger.Fatal(e.Start(":5000"))
