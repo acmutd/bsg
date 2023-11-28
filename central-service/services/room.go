@@ -55,7 +55,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {
-		return nil, nil
+		return nil, RoomServiceError{Message: "roomID could not be found"}
 	}
 	return &room, nil
 }
@@ -66,12 +66,12 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err != nil {
 		return nil, err
 	}
-	key := roomID + "_joinTimestamp"
-	member := redis.Z{
+	joinKey := roomID + "_joinTimestamp"
+	joinMember := redis.Z{
 		Score: float64(time.Now().Unix()),
 		Member: userID,
 	}
-	result, err := service.rdb.ZAdd(context.Background(), key, member).Result()
+	result, err := service.rdb.ZAdd(context.Background(), joinKey, joinMember).Result()
 	if err != nil {
 		log.Printf("Error adding user join timestamp in redis instance: %v\n", err)
 		return nil, err
@@ -79,10 +79,19 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if result < 1 {
 		return nil, RoomServiceError{Message: "Are you already in this room?"}
 	}
+	leaderboardKey := roomID + "_leaderboard"
+	leaderboardMember := redis.Z{
+		Score: float64(0),
+		Member: userID,
+	}
+	if err = service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
+		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
+		return nil, err
+	}
 	// if round is already started
 	// create a participant object
 	// notify RTC
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), key, 0, -1))
+	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
 	return room, nil
 }
 
