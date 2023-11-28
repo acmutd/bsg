@@ -46,10 +46,10 @@ func main() {
 	problemService := services.InitializeProblemService(db)
 	problemController := controllers.InitializeProblemController(&problemService)
 
-	roomService := services.InitializeRoomService(db, maxNumRoundsPerRoom)
+	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
-
 	roomAccessor := services.NewRoomAccessor(&roomService)
+  
 	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
 	roundController := controllers.InitializeRoundController(&roundService)
 
