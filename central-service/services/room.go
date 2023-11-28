@@ -120,7 +120,7 @@ func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
 	score <<= (64 - scoreBits)
 	time := timestamp.Unix()
 	time &= (1 << (64 - scoreBits)) - 1
-	return float64(score | uint64(time))
+	return float64(score | uint64(^time))
 }
 
 // Leave a room
