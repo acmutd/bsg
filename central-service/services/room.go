@@ -182,6 +182,15 @@ func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 	return result, nil
 }
 
+func (service *RoomService) GetLeaderboard(roomID string) ([]string, error) {
+	key := roomID + "_leaderboard"
+	result, err := service.rdb.ZRange(context.Background(), key, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 type RoomServiceError struct{
 	Message string
 }
