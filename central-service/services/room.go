@@ -66,6 +66,19 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err != nil {
 		return nil, err
 	}
+	if err = service.addJoinMember(roomID, userID); err != nil {
+		return nil, err
+	}
+	if err = service.addLeaderboardMember(roomID, userID); err != nil {
+		return nil, err
+	}
+	// if round is already started
+	// create a participant object
+	// notify RTC
+	return room, nil
+}
+
+func (service *RoomService) addJoinMember(roomID string, userID string) (error) {
 	joinKey := roomID + "_joinTimestamp"
 	joinMember := redis.Z{
 		Score: float64(time.Now().Unix()),
@@ -74,25 +87,31 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	result, err := service.rdb.ZAdd(context.Background(), joinKey, joinMember).Result()
 	if err != nil {
 		log.Printf("Error adding user join timestamp in redis instance: %v\n", err)
-		return nil, err
+		return err
 	}
 	if result < 1 {
-		return nil, RoomServiceError{Message: "Are you already in this room?"}
+		return RoomServiceError{Message: "Are you already in this room?"}
 	}
+	// TODO: remove
+	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	return nil
+}
+
+func (service *RoomService) addLeaderboardMember(roomID string, userID string) (error) {
 	leaderboardKey := roomID + "_leaderboard"
 	leaderboardMember := redis.Z{
 		Score: float64(0),
 		Member: userID,
 	}
-	if err = service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
+	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
 		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
-		return nil, err
+		return err
 	}
-	// if round is already started
-	// create a participant object
-	// notify RTC
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
-	return room, nil
+	// TODO: remove
+	if leaderboard, err := service.GetLeaderboard(roomID); err == nil {
+		log.Printf("Leaderboard in room %s::\n%v\n", roomID, leaderboard)
+	}
+	return nil
 }
 
 // Leave a room
@@ -160,7 +179,7 @@ func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, err
 	return room.Admin == userID, nil
 }
 
-// returns auth id of new room admin
+// Returns auth id of new room admin
 func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error) {
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRange(context.Background(), key, 0, 0).Result()
@@ -173,6 +192,7 @@ func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error)
 	return result[0], nil
 }
 
+// Get all users in a room
 func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRange(context.Background(), key, 0, -1).Result()
@@ -182,6 +202,7 @@ func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 	return result, nil
 }
 
+// Get leaderboard of a room
 func (service *RoomService) GetLeaderboard(roomID string) ([]string, error) {
 	key := roomID + "_leaderboard"
 	result, err := service.rdb.ZRange(context.Background(), key, 0, -1).Result()
@@ -190,6 +211,7 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]string, error) {
 	}
 	return result, nil
 }
+
 
 type RoomServiceError struct{
 	Message string
