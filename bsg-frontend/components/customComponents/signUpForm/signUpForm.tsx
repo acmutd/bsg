@@ -1,15 +1,8 @@
 "use client";
 import React from "react";
 import {Button} from "@/components/ui/button";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form"
+import {Input} from "@/components/ui/input"
 import Link from "next/link";
 import {Separator} from "@/components/ui/separator";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
@@ -29,52 +22,52 @@ const SignUpForm = () => {
                     <FormField
                         control={form.control}
                         name="email"
-                        render={({ field }) => (
+                        render={({field}) => (
                             <FormItem>
                                 <FormLabel>Email</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Enter email..." {...field} />
                                 </FormControl>
-                                <FormMessage />
+                                <FormMessage/>
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
                         name="username"
-                        render={({ field }) => (
+                        render={({field}) => (
                             <FormItem>
                                 <FormLabel>Username</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Enter username..." {...field} />
                                 </FormControl>
-                                <FormMessage />
+                                <FormMessage/>
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
                         name="password"
-                        render={({ field }) => (
+                        render={({field}) => (
                             <FormItem>
                                 <FormLabel>Password</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Enter password..." {...field} />
                                 </FormControl>
-                                <FormMessage />
+                                <FormMessage/>
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
                         name="confirmPassword"
-                        render={({ field }) => (
+                        render={({field}) => (
                             <FormItem>
                                 <FormLabel>Confirm Password</FormLabel>
                                 <FormControl>
                                     <Input placeholder="Confirm password..." {...field} />
                                 </FormControl>
-                                <FormMessage />
+                                <FormMessage/>
                             </FormItem>
                         )}
                     />
@@ -91,10 +84,12 @@ const SignUpForm = () => {
                         <Separator className={'ml-3 w-5/12'}/>
                     </div>
                     <div className={'flex justify-center flex-row'}>
-                        <button onClick={() => {}}>
+                        <button onClick={() => {
+                        }}>
                             <FontAwesomeIcon icon={faGoogle} className={'pr-5'} size={'3x'} color={'#ACACAC'}/>
                         </button>
-                        <button onClick={() => {}}>
+                        <button onClick={() => {
+                        }}>
                             <FontAwesomeIcon icon={faGithub} className={'pl-5'} size={'3x'} color={'#ACACAC'}/>
                         </button>
                     </div>

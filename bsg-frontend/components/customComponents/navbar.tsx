@@ -1,24 +1,18 @@
 "use client"
 import React from "react";
-import {
-    NavigationMenu,
-    NavigationMenuLink,
-} from "@/components/ui/navigation-menu"
+import {NavigationMenu, NavigationMenuLink, navigationMenuTriggerStyle,} from "@/components/ui/navigation-menu"
 import Link from "next/link";
-import { navigationMenuTriggerStyle } from "@/components/ui/navigation-menu"
 
 const Navbar = () => {
     return (
         <div>
-            <NavigationMenu >
+            <NavigationMenu>
                 <Link href={"/"}>
                     <p className={"p-4 text-3xl font-bold"}>BSG</p>
                 </Link>
-                <Link href={'/'}>
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                       Problems
-                    </NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()} href={'/'}>
+                    Problems
+                </NavigationMenuLink>
             </NavigationMenu>
         </div>
     );
