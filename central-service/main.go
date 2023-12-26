@@ -62,9 +62,10 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 	roomAccessor := services.NewRoomAccessor(&roomService)
+	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler)
+	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
 	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
 
 	e.Use(middleware.CORS())

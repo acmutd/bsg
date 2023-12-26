@@ -1,12 +1,20 @@
 package services
 
 import (
+	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ProblemService struct {
 	db *gorm.DB
+}
+
+type DifficultyParameter struct {
+	NumEasyProblems int
+	NumMediumProblems int
+	NumHardProblems int
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -62,5 +70,41 @@ func (service *ProblemService) FindProblems(count uint, offset uint) ([]models.P
 	if searchResult.Error != nil {
 		return nil, searchResult.Error
 	}
+	return problems, nil
+}
+
+func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, error) {
+	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
+	err := service.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.OrderBy{
+			Expression: clause.Expr{
+				SQL: "RAND()",
+			},
+		}).Where("difficulty = ?", constants.DIFFICULTY_EASY).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.OrderBy{
+			Expression: clause.Expr{
+				SQL: "RAND()",
+			},
+		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.OrderBy{
+			Expression: clause.Expr{
+				SQL: "RAND()",
+			},
+		}).Where("difficulty = ?", constants.DIFFICULTY_HARD).Limit(params.NumHardProblems).Order(clause.Expr{
+			SQL: "RAND()",
+		}).Find(&hardProblems).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	problems = append(easyProblems, mediumProblems...)
+	problems = append(problems, hardProblems...)
 	return problems, nil
 }

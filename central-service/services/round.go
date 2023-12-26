@@ -19,12 +19,15 @@ type RoundService struct {
 	rdb            *redis.Client
 	roomAccessor   *RoomAccessor
 	roundScheduler *tasks.Scheduler
+	problemAccessor *ProblemAccessor
 }
 
 type RoundCreationParameters struct {
-	// TODO: add parameters for problem generation
-	RoomID   string
-	Duration int
+	RoomID   string `json:"roomID"`
+	Duration int `json:"duration"` // Duration in minutes
+	NumEasyProblems int `json:"numEasyProblems"`
+	NumMediumProblems int `json:"numMediumProblems"`
+	NumHardProblems int `json:"numHardProblems"`
 }
 
 type RoundServiceError struct {
@@ -36,12 +39,13 @@ func (r *RoundServiceError) Error() string {
 	return r.Message
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
 	return RoundService{
 		db:             db,
 		rdb:            rdb,
 		roomAccessor:   roomAccessor,
 		roundScheduler: roundScheduler,
+		problemAccessor: problemAccessor,
 	}
 }
 
@@ -81,6 +85,18 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 		return nil, result.Error
 	}
 	// TODO: Add logic for problem generation
+	problemSet, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+		NumEasyProblems: params.NumEasyProblems,
+		NumMediumProblems: params.NumMediumProblems,
+		NumHardProblems: params.NumHardProblems,
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = service.db.Model(&newRound).Association("ProblemSet").Append(problemSet)
+	if err != nil {
+		return nil, err
+	}
 	redisKey := fmt.Sprintf("%s_mostRecentRound", params.RoomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
