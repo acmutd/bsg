@@ -8,7 +8,7 @@ $ docker compose --env-file ./.env up --build --force-recreate
 ``` 
 
 2. Go to `localhost:8080` and fill out the fields as follow: 
-- Make sure to choose `PostgreSQL for System`
+- Make sure to choose `PostgreSQL` for System
 - Server should have the value `db`
 - Username should have the same value as that provided for the environment variable `POSTGRES_USER`
 - Password should have the same value as that provided for the environment variable `POSTGRES_PASSWORD`
