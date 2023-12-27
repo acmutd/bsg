@@ -16,7 +16,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 const MAX_ROUND_PER_ROOM = 20
@@ -105,19 +104,8 @@ func TestCreateNewRound(t *testing.T) {
 	mock.ExpectCommit()
 	mock.ExpectBegin()
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
-	for i := 1; i <= 10; i++ {
-		easyRows = easyRows.AddRow(fmt.Sprintf("%d", i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-	}
-
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
-	for i := 11; i <= 20; i++ {
-		mediumRows = mediumRows.AddRow(fmt.Sprintf("%d", i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-	}
-
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
-	for i := 21; i <= 30; i++ {
-		hardRows = hardRows.AddRow(fmt.Sprintf("%d", i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-	}
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
 		WithArgs(constants.DIFFICULTY_EASY).
 		WillReturnRows(easyRows)
@@ -127,6 +115,8 @@ func TestCreateNewRound(t *testing.T) {
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
 		WithArgs(constants.DIFFICULTY_HARD).
 		WillReturnRows(hardRows)
+	mock.ExpectCommit()
+	mock.ExpectBegin()
 	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoom.ID.String()), "1", 0).SetVal("OK")
 	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
@@ -248,6 +238,9 @@ func TestFindRoundByID(t *testing.T) {
 		WithArgs(constants.DIFFICULTY_HARD).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoom.ID.String()), "1", 0).SetVal("OK")
 	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
 	roomAccessor := NewRoomAccessor(&roomService)
@@ -289,9 +282,7 @@ func TestInitiateRoundStart(t *testing.T) {
 		Conn:       mockDb,
 		DriverName: "postgres",
 	})
-	db, _ := gorm.Open(dialector, &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	db, _ := gorm.Open(dialector, &gorm.Config{})
 	// Create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
 		t.Fatalf("Error generating mock problems: %v\n", err)
@@ -476,9 +467,7 @@ func TestProblemSetVisibility(t *testing.T) {
 		Conn:       mockDb,
 		DriverName: "postgres",
 	})
-	db, _ := gorm.Open(dialector, &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	db, _ := gorm.Open(dialector, &gorm.Config{})
 	// Create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
 		t.Fatalf("Error generating mock problems: %v\n", err)
