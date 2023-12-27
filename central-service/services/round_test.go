@@ -464,3 +464,204 @@ func TestInitiateRoundStart(t *testing.T) {
 		t.Fatalf("Expected 4 problems, but %d found", len(problemSet))
 	}
 }
+
+func TestProblemSetVisibility(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	rdb, mockRedis := redismock.NewClientMock()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDb.Close()
+	dialector := postgres.New(postgres.Config{
+		Conn:       mockDb,
+		DriverName: "postgres",
+	})
+	db, _ := gorm.Open(dialector, &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	// Create mock problems
+	if err := createMockProblems(db, &mock); err != nil {
+		t.Fatalf("Error generating mock problems: %v\n", err)
+	}
+	// Create a mock user
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT(.*)").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
+	mock.ExpectCommit()
+	userService := InitializeUserService(db)
+	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
+		FirstName: "hello",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
+	})
+	if err != nil {
+		t.Fatalf("Error creating new user: %v\n", err)
+	}
+	// Create mock room
+	mockRoomUUID := uuid.New()
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT INTO \"rooms\" (.+) VALUES (.+)").
+		WithArgs(mockRoomUUID.String(), "abc12345", "Hello World").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
+	_, err = createMockRoom(db, mockRoomUUID)
+	if err != nil {
+		t.Fatalf("Error creating mock room: %v\n", err)
+	}
+	// Join room
+	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mockRedis.ExpectZAdd(
+		mockRedisZKey,
+		redis.Z{
+			Score:  float64(time.Now().Unix()),
+			Member: newUser.AuthID,
+		},
+	).SetVal(1)
+	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
+	_, err = roomService.JoinRoom(mockRoomUUID.String(), newUser.AuthID)
+	if err != nil {
+		t.Fatalf("Error joining room ; %v\n", err)
+	}
+	// Create a mock round
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(mockRoomUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "room_name", "admin"}).AddRow(mockRoomUUID.String(), "Hello World", "abc12345"))
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(mockRoomUUID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id"}))
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT(.*)").
+		WithArgs(AnyTime{}, int64(20), mockRoomUUID.String(), "created").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
+	mock.ExpectCommit()
+	testParams := []driver.Value{}
+	relationRows := sqlmock.NewRows([]string{"id"})
+	joinTableRows := sqlmock.NewRows([]string{"round_id", "problem_id"})
+	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
+	for i := 1; i <= 1; i++ {
+		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		relationRows = relationRows.AddRow(strconv.Itoa(i))
+		joinTableRows = joinTableRows.AddRow(1, i)
+	}
+	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
+	for i := 11; i <= 12; i++ {
+		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		relationRows = relationRows.AddRow(strconv.Itoa(i))
+		joinTableRows = joinTableRows.AddRow(1, i)
+	}
+	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
+	for i := 21; i <= 21; i++ {
+		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		relationRows = relationRows.AddRow(strconv.Itoa(i))
+		joinTableRows = joinTableRows.AddRow(1, i)
+	}
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
+		WithArgs(constants.DIFFICULTY_EASY).
+		WillReturnRows(easyRows)
+	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
+		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WillReturnRows(mediumRows)
+	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
+		WithArgs(constants.DIFFICULTY_HARD).
+		WillReturnRows(hardRows)
+	mock.ExpectCommit()
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT(.*)").WithArgs(testParams...).WillReturnRows(
+		relationRows,
+	)
+	mock.ExpectExec("INSERT(.*)").WithArgs(1, 1, 1, 11, 1, 12, 1, 21).WillReturnResult(sqlmock.NewResult(8, 8))
+	mock.ExpectCommit()
+	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoomUUID.String()), "1", 0).SetVal("OK")
+	roomAccessor := NewRoomAccessor(&roomService)
+	roundScheduler := tasks.New()
+	problemService := InitializeProblemService(db)
+	problemAccessor := NewProblemAccessor(&problemService)
+	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
+	newRound, err := roundService.CreateRound(&RoundCreationParameters{
+		RoomID:            mockRoomUUID.String(),
+		Duration:          20,
+		NumEasyProblems:   1,
+		NumMediumProblems: 2,
+		NumHardProblems:   1,
+	})
+	if err != nil {
+		t.Fatalf("Error creating new round: %v\n", err)
+	}
+	if len(newRound.ProblemSet) != 0 {
+		t.Fatalf("Problem set visible before round starts. Found %d problems in the problem set", len(newRound.ProblemSet))
+	}
+	mock.ExpectQuery("SELECT(.*)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 20, mockRoomUUID.String(), "created"))
+	roundFromService, err := roundService.FindRoundByID(newRound.ID)
+	if err != nil {
+		t.Fatalf("Error getting round data from round service: %v\n", err)
+	}
+	if len(roundFromService.ProblemSet) != 0 {
+		t.Fatalf("Round problemset visible before round starts. Found %d problems in the problemset", len(roundFromService.ProblemSet))
+	}
+
+	// Initiate round start
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(newRound.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 20, mockRoomUUID.String(), "created"))
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.*)").
+		WithArgs(AnyTime{}, "started", newRound.ID).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	// Check participant object in DB
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
+		WithArgs("abc12345", 1, 0, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
+	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow(1, 20, mockRoomUUID.String(), "started"))
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
+	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
+	roundStartTime, err := roundService.InitiateRoundStart(newRound.ID)
+	if err != nil {
+		t.Fatalf("Error starting new round: %v\n", err)
+	}
+	if roundStartTime == nil {
+		t.Fatalf("Start time is nil")
+	}
+	// Add mock expect for round scheduling
+	if len(roundScheduler.Tasks()) != 1 {
+		t.Fatalf("Invalid number of rounds are being scheduled. Expected 1, but %d found", len(roundScheduler.Tasks()))
+	}
+	// Wait for task to be scheduled
+	for len(roundScheduler.Tasks()) == 1 {
+	}
+	anotherRoundFromService, err := roundService.FindRoundByID(roundFromService.ID)
+	if err != nil {
+		t.Fatalf("Error getting round data from round service: %v\n", err)
+	}
+	if len(anotherRoundFromService.ProblemSet) != 4 {
+		t.Fatalf("Round problemset not visible after round starts. Found %d problems in the problemset", len(roundFromService.ProblemSet))
+	}
+	// Check participant object in redis cache
+	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
+	_, err = roomService.FindActiveUsers(mockRoomUUID.String())
+	if err != nil {
+		t.Fatalf("Error finding active users %d\n", err)
+	}
+	if err = mockRedis.ExpectationsWereMet(); err != nil {
+		t.Error(err)
+	}
+}

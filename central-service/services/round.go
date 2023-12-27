@@ -103,6 +103,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 		log.Printf("Error setting value in redis instance: %v\n", err)
 		return nil, err
 	}
+	newRound.ProblemSet = []models.Problem{}
 	return &newRound, nil
 }
 
@@ -114,6 +115,9 @@ func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) 
 	}
 	if result.RowsAffected == 0 {
 		return nil, nil
+	}
+	if (round.Status == constants.ROUND_STARTED || round.Status == constants.ROUND_END) && round.LastUpdatedTime.Before(time.Now()) {
+		service.db.Model(&round).Association("ProblemSet").Find(&round.ProblemSet)
 	}
 	return &round, nil
 }
