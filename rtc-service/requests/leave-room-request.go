@@ -1,5 +1,7 @@
 package requests
 
+import "github.com/acmutd/bsg/rtc-service/response"
+
 // Struct for the leave-room request.
 // Request for a user to leave a room.
 type LeaveRoomRequest struct {
@@ -17,8 +19,13 @@ func (r *LeaveRoomRequest) validate() error {
 	return nil
 }
 
+// Returns the response type for the request.
+func (r *LeaveRoomRequest) responseType() response.ResponseType {
+	return response.SYSTEM_ANNOUNCEMENT
+}
+
 // Handles the request and returns a response.
-func (r *LeaveRoomRequest) Handle(m *Message) (string, error) {
+func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, error) {
 	// This method will be completed in the future PR.
-	return "Leave Room Request", nil
+	return r.responseType(), "Leave Room Request", nil
 }

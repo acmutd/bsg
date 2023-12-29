@@ -1,33 +1,48 @@
 package response
 
+import "encoding/json"
+
+type ResponseStatus string
+
+var (
+	// Signifies that the response is an error response.
+	error_response ResponseStatus = "error"
+
+	// Signifies that the response is an ok response.
+	ok_response ResponseStatus = "ok"
+)
+
 // Response is a struct that represents a response to a request.
 //
 // This is used to send responses to the client since websockets
 // don't have a built-in way to send success or error messages.
 type Response struct {
-	isError bool
-	message string
+	RespStatus  ResponseStatus `json:"status"`
+	RespMessage string         `json:"message"`
+	RespType    ResponseType   `json:"responseType"`
 }
 
 // NewErrorResponse creates a new error response.
-func NewErrorResponse(message string) *Response {
+func NewErrorResponse(responseType ResponseType, message string) *Response {
 	return &Response{
-		isError: true,
-		message: message,
+		RespStatus:  error_response,
+		RespMessage: message,
+		RespType:    responseType,
 	}
 }
 
 // NewOkResponse creates a new ok response.
-func NewOkResponse(message string) *Response {
+func NewOkResponse(responseType ResponseType, message string) *Response {
 	return &Response{
-		isError: false,
-		message: message,
+		RespStatus:  ok_response,
+		RespMessage: message,
+		RespType:    responseType,
 	}
 }
 
 // IsError returns true if the response is an error response.
 func (r *Response) IsError() bool {
-	return r.isError
+	return r.RespStatus == error_response
 }
 
 // Message returns the message of the response.
@@ -36,8 +51,6 @@ func (r *Response) IsError() bool {
 //
 // This is to allow the client to easily determine if the response is an error response.
 func (r *Response) Message() string {
-	if r.isError {
-		return "error: " + r.message
-	}
-	return "ok: " + r.message
+	resp, _ := json.Marshal(r)
+	return string(resp)
 }
