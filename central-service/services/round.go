@@ -185,6 +185,41 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 			if err != nil {
 				return err
 			}
+			// Schedule task to change round state to ended
+			_, err = roundService.roundScheduler.Add(&tasks.Task{
+				// Set an extra buffer time in case of submission at the end of the round
+				Interval: time.Duration(time.Minute * time.Duration(targetRound.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER) * time.Second),
+				RunOnce: true,
+				TaskContext: ctx,
+				FuncWithTaskContext: func(tc tasks.TaskContext) error {
+					roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
+					if !isValidType {
+						return &RoundServiceError{
+							Message:    "Error get round service from context",
+							StatusCode: 500,
+						}
+					}
+					if roundService == nil {
+						return &RoundServiceError{
+							Message:    "Round service is nil",
+							StatusCode: 500,
+						}
+					}
+					result := roundService.db.Model(targetRound).Updates(models.Round{
+						Status: constants.ROUND_END,
+					})
+					if result.Error != nil {
+						return &RoundServiceError{
+							Message: "Error ending round",
+							StatusCode: 500,
+						}
+					}
+					return nil
+				},
+			})
+			if err != nil {
+				return err
+			}
 			// TODO: Send data to rtc service
 			return nil
 		},
