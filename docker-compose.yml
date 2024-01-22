@@ -34,6 +34,15 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis-volume:/bitnami/redis/data
+  adminer:
+    image: adminer
+    restart: always
+    ports: 
+      - 8080:8080
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    ports: 
+      - 8001:8001
 
 volumes:
   db-volume:
