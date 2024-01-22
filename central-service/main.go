@@ -66,7 +66,12 @@ func main() {
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
 	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
-	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
+	roundAccessor := services.NewRoundAccessor(&roundService)
+	roundSubmissionService := services.InitializeRoundSubmissionService(db, &problemAccessor, &roundAccessor)
+	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService, &roundSubmissionService)
+
+	// TODO: Initialize Kafka-related components
+	// TODO: Create a co-routine to listen for messages coming from Kafka and update database
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
