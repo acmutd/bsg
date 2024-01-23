@@ -27,13 +27,13 @@ type RoomDTO struct {
 
 // Create a room and persist
 // User creating the room is the room leader
-func (service *RoomService) CreateRoom(room* RoomDTO, adminID string) (*models.Room, error) {
+func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.Room, error) {
 	if err := validateRoomName(room.Name); err != nil {
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID: uuid.New(),
-		Name: room.Name,
+		ID:    uuid.New(),
+		Name:  room.Name,
 		Admin: adminID,
 	}
 	result := service.db.Create(&newRoom)
@@ -47,7 +47,7 @@ func (service *RoomService) CreateRoom(room* RoomDTO, adminID string) (*models.R
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
 	uuid, err := uuid.Parse(roomID)
-	if err!= nil {
+	if err != nil {
 		return nil, RoomServiceError{Message: "roomID could not be parsed"}
 	}
 	result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
@@ -81,7 +81,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 func (service *RoomService) addJoinMember(roomID string, userID string) error {
 	joinKey := roomID + "_joinTimestamp"
 	joinMember := redis.Z{
-		Score: float64(time.Now().Unix()),
+		Score:  float64(time.Now().Unix()),
 		Member: userID,
 	}
 	result, err := service.rdb.ZAdd(context.Background(), joinKey, joinMember).Result()
@@ -101,7 +101,7 @@ func (service *RoomService) addLeaderboardMember(roomID string, userID string) e
 	leaderboardKey := roomID + "_leaderboard"
 	score := compressScoreAndTimeStamp(0, time.Now())
 	leaderboardMember := redis.Z{
-		Score: score,
+		Score:  score,
 		Member: userID,
 	}
 	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
@@ -146,13 +146,13 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			return err
 		} else if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
 			log.Printf("Error updating room admin in the database: %v\n", err)
-            return err
+			return err
 		}
 	}
 	return nil
 }
 
-func (service *RoomService) removeJoinMember(roomID string, userID string) (error) {
+func (service *RoomService) removeJoinMember(roomID string, userID string) error {
 	joinKey := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRem(context.Background(), joinKey, userID).Result()
 	if err != nil {
@@ -168,22 +168,37 @@ func (service *RoomService) removeJoinMember(roomID string, userID string) (erro
 }
 
 func (service *RoomService) deleteRoom(room models.Room) error {
-	joinKey := room.ID.String() + "_joinTimestamp"
-	leaderboardKey := room.ID.String() + "_leaderboard"
+	roomID := room.ID.String()
 	// TODO: notify RTC room is empty
-	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
-		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
-		return resultCmd.Err()
+	if err := service.deleteLeaderboard(roomID); err != nil {
+		return err
 	}
+	if err := service.deleteJoinTimes(roomID); err != nil {
+		return err
+	}
+	if err := service.db.Delete(room).Error; err != nil {
+		log.Printf("Error deleting room %s: %v\n", roomID, err)
+		return err
+	}
+	log.Printf("Deleted room %s\n", roomID)
+	return nil
+}
+
+func (service *RoomService) deleteLeaderboard(roomID string) error {
+	leaderboardKey := roomID + "_leaderboard"
 	if resultCmd := service.rdb.Del(context.Background(), leaderboardKey); resultCmd.Err() != nil {
 		log.Printf("Error deleting key %s: %v\n", leaderboardKey, resultCmd.Err())
 		return resultCmd.Err()
 	}
-	if err := service.db.Delete(room).Error; err != nil {
-		log.Printf("Error deleting room %s: %v\n", room.ID.String(), err)
-		return err
+	return nil
+}
+
+func (service *RoomService) deleteJoinTimes(roomID string) error {
+	joinKey := roomID + "_joinTimestamp"
+	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
+		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
+		return resultCmd.Err()
 	}
-	log.Printf("Deleted room %s\n", room.ID.String())
 	return nil
 }
 
@@ -229,8 +244,7 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 	return result, nil
 }
 
-
-type RoomServiceError struct{
+type RoomServiceError struct {
 	Message string
 }
 
@@ -249,5 +263,5 @@ func validateRoomName(name string) error {
 	if len(name) >= 32 {
 		return RoomServiceError{Message: "roomName must be under 32 characters in length"}
 	}
-	return nil;
+	return nil
 }
