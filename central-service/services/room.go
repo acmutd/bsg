@@ -43,6 +43,25 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	return &newRoom, nil
 }
 
+// Deletes leaderboard and join time stamps from Redis
+// Deletes room from Postgres
+func (service *RoomService) deleteRoom(room models.Room) error {
+	roomID := room.ID.String()
+	// TODO: notify RTC room is empty
+	if err := service.deleteLeaderboard(roomID); err != nil {
+		return err
+	}
+	if err := service.deleteJoinTimes(roomID); err != nil {
+		return err
+	}
+	if err := service.db.Delete(room).Error; err != nil {
+		log.Printf("Error deleting room %s: %v\n", roomID, err)
+		return err
+	}
+	log.Printf("Deleted room %s\n", roomID)
+	return nil
+}
+
 // Find a room by id
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
@@ -78,51 +97,6 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	return room, nil
 }
 
-func (service *RoomService) addJoinMember(roomID string, userID string) error {
-	joinKey := roomID + "_joinTimestamp"
-	joinMember := redis.Z{
-		Score:  float64(time.Now().Unix()),
-		Member: userID,
-	}
-	result, err := service.rdb.ZAdd(context.Background(), joinKey, joinMember).Result()
-	if err != nil {
-		log.Printf("Error adding user join timestamp in redis instance: %v\n", err)
-		return err
-	}
-	if result < 1 {
-		return RoomServiceError{Message: "Are you already in this room?"}
-	}
-	// TODO: remove
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
-	return nil
-}
-
-func (service *RoomService) addLeaderboardMember(roomID string, userID string) error {
-	leaderboardKey := roomID + "_leaderboard"
-	score := compressScoreAndTimeStamp(0, time.Now())
-	leaderboardMember := redis.Z{
-		Score:  score,
-		Member: userID,
-	}
-	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
-		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
-		return err
-	}
-	// TODO: remove
-	if leaderboard, err := service.GetLeaderboard(roomID); err == nil {
-		log.Printf("Leaderboard in room %s::\n%v\n", roomID, leaderboard)
-	}
-	return nil
-}
-
-func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
-	const scoreBits = 10
-	score <<= (64 - scoreBits)
-	time := timestamp.Unix()
-	time &= (1 << (64 - scoreBits)) - 1
-	return float64(score | uint64(^time))
-}
-
 // Leave a room
 func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	room, err := service.FindRoomByID(roomID)
@@ -152,6 +126,25 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	return nil
 }
 
+func (service *RoomService) addJoinMember(roomID string, userID string) error {
+	joinKey := roomID + "_joinTimestamp"
+	joinMember := redis.Z{
+		Score:  float64(time.Now().Unix()),
+		Member: userID,
+	}
+	result, err := service.rdb.ZAdd(context.Background(), joinKey, joinMember).Result()
+	if err != nil {
+		log.Printf("Error adding user join timestamp in redis instance: %v\n", err)
+		return err
+	}
+	if result < 1 {
+		return RoomServiceError{Message: "Are you already in this room?"}
+	}
+	// TODO: remove
+	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	return nil
+}
+
 func (service *RoomService) removeJoinMember(roomID string, userID string) error {
 	joinKey := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRem(context.Background(), joinKey, userID).Result()
@@ -167,20 +160,40 @@ func (service *RoomService) removeJoinMember(roomID string, userID string) error
 	return nil
 }
 
-func (service *RoomService) deleteRoom(room models.Room) error {
-	roomID := room.ID.String()
-	// TODO: notify RTC room is empty
-	if err := service.deleteLeaderboard(roomID); err != nil {
+// Get all users in a room
+func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
+	key := roomID + "_joinTimestamp"
+	result, err := service.rdb.ZRange(context.Background(), key, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (service *RoomService) deleteJoinTimes(roomID string) error {
+	joinKey := roomID + "_joinTimestamp"
+	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
+		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
+		return resultCmd.Err()
+	}
+	return nil
+}
+
+func (service *RoomService) addLeaderboardMember(roomID string, userID string) error {
+	leaderboardKey := roomID + "_leaderboard"
+	score := compressScoreAndTimeStamp(0, time.Now())
+	leaderboardMember := redis.Z{
+		Score:  score,
+		Member: userID,
+	}
+	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
+		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
 		return err
 	}
-	if err := service.deleteJoinTimes(roomID); err != nil {
-		return err
+	// TODO: remove
+	if leaderboard, err := service.GetLeaderboard(roomID); err == nil {
+		log.Printf("Leaderboard in room %s::\n%v\n", roomID, leaderboard)
 	}
-	if err := service.db.Delete(room).Error; err != nil {
-		log.Printf("Error deleting room %s: %v\n", roomID, err)
-		return err
-	}
-	log.Printf("Deleted room %s\n", roomID)
 	return nil
 }
 
@@ -193,13 +206,22 @@ func (service *RoomService) deleteLeaderboard(roomID string) error {
 	return nil
 }
 
-func (service *RoomService) deleteJoinTimes(roomID string) error {
-	joinKey := roomID + "_joinTimestamp"
-	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
-		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
-		return resultCmd.Err()
+// Get leaderboard of a room
+func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
+	key := roomID + "_leaderboard"
+	result, err := service.rdb.ZRevRangeWithScores(context.Background(), key, 0, -1).Result()
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return result, nil
+}
+
+func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
+	const scoreBits = 10
+	score <<= (64 - scoreBits)
+	time := timestamp.Unix()
+	time &= (1 << (64 - scoreBits)) - 1
+	return float64(score | uint64(^time))
 }
 
 // Returns whether a given user is the room admin
@@ -222,26 +244,6 @@ func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error)
 		return "", RoomServiceError{Message: "Empty room"}
 	}
 	return result[0], nil
-}
-
-// Get all users in a room
-func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
-	key := roomID + "_joinTimestamp"
-	result, err := service.rdb.ZRange(context.Background(), key, 0, -1).Result()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// Get leaderboard of a room
-func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
-	key := roomID + "_leaderboard"
-	result, err := service.rdb.ZRevRangeWithScores(context.Background(), key, 0, -1).Result()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 type RoomServiceError struct {
