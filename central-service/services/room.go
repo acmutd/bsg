@@ -25,8 +25,8 @@ type RoomDTO struct {
 	Name string `json:"roomName"`
 }
 
-// Create a room and persist
-// User creating the room is the room leader
+// Creates a room and persist
+// adminID is the the user that will be assigned room leader
 func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.Room, error) {
 	if err := validateRoomName(room.Name); err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 	if err := service.deleteLeaderboard(roomID); err != nil {
 		return err
 	}
-	if err := service.deleteJoinTimes(roomID); err != nil {
+	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
 	}
 	if err := service.db.Delete(room).Error; err != nil {
@@ -62,7 +62,8 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 	return nil
 }
 
-// Find a room by id
+// Finds a room by id
+// Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
 	uuid, err := uuid.Parse(roomID)
@@ -79,7 +80,8 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	return &room, nil
 }
 
-// Join a room
+// Allows a user to join a room
+// Adds user join timestamp and leaderboard entries into Redis
 func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
@@ -91,13 +93,14 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err = service.addLeaderboardMember(roomID, userID); err != nil {
 		return nil, err
 	}
-	// if round is already started
+	// TODO: if round is already started
 	// create a participant object
 	// notify RTC
 	return room, nil
 }
 
-// Leave a room
+// Allows a user to leave a room
+// If the depparting user is the room leader, a new leader will be assigned
 func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
@@ -126,6 +129,8 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	return nil
 }
 
+// Adds a user's join timestamp to the Redis cache
+// If the user's entry already exists in the room, then it will throw a RoomServiceError
 func (service *RoomService) addJoinMember(roomID string, userID string) error {
 	joinKey := roomID + "_joinTimestamp"
 	joinMember := redis.Z{
@@ -145,6 +150,8 @@ func (service *RoomService) addJoinMember(roomID string, userID string) error {
 	return nil
 }
 
+// Removes a userr's join timestamp from the Redis cache
+// If a user does not have a join entry, then it will throw a RoomServiceError
 func (service *RoomService) removeJoinMember(roomID string, userID string) error {
 	joinKey := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRem(context.Background(), joinKey, userID).Result()
@@ -170,7 +177,8 @@ func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 	return result, nil
 }
 
-func (service *RoomService) deleteJoinTimes(roomID string) error {
+// Removes all user join timestamps for a given room in the Redis cache
+func (service *RoomService) deleteJoinMembers(roomID string) error {
 	joinKey := roomID + "_joinTimestamp"
 	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
 		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
@@ -179,6 +187,9 @@ func (service *RoomService) deleteJoinTimes(roomID string) error {
 	return nil
 }
 
+// Adds a user to the leaderboard
+// Member values are a compression of the user's score and last submission timestamp
+// User's initial score will be 0 with the current timestamp
 func (service *RoomService) addLeaderboardMember(roomID string, userID string) error {
 	leaderboardKey := roomID + "_leaderboard"
 	score := compressScoreAndTimeStamp(0, time.Now())
@@ -197,6 +208,7 @@ func (service *RoomService) addLeaderboardMember(roomID string, userID string) e
 	return nil
 }
 
+// Removes the given room's leaderboard from the Redis cache
 func (service *RoomService) deleteLeaderboard(roomID string) error {
 	leaderboardKey := roomID + "_leaderboard"
 	if resultCmd := service.rdb.Del(context.Background(), leaderboardKey); resultCmd.Err() != nil {
@@ -216,6 +228,7 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 	return result, nil
 }
 
+// First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
 func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
 	const scoreBits = 10
 	score <<= (64 - scoreBits)
@@ -234,6 +247,7 @@ func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, err
 }
 
 // Returns auth id of new room admin
+// Oldest session will be retruend, ties are broken lexicographically
 func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error) {
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRange(context.Background(), key, 0, 0).Result()
