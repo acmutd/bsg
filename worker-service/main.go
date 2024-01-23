@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello World! Welcom to worker service")
+	fmt.Println("Hello World! Welcome to worker service")
 }
