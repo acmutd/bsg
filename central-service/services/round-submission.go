@@ -47,6 +47,18 @@ func (service *RoundSubmissionService) CreateRoundSubmission(
 		return nil, err
 	}
 	
+	if round.Status == constants.ROUND_CREATED {
+		return nil, &RoundSubmissionServiceError{
+			Message: "Round haven't started yet",
+		}
+	}
+
+	if round.Status == constants.ROUND_END {
+		return nil, &RoundSubmissionServiceError{
+			Message: "Round already ended",
+		}
+	}
+	
 	// find participant object with matching round id and user auth id
 	participant, err := service.roundAccessor.GetRoundAccessor().FindParticipantByRoundAndUserID(submissionParams.RoundID, submissionAuthor.AuthID)
 	if err != nil {
@@ -57,19 +69,6 @@ func (service *RoundSubmissionService) CreateRoundSubmission(
 	if participant == nil {
 		return nil, &RoundSubmissionServiceError{
 			Message: "User haven't joined round...",
-		}
-	}
-
-	// check if round allows submission
-	if round.Status == constants.ROUND_CREATED {
-		return nil, &RoundSubmissionServiceError{
-			Message: "Round haven't started yet",
-		}
-	}
-
-	if round.Status == constants.ROUND_END {
-		return nil, &RoundSubmissionServiceError{
-			Message: "Round already ended",
 		}
 	}
 

@@ -449,15 +449,6 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 1, mockRoomUUID.String(), constants.ROUND_END))
-	mock.ExpectQuery("SELECT(.*)").
-		WithArgs(newUser.AuthID, newRound.ID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).AddRow(
-			"1",
-			newUser.AuthID,
-			newRound.ID,
-			0,
-			0,
-		))
 	_, err = roundSubmissionService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID: 1,
 		Code: "hello world",
@@ -631,15 +622,6 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 1, mockRoomUUID.String(), constants.ROUND_CREATED))
-	mock.ExpectQuery("SELECT(.*)").
-		WithArgs(newUser.AuthID, newRound.ID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).AddRow(
-			"1",
-			newUser.AuthID,
-			newRound.ID,
-			0,
-			0,
-		))
 	_, err = roundSubmissionService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID: 1,
 		Code: "hello world",
