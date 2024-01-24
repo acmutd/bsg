@@ -244,3 +244,17 @@ func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserA
 	}
 	return &participant, nil
 }
+
+func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, problem *models.Problem) (bool, error) {
+	var problemset []models.Problem
+	err := service.db.Model(round).Association("ProblemSet").Find(&problemset)
+	if err != nil {
+		return false, err
+	}
+	for _, roundProblem := range problemset {
+		if roundProblem.ID == problem.ID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
