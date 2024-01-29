@@ -5,4 +5,5 @@ type Problem struct {
 	Name        string `gorm:"unique" json:"name"`
 	Description string `json:"description"`
 	Hints       string `json:"hints"`
+	Difficulty  string `json:"difficulty"`
 }

@@ -5,8 +5,11 @@ go 1.21
 require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.0
+	github.com/google/uuid v1.3.1
 	github.com/go-redis/redismock/v9 v9.2.0
+	github.com/google/uuid v1.3.1
 	github.com/labstack/echo/v4 v4.11.1
+	github.com/madflojo/tasks v1.1.0
 	github.com/redis/go-redis/v9 v9.2.1
 	google.golang.org/api v0.142.0
 	gorm.io/driver/postgres v1.5.2
@@ -28,7 +31,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
-	github.com/google/uuid v1.3.1 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -39,6 +41,7 @@ require (
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/rs/xid v1.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
