@@ -1,5 +1,9 @@
 package requests
 
+import (
+	"github.com/acmutd/bsg/rtc-service/response"
+)
+
 type RequestType string
 
 // List of request types.
@@ -33,6 +37,9 @@ type Request interface {
 	// Validates the request.
 	validate() error
 
+	// Returns the response type for the request.
+	responseType() response.ResponseType
+
 	// Handles the request and returns a response.
-	Handle(*Message) (string, error)
+	Handle(*Message) (response.ResponseType, string, error)
 }

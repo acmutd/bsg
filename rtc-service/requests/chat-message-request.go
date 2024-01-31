@@ -1,5 +1,7 @@
 package requests
 
+import "github.com/acmutd/bsg/rtc-service/response"
+
 // Request for a user to send a message to a room.
 type ChatMessageRequest struct {
 	UserHandle string `json:"userHandle"`
@@ -18,8 +20,13 @@ func (r *ChatMessageRequest) validate() error {
 	return nil
 }
 
+// Returns the response type for the request.
+func (r *ChatMessageRequest) responseType() response.ResponseType {
+	return response.CHAT_MESSAGE
+}
+
 // Handles the request and returns a response.
-func (r *ChatMessageRequest) Handle(m *Message) (string, error) {
+func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, error) {
 	// This method will be completed in the future PR.
-	return "Chat Message Request", nil
+	return r.responseType(), "Chat Message Request", nil
 }

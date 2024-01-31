@@ -52,7 +52,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			logging.Error("Failed to read message: ", err)
-			sendMessage(conn, *response.NewErrorResponse(err.Error()))
+			sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
 		}
 
 		// Unmarshal message into a message struct.
@@ -60,22 +60,22 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		err = json.Unmarshal(message, &messageStruct)
 		if err != nil {
 			logging.Error("Failed to unmarshal message: ", err)
-			sendMessage(conn, *response.NewErrorResponse(err.Error()))
+			sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
 		} else {
 			// Validate message.
 			err = messageStruct.Validate(string(message))
 			if err != nil {
 				logging.Error("Failed to validate message: ", err)
-				sendMessage(conn, *response.NewErrorResponse(err.Error()))
+				sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
 			} else {
 				// Pass the message to the appropriate request.
-				resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
+				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
-					sendMessage(conn, *response.NewErrorResponse(err.Error()))
+					sendMessage(conn, *response.NewErrorResponse(respType, err.Error()))
 				} else {
 					// Send the response back to the client.
-					sendMessage(conn, *response.NewOkResponse(resp))
+					sendMessage(conn, *response.NewOkResponse(respType, resp))
 				}
 			}
 
