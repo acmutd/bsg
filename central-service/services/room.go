@@ -34,8 +34,6 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	newRoom := models.Room{
 		ID:    uuid.New(),
 		Name:  room.Name,
-		ID:    uuid.New(),
-		Name:  room.Name,
 		Admin: adminID,
 	}
 	result := service.db.Create(&newRoom)
@@ -69,7 +67,6 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
 	uuid, err := uuid.Parse(roomID)
-	if err != nil {
 	if err != nil {
 		return nil, RoomServiceError{Message: "roomID could not be parsed"}
 	}
@@ -283,6 +280,4 @@ func validateRoomName(name string) error {
 		return RoomServiceError{Message: "roomName must be under 32 characters in length"}
 	}
 	return nil
-	return nil
 }
-
