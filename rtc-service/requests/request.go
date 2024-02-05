@@ -29,6 +29,7 @@ var RequestTypes = map[RequestType]Request{
 	LEAVE_ROOM_REQUEST:   &LeaveRoomRequest{},
 	JOIN_ROOM_REQUEST:    &JoinRoomRequest{},
 	SEND_MESSAGE_REQUEST: &ChatMessageRequest{},
+	ROUND_START_REQUEST:  &RoundStartRequest{},
 }
 
 // Struct for the different request types.
