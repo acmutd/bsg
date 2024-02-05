@@ -13,8 +13,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Test
-
 var (
 	// Read and write buffer sizes for the websocket connection.
 	readBufferSize  = 1024
