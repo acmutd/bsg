@@ -16,6 +16,9 @@ var (
 
 	// Request for a user to send a message to a room.
 	SEND_MESSAGE_REQUEST RequestType = "chat-message"
+
+	// Request when a user made a new submission.
+	NEW_SUBMISSION_REQUEST RequestType = "new-submission"
 )
 
 // Map of request types to their respective structs.
@@ -23,9 +26,10 @@ var (
 // Used to quickly determine the type of a request and
 // to unmarshal the request into the correct struct.
 var RequestTypes = map[RequestType]Request{
-	LEAVE_ROOM_REQUEST:   &LeaveRoomRequest{},
-	JOIN_ROOM_REQUEST:    &JoinRoomRequest{},
-	SEND_MESSAGE_REQUEST: &ChatMessageRequest{},
+	LEAVE_ROOM_REQUEST:     &LeaveRoomRequest{},
+	JOIN_ROOM_REQUEST:      &JoinRoomRequest{},
+	SEND_MESSAGE_REQUEST:   &ChatMessageRequest{},
+	NEW_SUBMISSION_REQUEST: &NewSubmissionRequest{},
 }
 
 // Struct for the different request types.
