@@ -16,6 +16,9 @@ var (
 
 	// Request for a user to send a message to a room.
 	SEND_MESSAGE_REQUEST RequestType = "chat-message"
+
+	// Request to announce the start of a round.
+	ROUND_START_REQUEST RequestType = "round-start"
 )
 
 // Map of request types to their respective structs.
