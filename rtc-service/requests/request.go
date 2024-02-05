@@ -16,6 +16,9 @@ var (
 
 	// Request for a user to send a message to a room.
 	SEND_MESSAGE_REQUEST RequestType = "chat-message"
+
+	// Request to signify the round has ended.
+	ROUND_END_REQUEST RequestType = "round-end"
 )
 
 // Map of request types to their respective structs.
@@ -26,6 +29,7 @@ var RequestTypes = map[RequestType]Request{
 	LEAVE_ROOM_REQUEST:   &LeaveRoomRequest{},
 	JOIN_ROOM_REQUEST:    &JoinRoomRequest{},
 	SEND_MESSAGE_REQUEST: &ChatMessageRequest{},
+	ROUND_END_REQUEST:    &RoundEndRequest{},
 }
 
 // Struct for the different request types.
