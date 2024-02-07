@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Submission struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 	Code string `json:"code"`
@@ -9,4 +11,5 @@ type Submission struct {
 	ExecutionTime uint `json:"executionTime"`
 	SubmissionOwnerID uint
 	SubmissionOwnerType string
+	SubmissionTimestamp time.Time `json:"submissionTimestamp"`
 }

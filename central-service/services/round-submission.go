@@ -1,6 +1,8 @@
 package services
 
 import (
+	"time"
+
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"gorm.io/gorm"
@@ -128,6 +130,7 @@ func (service *RoundSubmissionService) CreateRoundSubmission(
 			ProblemID: problem.ID,
 			ExecutionTime: 0,
 			Verdict: constants.SUBMISSION_STATUS_SUBMITTED,
+			SubmissionTimestamp: time.Now(),
 		},
 		Score: problemScore,
 	}

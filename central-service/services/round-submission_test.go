@@ -250,6 +250,7 @@ func TestSubmitToRound(t *testing.T) {
 		0,
 		1,
 		"round_submissions",
+		AnyTime{},
 	).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	// mock relationship
@@ -1285,6 +1286,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 		0,
 		1,
 		"round_submissions",
+		AnyTime{},
 	).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	// mock relationship
@@ -1359,6 +1361,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 		0,
 		1,
 		"round_submissions",
+		AnyTime{},
 	).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	// mock relationship
