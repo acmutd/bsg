@@ -4,6 +4,8 @@ import (
   "encoding/json"
 
   "github.com/gorilla/websocket"
+
+  // "fmt"
 )
 
 // Struct for the leave-room request.
@@ -30,13 +32,23 @@ func (r *LeaveRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error)
   if err != nil {
     return "Err", err;
   }
- 
-  room := rooms[r.RoomID]
-
-  if &room == nil {
-     return "Room Doesn't Exist", nil;
+  
+  if rooms[r.RoomID] == nil {
+    return "Leave Room Request - Room Does Not Exist", nil
   }
 
-  room.RemoveUser(r.UserID)
+  if len(rooms[r.RoomID].Users) == 0 {
+    return "Leave Room Request - Room Empty", nil
+  }
+
+  // Remove user and delete room if necessary 
+  rooms[r.RoomID].RemoveUser(r.UserID)
+
+  // Check if room is empty and if so delete
+  if len(rooms[r.RoomID].Users) == 0 {
+    delete(rooms, r.RoomID)
+    return "Leave Room Request - Room Deleted", nil
+  }
+
   return "Leave Room Request", nil
 }

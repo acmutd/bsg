@@ -3,6 +3,7 @@ package requests
 import (
   "encoding/json"
   "github.com/gorilla/websocket"
+  "reflect"
 )
 
 // Request for a user to join a room.
@@ -40,18 +41,17 @@ func (r *JoinRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) 
     return "Err", err
   }
 
-  room := rooms[r.RoomID] 
+  _, exists := rooms[r.RoomID] 
 
   // Join room 
-  if &room != nil {
-    room.AddUser(r.UserID, c) 
+  if exists && reflect.TypeOf(rooms[r.RoomID]) != nil {
+    rooms[r.RoomID].AddUser(r.UserID, c) 
     return "Added " + r.UserID + " to " + r.RoomID, nil;
   } else {
-    // Room doesn't exist -> create room  
-    room = Room{ RoomID: r.RoomID }
-    room.AddUser(r.UserID, c)
+    // Room doesn't exist -> create room
+    rooms[r.RoomID] = &Room{ RoomID: r.RoomID }
+    rooms[r.RoomID].AddUser(r.UserID, c)
     
     return "Added Room " + r.RoomID + " with " + r.UserID + " as Owner", nil
   }
-  // return "Join Room Request", nil 
 }
