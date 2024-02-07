@@ -24,5 +24,6 @@ func (r *ChatMessageRequest) validate() error {
 
 // Handles the request and returns a response.
 func (r *ChatMessageRequest) Handle(m *Message, c *websocket.Conn) (string, error) { 
+  // This method will be completed in the future PR.
   return "Chat Message Request", nil
 }
