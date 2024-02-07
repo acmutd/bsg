@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -28,6 +29,10 @@ func main() {
 		fmt.Printf("Error connecting to the database: %v\n", err)
 	}
 
+	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
+		fmt.Printf("Error migrating schema: %v\n", err)
+	}
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "redis-cache:6379",
 		Password: os.Getenv("REDIS_PASSWORD"),
@@ -40,24 +45,35 @@ func main() {
 	if err := db.AutoMigrate(&models.Room{}); err != nil {
 		fmt.Printf("Error migrating Room schema: %v\n", err)
 	}
+	if err := db.AutoMigrate(&models.Round{}); err != nil {
+		fmt.Printf("Error migrating Round schema: %v\n", err)
+	}
+	if err := db.AutoMigrate(&models.RoundParticipant{}); err != nil {
+		fmt.Printf("Error migrating RoundParticipant schema: %v\n", err)
+	}
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
 	userController := controllers.InitializeUserController(&userService)
 
-	roomService := services.InitializeRoomService(db, maxNumRoundsPerRoom)
-	roomController := controllers.InitializeRoomController(&roomService)
+	problemService := services.InitializeProblemService(db)
+	problemController := controllers.InitializeProblemController(&problemService)
 
+	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
+	roomController := controllers.InitializeRoomController(&roomService)
 	roomAccessor := services.NewRoomAccessor(&roomService)
-	roundService := services.InitializeRoundService(db, rdb, &roomAccessor)
-	roundController := controllers.InitializeRoundController(&roundService)
+	problemAccessor := services.NewProblemAccessor(&problemService)
+	roundScheduler := tasks.New()
+	defer roundScheduler.Stop()
+	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
+	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
+	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
-
 	roundController.InitializeRoutes(e.Group("/api/rounds"))
 
 	e.Logger.Fatal(e.Start(":5000"))

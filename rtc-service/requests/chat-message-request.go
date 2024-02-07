@@ -1,8 +1,8 @@
 package requests
 
 import (
-  // "encoding/json"
-  "github.com/gorilla/websocket"
+  "github.com/gorilla/websocket",
+  "github.com/acmutd/bsg/rtc-service/response"
 )
 
 // Request for a user to send a message to a room.
@@ -20,6 +20,11 @@ func (r *ChatMessageRequest) Type() string {
 // Validates the request.
 func (r *ChatMessageRequest) validate() error {
   return nil
+}
+
+// Returns the response type for the request.
+func (r *ChatMessageRequest) responseType() response.ResponseType {
+	return response.CHAT_MESSAGE
 }
 
 // Handles the request and returns a response.

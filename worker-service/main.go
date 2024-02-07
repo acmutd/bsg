@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
-	fmt.Println("Hello World! Welcom to worker service")
+	fmt.Println("Hello World! Welcome to worker service")
 }

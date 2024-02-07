@@ -6,6 +6,8 @@ import (
   "reflect"
 )
 
+import "github.com/acmutd/bsg/rtc-service/response"
+
 // Request for a user to join a room.
 type JoinRoomRequest struct {
 	UserID string `json:"userID"`//validate:"required"`
@@ -23,7 +25,12 @@ func (r *JoinRoomRequest) validate() error {
 	return nil
 }
 
-// Handles the request and returns a response.
+// Returns the response type for the request.
+func (r *JoinRoomRequest) responseType() response.ResponseType {
+	return response.SYSTEM_ANNOUNCEMENT
+}
+
+// Handles the request and returns a response
 func (r *JoinRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
 
   /*

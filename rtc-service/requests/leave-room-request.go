@@ -4,8 +4,6 @@ import (
   "encoding/json"
 
   "github.com/gorilla/websocket"
-
-  // "fmt"
 )
 
 // Struct for the leave-room request.
@@ -23,6 +21,11 @@ func (r *LeaveRoomRequest) Type() string {
 // Validates the request.
 func (r *LeaveRoomRequest) validate() error {
 	return nil
+}
+
+// Returns the response type for the request.
+func (r *LeaveRoomRequest) responseType() response.ResponseType {
+	return response.SYSTEM_ANNOUNCEMENT
 }
 
 // Handles the request and returns a response.
