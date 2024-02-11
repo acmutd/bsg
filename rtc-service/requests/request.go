@@ -35,7 +35,7 @@ type Request interface {
 	Type() string
 
 	// Validates the request.
-	validate() error
+	validate(string) error
 
 	// Returns the response type for the request.
 	responseType() response.ResponseType

@@ -14,7 +14,7 @@ func (r *JoinRoomRequest) Type() string {
 }
 
 // Validates the request.
-func (r *JoinRoomRequest) validate() error {
+func (r *JoinRoomRequest) validate(message string) error {
 	// This method will be completed in the future PR.
 	return nil
 }
