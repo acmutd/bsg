@@ -2,6 +2,7 @@ package servicesmanager
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/acmutd/bsg/rtc-service/logging"
@@ -99,6 +100,11 @@ func (s *Service) ReadMessages() {
 				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
 			} else {
 				// Pass the message to the appropriate request.
+				// Replace single quotes with double quotes to avoid JSON parsing issues.
+				messageStruct.Data = strings.Replace(messageStruct.Data, "'", "\"", -1)
+
+				// Dynamically handle the request type.
+				// This is done by using the request type as a key to the map of request types.
 				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
@@ -108,9 +114,9 @@ func (s *Service) ReadMessages() {
 					s.Egress <- *response.NewOkResponse(respType, resp)
 				}
 			}
-
-			logging.Info("Received message: ", string(message))
 		}
+
+		logging.Info("Received message: ", string(message))
 	}
 }
 
