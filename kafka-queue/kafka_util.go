@@ -14,7 +14,7 @@ func NewKafkaProducer(kafkaServer string) *kafka.Producer {
 		"acks":              "all"})
 	if err != nil {
 		fmt.Println("Failed to create producer due to ", err)
-		panic(err)
+		return nil
 	}
 	return producer
 }
@@ -109,7 +109,8 @@ func SendSubmissionResult(producer *kafka.Producer, kafkaServer string, kafkaTop
 func NewKafkaConsumer(kafkaServer string, kafkaTopic string, workerID string) *kafka.Consumer {
 	consumer, initConsumerErr := kafka.NewConsumer(&kafka.ConfigMap{"bootstrap.servers": kafkaServer, "group.id": workerID, "auto.offset.reset": "smallest"})
 	if initConsumerErr != nil {
-		panic(errors.New("Unable to create kafka consumer due to error " + initConsumerErr.Error()))
+		fmt.Println("Unable to create kafka consumer due to error " + initConsumerErr.Error())
+		return nil
 	}
 	// Subscribe to kafka topic
 	subscriptionErr := consumer.Subscribe(kafkaTopic, nil)
