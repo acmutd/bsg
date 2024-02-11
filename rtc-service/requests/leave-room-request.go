@@ -15,7 +15,7 @@ func (r *LeaveRoomRequest) Type() string {
 }
 
 // Validates the request.
-func (r *LeaveRoomRequest) validate() error {
+func (r *LeaveRoomRequest) validate(message string) error {
 	return nil
 }
 
