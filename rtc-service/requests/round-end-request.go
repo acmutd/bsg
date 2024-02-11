@@ -1,11 +1,16 @@
 package requests
 
-import "github.com/acmutd/bsg/rtc-service/response"
+import (
+	"encoding/json"
+
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/go-playground/validator/v10"
+)
 
 // Struct for the leave-room request.
 // Request for a user to leave a room.
 type RoundEndRequest struct {
-	RoomID string `json:"roomID"`
+	RoomID string `json:"roomID" validate:"required"`
 }
 
 // Returns the type of the request.
@@ -14,7 +19,20 @@ func (r *RoundEndRequest) Type() string {
 }
 
 // Validates the request.
-func (r *RoundEndRequest) validate() error {
+func (r *RoundEndRequest) validate(message string) error {
+	// Unmarshal the message into the struct.
+	var req RoundEndRequest
+	err := json.Unmarshal([]byte(message), &req)
+	if err != nil {
+		return err
+	}
+
+	validate := validator.New()
+	err = validate.Struct(req)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -25,6 +43,12 @@ func (r *RoundEndRequest) responseType() response.ResponseType {
 
 // Handles the request and returns a response.
 func (r *RoundEndRequest) Handle(m *Message) (response.ResponseType, string, error) {
-	// This method will be completed in the future PR.
-	return r.responseType(), "Round End Request", nil
+	// Validate the request.
+	err := r.validate(m.Data)
+	if err != nil {
+		return r.responseType(), "", err
+	}
+	var req RoundEndRequest
+	json.Unmarshal([]byte(m.Data), &req)
+	return r.responseType(), "Round has ended!", nil
 }
