@@ -1,10 +1,16 @@
 package requests
 
-import "github.com/acmutd/bsg/rtc-service/response"
+import (
+	"encoding/json"
+
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/go-playground/validator/v10"
+)
 
 // Struct for the round-start request.
 type RoundStartRequest struct {
-	RoomID string `json:"roomID"`
+	RoomID      string   `json:"roomID" validate:"required"`
+	ProblemList []string `json:"problemList" validate:"required"`
 }
 
 // Returns the type of the request.
@@ -13,7 +19,19 @@ func (r *RoundStartRequest) Type() string {
 }
 
 // Validates the request.
-func (r *RoundStartRequest) validate() error {
+func (r *RoundStartRequest) validate(message string) error {
+	// Unmarshal the message into the struct.
+	var req RoundStartRequest
+	err := json.Unmarshal([]byte(message), &req)
+	if err != nil {
+		return err
+	}
+
+	validate := validator.New()
+	err = validate.Struct(req)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -24,6 +42,13 @@ func (r *RoundStartRequest) responseType() response.ResponseType {
 
 // Handles the request and returns a response.
 func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, error) {
-	// This method will be completed in the future PR.
-	return r.responseType(), "Round Start Request", nil
+	// Validate the request.
+	err := r.validate(m.Data)
+	if err != nil {
+		return r.responseType(), "", err
+	}
+
+	// Sending the problem list to the room will be determined in a later implementation.
+
+	return r.responseType(), "New Round has started!", nil
 }
