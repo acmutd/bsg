@@ -1,14 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"log"
 
 	"github.com/acmutd/bsg/rtc-service/logging"
-	"github.com/acmutd/bsg/rtc-service/requests"
-	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/acmutd/bsg/rtc-service/servicesmanager"
+	"github.com/google/uuid"
 
 	"github.com/gorilla/websocket"
 )
@@ -31,6 +30,8 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: writeBufferSize,
 }
 
+var serviceManager = servicesmanager.NewServiceManager()
+
 func main() {
 	logging.Info("Starting RTC Service")
 
@@ -44,51 +45,22 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logging.Error("Failed to upgrade connection: ", err)
+		conn.Close()
 		return
 	}
-	defer conn.Close()
 
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			logging.Error("Failed to read message: ", err)
-			sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
-		}
+	// Create a new service and add it to the service manager.
+	// Service name will be changed when a new message is received.
+	// The random service name is to ensure that if two new services try to connect,
+	// the connection would not be overridden.
+	client := servicesmanager.NewClient(uuid.New().String(), conn, serviceManager)
 
-		// Unmarshal message into a message struct.
-		var messageStruct requests.Message
-		err = json.Unmarshal(message, &messageStruct)
-		if err != nil {
-			logging.Error("Failed to unmarshal message: ", err)
-			sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
-		} else {
-			// Validate message.
-			err = messageStruct.Validate(string(message))
-			if err != nil {
-				logging.Error("Failed to validate message: ", err)
-				sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
-			} else {
-				// Pass the message to the appropriate request.
-				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
-				if err != nil {
-					logging.Error("Failed to handle message: ", err)
-					sendMessage(conn, *response.NewErrorResponse(respType, err.Error()))
-				} else {
-					// Send the response back to the client.
-					sendMessage(conn, *response.NewOkResponse(respType, resp))
-				}
-			}
+	// Add the service to the service manager.
+	serviceManager.AddService(client)
 
-			logging.Info("Received message: ", string(message))
-		}
-	}
-}
+	// Start reading messages from the service.
+	go client.ReadMessages()
 
-// Sends a message back to the client.
-func sendMessage(conn *websocket.Conn, message response.Response) {
-	err := conn.WriteMessage(websocket.TextMessage, []byte(message.Message()))
-	if err != nil {
-		logging.Error("Failed to write error message: ", err)
-		return
-	}
+	// Start writing messages to the service.
+	go client.WriteMessages()
 }

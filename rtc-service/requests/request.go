@@ -19,6 +19,9 @@ var (
 
 	// Request to announce the start of a round.
 	ROUND_START_REQUEST RequestType = "round-start"
+
+	// Request when a user made a new submission.
+	NEW_SUBMISSION_REQUEST RequestType = "new-submission"
 )
 
 // Map of request types to their respective structs.
@@ -26,10 +29,11 @@ var (
 // Used to quickly determine the type of a request and
 // to unmarshal the request into the correct struct.
 var RequestTypes = map[RequestType]Request{
-	LEAVE_ROOM_REQUEST:   &LeaveRoomRequest{},
-	JOIN_ROOM_REQUEST:    &JoinRoomRequest{},
-	SEND_MESSAGE_REQUEST: &ChatMessageRequest{},
-	ROUND_START_REQUEST:  &RoundStartRequest{},
+	LEAVE_ROOM_REQUEST:     &LeaveRoomRequest{},
+	JOIN_ROOM_REQUEST:      &JoinRoomRequest{},
+	SEND_MESSAGE_REQUEST:   &ChatMessageRequest{},
+	ROUND_START_REQUEST:    &RoundStartRequest{},
+	NEW_SUBMISSION_REQUEST: &NewSubmissionRequest{},
 }
 
 // Struct for the different request types.
@@ -39,7 +43,7 @@ type Request interface {
 	Type() string
 
 	// Validates the request.
-	validate() error
+	validate(string) error
 
 	// Returns the response type for the request.
 	responseType() response.ResponseType
