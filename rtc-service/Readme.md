@@ -24,6 +24,8 @@ Once you have connected to the server, you can send and receive messages in real
 
 To send an event to the server, send a JSON object with the following properties:
 
+- `name`: Name of the service to connect to the RTC service.
+    - This name can't be changed after the first successful message has been sent.
 - `request-type`: The name of the event to send.
 - `data`: A string containing any data to send with the event.
 
@@ -31,11 +33,9 @@ For example, to send a `Leave Room` request with the you would send the followin
 
 ```
 {
-    "request-type": "leave-room"
-    "data": "{
-        "userHandle": "xyz"
-        "roomId": "xyz"
-    }"
+    "name": "service-name",
+    "request-type": "leave-room",
+    "data": "{'userHandle': 'xyz','roomId': 'xyz'}"
 }
 ```
 

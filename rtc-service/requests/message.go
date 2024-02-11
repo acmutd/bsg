@@ -9,8 +9,9 @@ import (
 // Message struct for websocket messages.
 // Contains the request type and data associated with the request.
 type Message struct {
-	Type string `json:"request-type" validate:"required"`
-	Data string `json:"data" validate:"required"`
+	ServiceName string `json:"name" validate:"required"`
+	Type        string `json:"request-type" validate:"required"`
+	Data        string `json:"data" validate:"required"`
 }
 
 // Validates the messages sent to the server.
