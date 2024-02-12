@@ -123,11 +123,27 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	})
 }
 
+func (controller *RoomController) GetLeaderboardEndpoint(c echo.Context) error {
+	roomID := c.Param("roomID")
+	leaderboard, err := controller.roomService.GetLeaderboard(roomID)
+	if err != nil {
+		log.Printf("Failed to get leaderboard for room with id %s: %v\n", roomID, err)
+		if err, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to get leaderboard. "+err.Message)
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get leaderboard. Please try again later")
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"leaderboard": leaderboard,
+	})
+}
+
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
-	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 	g.POST("/:roomID/new-round", controller.CreateNewRoundEndpoint)
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
+	g.GET("/:roomID", controller.FindRoomEndpoint)
+	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
 }

@@ -295,3 +295,17 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 	}
 	return roundStartTime, nil
 }
+
+func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
+		return nil, err
+	}
+	round := &room.Rounds[len(room.Rounds)-1]
+	if round == nil {
+		log.Printf("Error finding round for room ID: %v\n", err)
+		return nil, BSGError{StatusCode: http.StatusNotFound, Message: "Room has no leaderboard"}
+	}
+	return service.roundService.GetLeaderboard(round.ID)
+}
