@@ -53,7 +53,7 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
 	}
-	// TODO: delete rounds
+	// Deletes rounds from cascade delete
 	if err := service.db.Delete(room).Error; err != nil {
 		log.Printf("Error deleting room %s: %v\n", roomID, err)
 		return err
@@ -263,6 +263,9 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters) (*model
 	}
 	round, err := service.roundService.CreateRound(params, &room.ID)
 	if err != nil {
+		return nil, err
+	}
+	if err := service.db.Model(&room).Update("Rounds", append(room.Rounds, *round)).Error; err != nil {
 		return nil, err
 	}
 	return round, nil

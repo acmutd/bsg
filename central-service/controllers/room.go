@@ -89,7 +89,7 @@ func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 }
 
 func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
-	// need to remove room id param
+	// TODO: need to remove room id param
 	var roundCreationParams services.RoundCreationParameters
 	if err := c.Bind(&roundCreationParams); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
