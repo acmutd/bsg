@@ -89,12 +89,12 @@ func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 }
 
 func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
-	// TODO: need to remove room id param
 	var roundCreationParams services.RoundCreationParameters
 	if err := c.Bind(&roundCreationParams); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
-	newRound, err := controller.roomService.CreateRound(&roundCreationParams)
+	roomID := c.Param("roomID")
+	newRound, err := controller.roomService.CreateRound(&roundCreationParams, roomID)
 	if err != nil {
 		log.Printf("Failed to create new round: %v\n", err)
 		if err, ok := err.(*services.BSGError); ok {

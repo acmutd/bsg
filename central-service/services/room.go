@@ -151,8 +151,7 @@ func (service *RoomService) addJoinMember(roomID string, userID string) error {
 			Message:    "Are you already in this room?",
 		}
 	}
-	// TODO: remove
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	log.Printf("User joined room. Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
 	return nil
 }
 
@@ -171,8 +170,7 @@ func (service *RoomService) removeJoinMember(roomID string, userID string) error
 			Message:    "Are you in this room?",
 		}
 	}
-	// TODO: remove
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	log.Printf("User left room. Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
 	return nil
 }
 
@@ -245,8 +243,8 @@ func validateRoomName(name string) error {
 	return nil
 }
 
-func (service *RoomService) CreateRound(params *RoundCreationParameters) (*models.Round, error) {
-	room, err := service.FindRoomByID(params.RoomID)
+func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, error) {
+	room, err := service.FindRoomByID(roomID)
 	if err != nil {
 		log.Printf("Error finding room by ID: %v\n", err)
 		return nil, err

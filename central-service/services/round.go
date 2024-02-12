@@ -24,11 +24,10 @@ type RoundService struct {
 }
 
 type RoundCreationParameters struct {
-	RoomID            string `json:"roomID"`
-	Duration          int    `json:"duration"` // Duration in minutes
-	NumEasyProblems   int    `json:"numEasyProblems"`
-	NumMediumProblems int    `json:"numMediumProblems"`
-	NumHardProblems   int    `json:"numHardProblems"`
+	Duration          int `json:"duration"` // Duration in minutes
+	NumEasyProblems   int `json:"numEasyProblems"`
+	NumMediumProblems int `json:"numMediumProblems"`
+	NumHardProblems   int `json:"numHardProblems"`
 }
 
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
@@ -70,7 +69,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 	if err != nil {
 		return nil, err
 	}
-	redisKey := fmt.Sprintf("%s_mostRecentRound", params.RoomID)
+	redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
 		log.Printf("Error setting value in redis instance: %v\n", err)
