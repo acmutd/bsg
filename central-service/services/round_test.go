@@ -119,19 +119,16 @@ func TestCreateNewRound(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoom.ID.String()), "1", 0).SetVal("OK")
-	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
-	roomAccessor := NewRoomAccessor(&roomService)
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
-		RoomID:            mockRoom.ID.String(),
 		Duration:          20,
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	})
+	}, &mockRoom.ID)
 	if err != nil {
 		t.Fatalf("Error at create round: %v\n", err)
 	}
@@ -177,9 +174,12 @@ func TestCreateNewRoundExceededLimit(t *testing.T) {
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(roomUUID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id"}))
-	roomService := InitializeRoomService(db, rdb, 0)
-	roomAccessor := NewRoomAccessor(&roomService)
-	roundLimitExceeded, err := roomAccessor.CheckRoundLimitExceeded(mockRoom)
+	problemService := InitializeProblemService(db)
+	problemAccessor := NewProblemAccessor(&problemService)
+	roundScheduler := tasks.New()
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+	roomService := InitializeRoomService(db, rdb, &roundService, 0)
+	roundLimitExceeded, err := roomService.CheckRoundLimitExceeded(mockRoom)
 	if err != nil {
 		t.Fatalf("Error checking round limit exceeded: %v\n", err)
 	}
@@ -242,17 +242,14 @@ func TestFindRoundByID(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoom.ID.String()), "1", 0).SetVal("OK")
-	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
-	roomAccessor := NewRoomAccessor(&roomService)
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	defer roundScheduler.Stop()
-	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
-		RoomID:   mockRoom.ID.String(),
 		Duration: 20,
-	})
+	}, &mockRoom.ID)
 	if err != nil {
 		t.Fatalf("Error at create round: %v\n", err)
 	}
@@ -310,7 +307,11 @@ func TestInitiateRoundStart(t *testing.T) {
 		WithArgs(mockRoomUUID.String(), "abc12345", "Hello World").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
+	roundScheduler := tasks.New()
+	problemService := InitializeProblemService(db)
+	problemAccessor := NewProblemAccessor(&problemService)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -386,18 +387,12 @@ func TestInitiateRoundStart(t *testing.T) {
 	mock.ExpectExec("INSERT(.*)").WithArgs(1, 1, 1, 11, 1, 12, 1, 21).WillReturnResult(sqlmock.NewResult(8, 8))
 	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoomUUID.String()), "1", 0).SetVal("OK")
-	roomAccessor := NewRoomAccessor(&roomService)
-	roundScheduler := tasks.New()
-	problemService := InitializeProblemService(db)
-	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
-		RoomID:            mockRoomUUID.String(),
 		Duration:          20,
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	})
+	}, &mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -424,7 +419,7 @@ func TestInitiateRoundStart(t *testing.T) {
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
-	roundStartTime, err := roundService.InitiateRoundStart(newRound.ID)
+	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
 	if err != nil {
 		t.Fatalf("Error starting new round: %v\n", err)
 	}
@@ -495,7 +490,11 @@ func TestProblemSetVisibility(t *testing.T) {
 		WithArgs(mockRoomUUID.String(), "abc12345", "Hello World").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
+	roundScheduler := tasks.New()
+	problemService := InitializeProblemService(db)
+	problemAccessor := NewProblemAccessor(&problemService)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -571,18 +570,12 @@ func TestProblemSetVisibility(t *testing.T) {
 	mock.ExpectExec("INSERT(.*)").WithArgs(1, 1, 1, 11, 1, 12, 1, 21).WillReturnResult(sqlmock.NewResult(8, 8))
 	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoomUUID.String()), "1", 0).SetVal("OK")
-	roomAccessor := NewRoomAccessor(&roomService)
-	roundScheduler := tasks.New()
-	problemService := InitializeProblemService(db)
-	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
-		RoomID:            mockRoomUUID.String(),
 		Duration:          20,
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	})
+	}, &mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -623,7 +616,7 @@ func TestProblemSetVisibility(t *testing.T) {
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
-	roundStartTime, err := roundService.InitiateRoundStart(newRound.ID)
+	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
 	if err != nil {
 		t.Fatalf("Error starting new round: %v\n", err)
 	}
@@ -694,7 +687,11 @@ func TestRoundEndTransition(t *testing.T) {
 		WithArgs(mockRoomUUID.String(), "abc12345", "Hello World").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	roomService := InitializeRoomService(db, rdb, MAX_ROUND_PER_ROOM)
+	roundScheduler := tasks.New()
+	problemService := InitializeProblemService(db)
+	problemAccessor := NewProblemAccessor(&problemService)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -770,18 +767,12 @@ func TestRoundEndTransition(t *testing.T) {
 	mock.ExpectExec("INSERT(.*)").WithArgs(1, 1, 1, 11, 1, 12, 1, 21).WillReturnResult(sqlmock.NewResult(8, 8))
 	mock.ExpectCommit()
 	mockRedis.ExpectSet(fmt.Sprintf("%s_mostRecentRound", mockRoomUUID.String()), "1", 0).SetVal("OK")
-	roomAccessor := NewRoomAccessor(&roomService)
-	roundScheduler := tasks.New()
-	problemService := InitializeProblemService(db)
-	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
-		RoomID:            mockRoomUUID.String(),
 		Duration:          1,
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	})
+	}, &mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -811,7 +802,7 @@ func TestRoundEndTransition(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.*)").WithArgs(constants.ROUND_END, newRound.ID).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	roundStartTime, err := roundService.InitiateRoundStart(newRound.ID)
+	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
 	if err != nil {
 		t.Fatalf("Error starting new round: %v\n", err)
 	}

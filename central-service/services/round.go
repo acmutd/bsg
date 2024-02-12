@@ -9,42 +9,31 @@ import (
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/google/uuid"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type RoundService struct {
-	db             *gorm.DB
-	rdb            *redis.Client
-	roomAccessor   *RoomAccessor
-	roundScheduler *tasks.Scheduler
+	db              *gorm.DB
+	rdb             *redis.Client
+	roundScheduler  *tasks.Scheduler
 	problemAccessor *ProblemAccessor
 }
 
 type RoundCreationParameters struct {
-	RoomID   string `json:"roomID"`
-	Duration int `json:"duration"` // Duration in minutes
-	NumEasyProblems int `json:"numEasyProblems"`
+	Duration          int `json:"duration"` // Duration in minutes
+	NumEasyProblems   int `json:"numEasyProblems"`
 	NumMediumProblems int `json:"numMediumProblems"`
-	NumHardProblems int `json:"numHardProblems"`
+	NumHardProblems   int `json:"numHardProblems"`
 }
 
-type RoundServiceError struct {
-	StatusCode int
-	Message    string
-}
-
-func (r *RoundServiceError) Error() string {
-	return r.Message
-}
-
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
 	return RoundService{
-		db:             db,
-		rdb:            rdb,
-		roomAccessor:   roomAccessor,
-		roundScheduler: roundScheduler,
+		db:              db,
+		rdb:             rdb,
+		roundScheduler:  roundScheduler,
 		problemAccessor: problemAccessor,
 	}
 }
@@ -53,29 +42,10 @@ func (service *RoundService) SetDBConnection(db *gorm.DB) {
 	service.db = db
 }
 
-func (service *RoundService) CreateRound(params *RoundCreationParameters) (*models.Round, error) {
-	targetRoom, err := service.roomAccessor.GetRoomByID(params.RoomID)
-	if err != nil {
-		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
-	}
-	if targetRoom == nil {
-		return nil, nil
-	}
-	roundLimitExceeded, err := service.roomAccessor.CheckRoundLimitExceeded(targetRoom)
-	if err != nil {
-		log.Printf("Error checking round limit: %v\n", err)
-		return nil, err
-	}
-	if roundLimitExceeded {
-		return nil, &RoundServiceError{
-			StatusCode: 400,
-			Message:    "Round limit exceeded",
-		}
-	}
+func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, error) {
 	newRound := models.Round{
 		Duration:        params.Duration,
-		RoomID:          targetRoom.ID,
+		RoomID:          *roomID,
 		LastUpdatedTime: time.Now(),
 		Status:          constants.ROUND_CREATED,
 	}
@@ -86,9 +56,9 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	}
 	// TODO: Add logic for problem generation
 	problemSet, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
-		NumEasyProblems: params.NumEasyProblems,
+		NumEasyProblems:   params.NumEasyProblems,
 		NumMediumProblems: params.NumMediumProblems,
-		NumHardProblems: params.NumHardProblems,
+		NumHardProblems:   params.NumHardProblems,
 	})
 	if err != nil {
 		return nil, err
@@ -97,7 +67,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters) (*mode
 	if err != nil {
 		return nil, err
 	}
-	redisKey := fmt.Sprintf("%s_mostRecentRound", params.RoomID)
+	redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
 		log.Printf("Error setting value in redis instance: %v\n", err)
@@ -133,13 +103,15 @@ func (service *RoundService) CreateRoundParticipant(participantAuthID string, ro
 	return result.Error
 }
 
-func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error) {
-	targetRound, err := service.FindRoundByID(roundID)
-	if err != nil {
-		return nil, err
+func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomParticipants []string) (*time.Time, error) {
+	if round == nil {
+		return nil, &BSGError{
+			Message:    "Round not found",
+			StatusCode: 404,
+		}
 	}
 	roundStartTime := time.Now().Add(time.Second * 10)
-	result := service.db.Model(targetRound).Updates(models.Round{
+	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
 		Status:          constants.ROUND_STARTED,
 	})
@@ -148,33 +120,33 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 	}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
-	_, err = service.roundScheduler.Add(&tasks.Task{
+	_, err := service.roundScheduler.Add(&tasks.Task{
 		Interval:    time.Duration(10 * time.Second),
 		RunOnce:     true,
 		TaskContext: tasks.TaskContext{Context: ctx},
 		FuncWithTaskContext: func(ctx tasks.TaskContext) error {
 			roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
 			if !isValidType {
-				return &RoundServiceError{
+				return &BSGError{
 					Message:    "Error get round service from context",
 					StatusCode: 500,
 				}
 			}
 			if roundService == nil {
-				return &RoundServiceError{
+				return &BSGError{
 					Message:    "Round service is nil",
 					StatusCode: 500,
 				}
 			}
-			activeRoomParticipants, err := roundService.roomAccessor.GetRoomService().FindActiveUsers(targetRound.RoomID.String())
-			if err != nil {
-				return err
-			}
-			err = roundService.db.Transaction(func(tx *gorm.DB) error {
+			err := roundService.db.Transaction(func(tx *gorm.DB) error {
 				oldDBConnection := roundService.db
 				roundService.SetDBConnection(tx)
 				for _, participantAuthID := range activeRoomParticipants {
-					if err = roundService.CreateRoundParticipant(participantAuthID, roundID); err != nil {
+					if err := roundService.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
+						roundService.SetDBConnection(oldDBConnection)
+						return err
+					}
+					if err := roundService.addLeaderboardMember(round.ID, participantAuthID); err != nil {
 						roundService.SetDBConnection(oldDBConnection)
 						return err
 					}
@@ -188,29 +160,29 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 			// Schedule task to change round state to ended
 			_, err = roundService.roundScheduler.Add(&tasks.Task{
 				// Set an extra buffer time in case of submission at the end of the round
-				Interval: time.Duration(time.Minute * time.Duration(targetRound.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER) * time.Second),
-				RunOnce: true,
+				Interval:    time.Duration(time.Minute*time.Duration(round.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER)*time.Second),
+				RunOnce:     true,
 				TaskContext: ctx,
 				FuncWithTaskContext: func(tc tasks.TaskContext) error {
 					roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
 					if !isValidType {
-						return &RoundServiceError{
+						return &BSGError{
 							Message:    "Error get round service from context",
 							StatusCode: 500,
 						}
 					}
 					if roundService == nil {
-						return &RoundServiceError{
+						return &BSGError{
 							Message:    "Round service is nil",
 							StatusCode: 500,
 						}
 					}
-					result := roundService.db.Model(targetRound).Updates(models.Round{
+					result := roundService.db.Model(round).Updates(models.Round{
 						Status: constants.ROUND_END,
 					})
 					if result.Error != nil {
-						return &RoundServiceError{
-							Message: "Error ending round",
+						return &BSGError{
+							Message:    "Error ending round",
 							StatusCode: 500,
 						}
 					}
@@ -224,7 +196,7 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 			return nil
 		},
 		ErrFunc: func(e error) {
-			log.Printf("Error while attempting to scheduling round with id %d - %s", targetRound.ID, e)
+			log.Printf("Error while attempting to scheduling round with id %d - %s", round.ID, e)
 		},
 	})
 	if err != nil {
@@ -233,28 +205,69 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 	return &roundStartTime, nil
 }
 
-func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserAuthID string) (*models.RoundParticipant, error) {
-	var participant models.RoundParticipant 
-	result := service.db.Limit(1).Where("participant_auth_id = ? AND round_id = ?", UserAuthID, RoundID).Find(&participant)
-	if result.Error != nil {
-		return nil, result.Error
+// Adds a user to a round leaderboard
+// Member values are a compression of the user's score and last submission timestamp
+// User's initial score will be 0 with the current timestamp
+func (service *RoundService) addLeaderboardMember(roundID uint, userID string) error {
+	leaderboardKey := fmt.Sprintf("%d_leaderboard", roundID)
+	score := compressScoreAndTimeStamp(0, time.Now())
+	leaderboardMember := redis.Z{
+		Score:  score,
+		Member: userID,
 	}
-	if result.RowsAffected == 0 {
-		return nil, nil
+	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
+		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
+		return err
 	}
-	return &participant, nil
+	// TODO: remove
+	if leaderboard, err := service.getLeaderboardByRoundID(roundID); err == nil {
+		log.Printf("Leaderboard in round %d::\n%v\n", roundID, leaderboard)
+	}
+	return nil
 }
 
-func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, problem *models.Problem) (bool, error) {
-	var problemset []models.Problem
-	err := service.db.Model(round).Association("ProblemSet").Find(&problemset)
+// Removes the given round's leaderboard from the Redis cache
+func (service *RoundService) DeleteLeaderboard(roundID uint) error {
+	leaderboardKey := fmt.Sprintf("%d_leaderboard", roundID)
+	if resultCmd := service.rdb.Del(context.Background(), leaderboardKey); resultCmd.Err() != nil {
+		log.Printf("Error deleting key %s: %v\n", leaderboardKey, resultCmd.Err())
+		return resultCmd.Err()
+	}
+	return nil
+}
+
+// Get leaderboard of a round
+func (service *RoundService) getLeaderboardByRoundID(roundID uint) ([]redis.Z, error) {
+	key := fmt.Sprintf("%d_leaderboard", roundID)
+	result, err := service.rdb.ZRevRangeWithScores(context.Background(), key, 0, -1).Result()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	for _, roundProblem := range problemset {
-		if roundProblem.ID == problem.ID {
-			return true, nil
+	return result, nil
+}
+
+// Get leaderboard of a round
+func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, error) {
+	key := fmt.Sprintf("%s_mostRecentRound", roomID)
+	roundIDStr, err := service.rdb.Get(context.Background(), key).Result()
+	if err != nil {
+		if err, ok := err.(redis.Error); ok && err.Error() == "redis: nil" {
+			return nil, BSGError{StatusCode: 404, Message: "No recent round"}
 		}
+		return nil, err
 	}
-	return false, nil
+	roundID, err := strconv.ParseUint(roundIDStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return service.getLeaderboardByRoundID(uint(roundID))
+}
+
+// First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
+func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
+	const scoreBits = 10
+	score <<= (64 - scoreBits)
+	time := timestamp.Unix()
+	time &= (1 << (64 - scoreBits)) - 1
+	return float64(score | uint64(^time))
 }

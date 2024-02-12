@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"log"
+	"net/http"
 	"time"
 
+	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -14,11 +16,12 @@ import (
 type RoomService struct {
 	db                  *gorm.DB
 	rdb                 *redis.Client
+	roundService        *RoundService
 	MaxNumRoundsPerRoom int
 }
 
-func InitializeRoomService(db *gorm.DB, rdb *redis.Client, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, maxNumRoundsPerRoom}
+func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, rdb, roundService, maxNumRoundsPerRoom}
 }
 
 type RoomDTO struct {
@@ -48,11 +51,14 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 func (service *RoomService) deleteRoom(room models.Room) error {
 	roomID := room.ID.String()
 	// TODO: notify RTC room is empty
-	if err := service.deleteLeaderboard(roomID); err != nil {
-		return err
-	}
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
+	}
+	// Delete rounds from cascade delete
+	for _, round := range room.Rounds { // Delete round leaderboards
+		if err := service.roundService.DeleteLeaderboard(round.ID); err != nil {
+			return err
+		}
 	}
 	if err := service.db.Delete(room).Error; err != nil {
 		log.Printf("Error deleting room %s: %v\n", roomID, err)
@@ -68,14 +74,20 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
 	uuid, err := uuid.Parse(roomID)
 	if err != nil {
-		return nil, RoomServiceError{Message: "roomID could not be parsed"}
+		return nil, BSGError{
+			StatusCode: 400,
+			Message:    "roomID could not be parsed",
+		}
 	}
 	result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	if result.RowsAffected == 0 {
-		return nil, RoomServiceError{Message: "roomID could not be found"}
+		return nil, BSGError{
+			StatusCode: 404,
+			Message:    "roomID could not be found",
+		}
 	}
 	return &room, nil
 }
@@ -90,12 +102,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
-	if err = service.addLeaderboardMember(roomID, userID); err != nil {
-		return nil, err
+	if len(room.Rounds) > 0 {
+		round := room.Rounds[len(room.Rounds)-1]
+		if round.Status == constants.ROUND_STARTED {
+			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
+				return nil, err
+			}
+		}
 	}
-	// TODO: if round is already started
-	// create a participant object
-	// notify RTC
+	// TODO: notify RTC
 	return room, nil
 }
 
@@ -143,10 +158,12 @@ func (service *RoomService) addJoinMember(roomID string, userID string) error {
 		return err
 	}
 	if result < 1 {
-		return RoomServiceError{Message: "Are you already in this room?"}
+		return BSGError{
+			StatusCode: 400,
+			Message:    "Are you already in this room?",
+		}
 	}
-	// TODO: remove
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	log.Printf("User joined room. Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
 	return nil
 }
 
@@ -160,10 +177,12 @@ func (service *RoomService) removeJoinMember(roomID string, userID string) error
 		return err
 	}
 	if result < 1 {
-		return RoomServiceError{Message: "Are you in this room?"}
+		return BSGError{
+			StatusCode: 400,
+			Message:    "Are you in this room?",
+		}
 	}
-	// TODO: remove
-	log.Printf("Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
+	log.Printf("User left room. Users in room %s:\n %v\n", roomID, service.rdb.ZRange(context.Background(), joinKey, 0, -1))
 	return nil
 }
 
@@ -187,56 +206,6 @@ func (service *RoomService) deleteJoinMembers(roomID string) error {
 	return nil
 }
 
-// Adds a user to the leaderboard
-// Member values are a compression of the user's score and last submission timestamp
-// User's initial score will be 0 with the current timestamp
-func (service *RoomService) addLeaderboardMember(roomID string, userID string) error {
-	leaderboardKey := roomID + "_leaderboard"
-	score := compressScoreAndTimeStamp(0, time.Now())
-	leaderboardMember := redis.Z{
-		Score:  score,
-		Member: userID,
-	}
-	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
-		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
-		return err
-	}
-	// TODO: remove
-	if leaderboard, err := service.GetLeaderboard(roomID); err == nil {
-		log.Printf("Leaderboard in room %s::\n%v\n", roomID, leaderboard)
-	}
-	return nil
-}
-
-// Removes the given room's leaderboard from the Redis cache
-func (service *RoomService) deleteLeaderboard(roomID string) error {
-	leaderboardKey := roomID + "_leaderboard"
-	if resultCmd := service.rdb.Del(context.Background(), leaderboardKey); resultCmd.Err() != nil {
-		log.Printf("Error deleting key %s: %v\n", leaderboardKey, resultCmd.Err())
-		return resultCmd.Err()
-	}
-	return nil
-}
-
-// Get leaderboard of a room
-func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
-	key := roomID + "_leaderboard"
-	result, err := service.rdb.ZRevRangeWithScores(context.Background(), key, 0, -1).Result()
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
-func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
-	const scoreBits = 10
-	score <<= (64 - scoreBits)
-	time := timestamp.Unix()
-	time &= (1 << (64 - scoreBits)) - 1
-	return float64(score | uint64(^time))
-}
-
 // Returns whether a given user is the room admin
 func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, error) {
 	room, err := service.FindRoomByID(roomID)
@@ -247,7 +216,7 @@ func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, err
 }
 
 // Returns auth id of new room admin
-// Oldest session will be retruend, ties are broken lexicographically
+// Oldest session will be returned, ties are broken lexicographically
 func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error) {
 	key := roomID + "_joinTimestamp"
 	result, err := service.rdb.ZRange(context.Background(), key, 0, 0).Result()
@@ -255,29 +224,99 @@ func (service *RoomService) FindRightfulRoomAdmin(roomID string) (string, error)
 		return "", err
 	}
 	if len(result) == 0 {
-		return "", RoomServiceError{Message: "Empty room"}
+		return "", BSGError{
+			StatusCode: 500,
+			Message:    "Empty room",
+		}
 	}
 	return result[0], nil
-}
-
-type RoomServiceError struct {
-	Message string
-}
-
-func (e RoomServiceError) Error() string {
-	return e.Message
 }
 
 // Validates a room name
 func validateRoomName(name string) error {
 	if len(name) <= 0 {
-		return RoomServiceError{Message: "roomName missing"}
+		return BSGError{
+			StatusCode: 400,
+			Message:    "roomName missing",
+		}
 	}
 	if len(name) < 4 {
-		return RoomServiceError{Message: "roomName must be at least 4 characters in length"}
+		return BSGError{
+			StatusCode: 400,
+			Message:    "roomName must be at least 4 characters in length",
+		}
 	}
 	if len(name) >= 32 {
-		return RoomServiceError{Message: "roomName must be under 32 characters in length"}
+		return BSGError{
+			StatusCode: 400,
+			Message:    "roomName must be under 32 characters in length",
+		}
 	}
 	return nil
+}
+
+func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
+		return nil, err
+	}
+	roundLimitExceeded, err := service.CheckRoundLimitExceeded(room)
+	if err != nil {
+		return nil, err
+	}
+	if roundLimitExceeded {
+		return nil, &BSGError{
+			StatusCode: 400,
+			Message:    "Round limit exceeded",
+		}
+	}
+	round, err := service.roundService.CreateRound(params, &room.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := service.db.Model(&room).Update("Rounds", append(room.Rounds, *round)).Error; err != nil {
+		return nil, err
+	}
+	return round, nil
+}
+
+func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, error) {
+	var rounds []models.Round
+	if err := service.db.Model(room).Association("Rounds").Find(&rounds); err != nil {
+		log.Printf("Error checking round limit: %v\n", err)
+		return true, err
+	}
+	return len(rounds) >= service.MaxNumRoundsPerRoom, nil
+}
+
+func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*time.Time, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
+		return nil, err
+	}
+	if room.Admin != userID { // check if user is room admin
+		return nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
+	}
+	if len(room.Rounds) <= 0 {
+		log.Printf("Error initiating round start: Round has not been created")
+		return nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
+	}
+	round := room.Rounds[len(room.Rounds)-1]
+	activeUsers, err := service.FindActiveUsers(roomID)
+	if err != nil {
+		log.Printf("Error initiating round start: %v\n", err)
+		return nil, err
+	}
+	roundStartTime, err := service.roundService.InitiateRoundStart(&round, activeUsers)
+	if err != nil {
+		log.Printf("Error initiating round start: %v\n", err)
+		return nil, err
+	}
+	return roundStartTime, nil
+}
+
+func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
+	return service.roundService.GetLeaderboardByRoomID(roomID)
 }

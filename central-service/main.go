@@ -49,7 +49,7 @@ func main() {
 		fmt.Printf("Error migrating Submission schema: %v\n", err)
 	}
 	if err := db.AutoMigrate(&models.RoundSubmission{}); err != nil {
-		fmt.Printf("Error migrating RoundSubmission schema: %v\n",err)
+		fmt.Printf("Error migrating RoundSubmission schema: %v\n", err)
 	}
 	e := echo.New()
 
@@ -59,19 +59,13 @@ func main() {
 	problemService := services.InitializeProblemService(db)
 	problemController := controllers.InitializeProblemController(&problemService)
 
-	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
-	roomController := controllers.InitializeRoomController(&roomService)
-	roomAccessor := services.NewRoomAccessor(&roomService)
 	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
-	roundAccessor := services.NewRoundAccessor(&roundService)
-	roundSubmissionService := services.InitializeRoundSubmissionService(db, &problemAccessor, &roundAccessor)
-	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService, &roundSubmissionService)
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
 
-	// TODO: Initialize Kafka-related components
-	// TODO: Create a co-routine to listen for messages coming from Kafka and update database
+	roomService := services.InitializeRoomService(db, rdb, &roundService, maxNumRoundsPerRoom)
+	roomController := controllers.InitializeRoomController(&roomService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
@@ -79,7 +73,6 @@ func main() {
 	userController.InitializeRoutes(e.Group("/api/users"))
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
-	roundController.InitializeRoutes(e.Group("/api/rounds"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }
