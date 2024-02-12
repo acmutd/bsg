@@ -227,7 +227,7 @@ func (service *RoundService) addLeaderboardMember(roundID uint, userID string) e
 }
 
 // Removes the given round's leaderboard from the Redis cache
-func (service *RoundService) deleteLeaderboard(roundID uint) error {
+func (service *RoundService) DeleteLeaderboard(roundID uint) error {
 	leaderboardKey := fmt.Sprintf("%d_leaderboard", roundID)
 	if resultCmd := service.rdb.Del(context.Background(), leaderboardKey); resultCmd.Err() != nil {
 		log.Printf("Error deleting key %s: %v\n", leaderboardKey, resultCmd.Err())

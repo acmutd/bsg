@@ -53,7 +53,12 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
 	}
-	// Deletes rounds from cascade delete
+	// Delete rounds from cascade delete
+	for _, round := range room.Rounds { // Delete round leaderboards
+		if err := service.roundService.DeleteLeaderboard(round.ID); err != nil {
+			return err
+		}
+	}
 	if err := service.db.Delete(room).Error; err != nil {
 		log.Printf("Error deleting room %s: %v\n", roomID, err)
 		return err
