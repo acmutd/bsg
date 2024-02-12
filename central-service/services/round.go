@@ -18,7 +18,6 @@ import (
 type RoundService struct {
 	db              *gorm.DB
 	rdb             *redis.Client
-	roomAccessor    *RoomAccessor
 	roundScheduler  *tasks.Scheduler
 	problemAccessor *ProblemAccessor
 }
@@ -30,11 +29,10 @@ type RoundCreationParameters struct {
 	NumHardProblems   int `json:"numHardProblems"`
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roomAccessor *RoomAccessor, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
 	return RoundService{
 		db:              db,
 		rdb:             rdb,
-		roomAccessor:    roomAccessor,
 		roundScheduler:  roundScheduler,
 		problemAccessor: problemAccessor,
 	}
@@ -105,7 +103,7 @@ func (service *RoundService) CreateRoundParticipant(participantAuthID string, ro
 	return result.Error
 }
 
-func (service *RoundService) InitiateRoundStart(round *models.Round) (*time.Time, error) {
+func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomParticipants []string) (*time.Time, error) {
 	if round == nil {
 		return nil, &BSGError{
 			Message:    "Round not found",
@@ -140,19 +138,15 @@ func (service *RoundService) InitiateRoundStart(round *models.Round) (*time.Time
 					StatusCode: 500,
 				}
 			}
-			activeRoomParticipants, err := roundService.roomAccessor.GetRoomService().FindActiveUsers(round.RoomID.String())
-			if err != nil {
-				return err
-			}
-			err = roundService.db.Transaction(func(tx *gorm.DB) error {
+			err := roundService.db.Transaction(func(tx *gorm.DB) error {
 				oldDBConnection := roundService.db
 				roundService.SetDBConnection(tx)
 				for _, participantAuthID := range activeRoomParticipants {
-					if err = roundService.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
+					if err := roundService.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
 						roundService.SetDBConnection(oldDBConnection)
 						return err
 					}
-					if err = roundService.addLeaderboardMember(round.ID, participantAuthID); err != nil {
+					if err := roundService.addLeaderboardMember(round.ID, participantAuthID); err != nil {
 						roundService.SetDBConnection(oldDBConnection)
 						return err
 					}

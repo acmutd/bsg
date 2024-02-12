@@ -59,14 +59,13 @@ func main() {
 	problemService := services.InitializeProblemService(db)
 	problemController := controllers.InitializeProblemController(&problemService)
 
-	roomService := services.InitializeRoomService(db, rdb, maxNumRoundsPerRoom)
-	roomController := controllers.InitializeRoomController(&roomService)
-	roomAccessor := services.NewRoomAccessor(&roomService)
 	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, &roomAccessor, roundScheduler, &problemAccessor)
-	roundController := controllers.InitializeRoundController(&roundService, &userService, &roomService)
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+
+	roomService := services.InitializeRoomService(db, rdb, &roundService, maxNumRoundsPerRoom)
+	roomController := controllers.InitializeRoomController(&roomService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
@@ -74,7 +73,6 @@ func main() {
 	userController.InitializeRoutes(e.Group("/api/users"))
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
-	roundController.InitializeRoutes(e.Group("/api/rounds"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }

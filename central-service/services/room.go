@@ -288,7 +288,12 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 		return nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
 	}
 	round := room.Rounds[len(room.Rounds)-1]
-	roundStartTime, err := service.roundService.InitiateRoundStart(&round)
+	activeUsers, err := service.FindActiveUsers(roomID)
+	if err != nil {
+		log.Printf("Error initiating round start: %v\n", err)
+		return nil, err
+	}
+	roundStartTime, err := service.roundService.InitiateRoundStart(&round, activeUsers)
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, err
