@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/acmutd/bsg/kafka-queue/kafka_queue"
+	kafka_queue "github.com/acmutd/bsg/kafka-queue"
 	"github.com/acmutd/bsg/worker-service/leetcode-worker/lib"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )

@@ -1,4 +1,4 @@
-module kafka-queue
+module github.com/acmutd/bsg/kafka-queue
 
 go 1.21
 
