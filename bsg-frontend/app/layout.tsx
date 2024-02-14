@@ -3,7 +3,7 @@ import type {Metadata} from 'next'
 import {Poppins} from 'next/font/google'
 import Navbar from "@/components/customComponents/navbar";
 
-const poppins = Poppins({weight: '500', subsets: ['latin'], variable: '--poppins'})
+const poppins = Poppins({weight: '400', subsets: ['latin'], variable: '--poppins'})
 
 export const metadata: Metadata = {
     title: 'Create Next App',

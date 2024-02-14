@@ -18,7 +18,7 @@ const DifficultyDropdown = (props: {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <div className={'flex-row'}>
+                <div className={'w-fit'}>
                     <Button
                         className={'space-x-2 bg-inputBackground hover:brightness-125 hover:bg-inputBackground'}>
                         <p>Difficulty</p>
