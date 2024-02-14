@@ -14,7 +14,7 @@ const SearchBar = React.forwardRef<HTMLInputElement, InputProps>(
         const {searchRef, isFocused, setIsFocused} = useSearchbar();
         return (
             <div
-                className={`items-center w-80 flex-row bg-inputBackground rounded-md flex ${isFocused ? 'ring-2 ring-ring ring-offset-2 outline-none ring-offset-background' : ''}`}>
+                className={`hover:brightness-125 items-center w-80 flex-row bg-inputBackground rounded-md flex ${isFocused ? 'ring-2 ring-ring ring-offset-2 outline-none ring-offset-background' : ''}`}>
                 <button className={'pl-2.5'} onClick={() => searchRef.current?.focus()}>
                     <FontAwesomeIcon icon={faMagnifyingGlass} className={'text-muted-foreground'}/>
                 </button>
