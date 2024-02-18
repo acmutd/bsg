@@ -12,4 +12,10 @@ var (
 
 	// Request for a user to send a message to a room.
 	SEND_MESSAGE_REQUEST RequestType = "chat-message"
+
+	// Request to signify the round has ended.
+	ROUND_END_REQUEST RequestType = "round-end"
+
+	// Request when a user made a new submission.
+	NEW_SUBMISSION_REQUEST RequestType = "new-submission"
 )
