@@ -1,8 +1,6 @@
 package requests
 
-import (
-	"github.com/acmutd/bsg/rtc-service/response"
-)
+import "github.com/gorilla/websocket"
 
 // Map of request types to their respective structs.
 //
@@ -27,5 +25,5 @@ type Request interface {
 	responseType() response.ResponseType
 
 	// Handles the request and returns a response.
-	Handle(*Message) (response.ResponseType, string, error)
+	Handle(*Message, *websocket.Conn) (string, error)
 }
