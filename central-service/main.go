@@ -51,6 +51,16 @@ func main() {
 	if err := db.AutoMigrate(&models.RoundSubmission{}); err != nil {
 		fmt.Printf("Error migrating RoundSubmission schema: %v\n", err)
 	}
+	// Initialize Kafka-related components
+	ingressQueue := services.NewSubmissionIngressQueueService()
+	egressQueue := services.NewSubmissionEgressQueueService()
+
+	// Create a co-routine to listen for messages and handle delivery coming from Kafka and update database
+	go egressQueue.ListenForSubmissionData()
+	go ingressQueue.MessageDeliveryHandler()
+
+	// TODO: Inject ingressQueue as dependency of Round Submission service
+
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
