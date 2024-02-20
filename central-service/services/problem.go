@@ -108,3 +108,15 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	problems = append(problems, hardProblems...)
 	return problems, nil
 }
+
+func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem) uint {
+	if problem.Difficulty == constants.DIFFICULTY_EASY {
+		return 3
+	}
+
+	if problem.Difficulty == constants.DIFFICULTY_MEDIUM {
+		return 4
+	}
+
+	return 5
+}
