@@ -254,7 +254,7 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 		log.Printf("Error finding room by ID: %v\n", err)
 		return nil, err
 	}
-	roundLimitExceeded, err := service.checkRoundLimitExceeded(room)
+	roundLimitExceeded, err := service.CheckRoundLimitExceeded(room)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 	return round, nil
 }
 
-func (service *RoomService) checkRoundLimitExceeded(room *models.Room) (bool, error) {
+func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, error) {
 	var rounds []models.Round
 	if err := service.db.Model(room).Association("Rounds").Find(&rounds); err != nil {
 		log.Printf("Error checking round limit: %v\n", err)
