@@ -220,7 +220,7 @@ func (service *RoundService) addLeaderboardMember(roundID uint, userID string) e
 		return err
 	}
 	// TODO: remove
-	if leaderboard, err := service.GetLeaderboard(roundID); err == nil {
+	if leaderboard, err := service.getLeaderboardByRoundID(roundID); err == nil {
 		log.Printf("Leaderboard in round %d::\n%v\n", roundID, leaderboard)
 	}
 	return nil
@@ -237,13 +237,30 @@ func (service *RoundService) DeleteLeaderboard(roundID uint) error {
 }
 
 // Get leaderboard of a round
-func (service *RoundService) GetLeaderboard(roundID uint) ([]redis.Z, error) {
+func (service *RoundService) getLeaderboardByRoundID(roundID uint) ([]redis.Z, error) {
 	key := fmt.Sprintf("%d_leaderboard", roundID)
 	result, err := service.rdb.ZRevRangeWithScores(context.Background(), key, 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+// Get leaderboard of a round
+func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, error) {
+	key := fmt.Sprintf("%s_mostRecentRound", roomID)
+	roundIDStr, err := service.rdb.Get(context.Background(), key).Result()
+	if err != nil {
+		if err, ok := err.(redis.Error); ok && err.Error() == "redis: nil" {
+			return nil, BSGError{StatusCode: 404, Message: "No recent round"}
+		}
+		return nil, err
+	}
+	roundID, err := strconv.ParseUint(roundIDStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return service.getLeaderboardByRoundID(uint(roundID))
 }
 
 // First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
