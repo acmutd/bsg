@@ -6,4 +6,5 @@ type RoundParticipant struct {
 	RoundID            uint
 	SolvedProblemCount uint
 	Score              uint
+	RoundSubmissions []RoundSubmission
 }

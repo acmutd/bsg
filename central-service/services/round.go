@@ -232,3 +232,29 @@ func (service *RoundService) InitiateRoundStart(roundID uint) (*time.Time, error
 	}
 	return &roundStartTime, nil
 }
+
+func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserAuthID string) (*models.RoundParticipant, error) {
+	var participant models.RoundParticipant 
+	result := service.db.Limit(1).Where("participant_auth_id = ? AND round_id = ?", UserAuthID, RoundID).Find(&participant)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &participant, nil
+}
+
+func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, problem *models.Problem) (bool, error) {
+	var problemset []models.Problem
+	err := service.db.Model(round).Association("ProblemSet").Find(&problemset)
+	if err != nil {
+		return false, err
+	}
+	for _, roundProblem := range problemset {
+		if roundProblem.ID == problem.ID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
