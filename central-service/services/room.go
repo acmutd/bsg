@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -101,9 +102,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
-	// TODO: if round is already started
-	// create a participant object
-	// notify RTC
+	if len(room.Rounds) > 0 {
+		round := room.Rounds[len(room.Rounds)-1]
+		if round.Status == constants.ROUND_STARTED {
+			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
+				return nil, err
+			}
+		}
+	}
+	// TODO: notify RTC
 	return room, nil
 }
 
@@ -291,6 +298,10 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 	}
 	if room.Admin != userID { // check if user is room admin
 		return nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
+	}
+	if len(room.Rounds) <= 0 {
+		log.Printf("Error initiating round start: Round has not been created")
+		return nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
 	}
 	round := room.Rounds[len(room.Rounds)-1]
 	activeUsers, err := service.FindActiveUsers(roomID)
