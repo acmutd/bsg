@@ -1,12 +1,15 @@
 package requests
 
-import "github.com/acmutd/bsg/rtc-service/response"
+import (
+  "github.com/gorilla/websocket",
+  "github.com/acmutd/bsg/rtc-service/response"
+)
 
 // Request for a user to send a message to a room.
 type ChatMessageRequest struct {
-	UserHandle string `json:"userHandle"`
-	RoomID     string `json:"roomID"`
-	Message    string `json:"message"`
+  UserID  string `json:"userID"` // validate:"required"`
+	RoomID  string `json:"roomID"` // validate:"required"`
+	Message string `json:"message"` // validate:"required"`
 }
 
 // Returns the type of the request.
@@ -16,8 +19,7 @@ func (r *ChatMessageRequest) Type() string {
 
 // Validates the request.
 func (r *ChatMessageRequest) validate() error {
-	// This method will be completed in the future PR.
-	return nil
+  return nil
 }
 
 // Returns the response type for the request.
@@ -26,7 +28,7 @@ func (r *ChatMessageRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, error) {
-	// This method will be completed in the future PR.
-	return r.responseType(), "Chat Message Request", nil
+func (r *ChatMessageRequest) Handle(m *Message, c *websocket.Conn) (string, error) { 
+  // This method will be completed in the future PR.
+  return "Chat Message Request", nil
 }
