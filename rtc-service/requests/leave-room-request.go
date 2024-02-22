@@ -1,9 +1,10 @@
 package requests
 
 import (
-  "encoding/json"
+	"encoding/json"
 
-  "github.com/gorilla/websocket"
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/gorilla/websocket"
 )
 
 // Struct for the leave-room request.
@@ -30,28 +31,28 @@ func (r *LeaveRoomRequest) responseType() response.ResponseType {
 
 // Handles the request and returns a response.
 func (r *LeaveRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
-  err := json.Unmarshal([]byte(m.Data), &r)
-  
-  if err != nil {
-    return "Err", err;
-  }
-  
-  if rooms[r.RoomID] == nil {
-    return "Leave Room Request - Room Does Not Exist", nil
-  }
+	err := json.Unmarshal([]byte(m.Data), &r)
 
-  if len(rooms[r.RoomID].Users) == 0 {
-    return "Leave Room Request - Room Empty", nil
-  }
+	if err != nil {
+		return "Err", err
+	}
 
-  // Remove user and delete room if necessary 
-  rooms[r.RoomID].RemoveUser(r.UserID)
+	if rooms[r.RoomID] == nil {
+		return "Leave Room Request - Room Does Not Exist", nil
+	}
 
-  // Check if room is empty and if so delete
-  if len(rooms[r.RoomID].Users) == 0 {
-    delete(rooms, r.RoomID)
-    return "Leave Room Request - Room Deleted", nil
-  }
+	if len(rooms[r.RoomID].Users) == 0 {
+		return "Leave Room Request - Room Empty", nil
+	}
 
-  return "Leave Room Request", nil
+	// Remove user and delete room if necessary
+	rooms[r.RoomID].RemoveUser(r.UserID)
+
+	// Check if room is empty and if so delete
+	if len(rooms[r.RoomID].Users) == 0 {
+		delete(rooms, r.RoomID)
+		return "Leave Room Request - Room Deleted", nil
+	}
+
+	return "Leave Room Request", nil
 }

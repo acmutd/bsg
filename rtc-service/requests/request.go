@@ -1,6 +1,9 @@
 package requests
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/gorilla/websocket"
+)
 
 // Map of request types to their respective structs.
 //

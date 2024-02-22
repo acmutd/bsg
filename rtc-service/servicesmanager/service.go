@@ -89,7 +89,7 @@ func (s *Service) ReadMessages() {
 			logging.Error("Failed to unmarshal message: ", err)
 			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
 		} else {
-			// Update the message with the service name.
+			// Update the service name from the websocket message.
 			s.Name = messageStruct.ServiceName
 
 			// Validate message.
