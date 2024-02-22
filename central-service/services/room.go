@@ -115,7 +115,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 }
 
 // Allows a user to leave a room
-// If the depparting user is the room leader, a new leader will be assigned
+// If the departing user is the room leader, a new leader will be assigned
 func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
