@@ -1,22 +1,6 @@
 package requests
 
-import (
-	"github.com/acmutd/bsg/rtc-service/response"
-)
-
-type RequestType string
-
-// List of request types.
-var (
-	// Request for a user to leave a room.
-	LEAVE_ROOM_REQUEST RequestType = "leave-room"
-
-	// Request for a user to join a room.
-	JOIN_ROOM_REQUEST RequestType = "join-room"
-
-	// Request for a user to send a message to a room.
-	SEND_MESSAGE_REQUEST RequestType = "chat-message"
-)
+import "github.com/gorilla/websocket"
 
 // Map of request types to their respective structs.
 //
@@ -41,5 +25,5 @@ type Request interface {
 	responseType() response.ResponseType
 
 	// Handles the request and returns a response.
-	Handle(*Message) (response.ResponseType, string, error)
+	Handle(*Message, *websocket.Conn) (string, error)
 }
