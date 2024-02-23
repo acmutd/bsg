@@ -29,6 +29,13 @@ type RoundCreationParameters struct {
 	NumHardProblems   int `json:"numHardProblems"`
 }
 
+type RoundSubmissionParameters struct {
+	RoundID uint `json:"roundID"`
+	Code string `json:"code"`
+	Language string `json:"language"`
+	ProblemID uint `json:"problemID"`
+}
+
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
 	return RoundService{
 		db:              db,
@@ -270,4 +277,151 @@ func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
 	time := timestamp.Unix()
 	time &= (1 << (64 - scoreBits)) - 1
 	return float64(score | uint64(^time))
+}
+
+func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserAuthID string) (*models.RoundParticipant, error) {
+	var participant models.RoundParticipant 
+	result := service.db.Limit(1).Where("participant_auth_id = ? AND round_id = ?", UserAuthID, RoundID).Find(&participant)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &participant, nil
+}
+
+func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, problem *models.Problem) (bool, error) {
+	var problemset []models.Problem
+	err := service.db.Model(round).Association("ProblemSet").Find(&problemset)
+	if err != nil {
+		return false, err
+	}
+	for _, roundProblem := range problemset {
+		if roundProblem.ID == problem.ID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
+	problem *models.Problem,
+	participant *models.RoundParticipant, 
+	round *models.Round,
+) (uint, error) {
+	var numACSubmissions uint
+	result := service.db.Raw(`
+		SELECT 
+			count(*)
+		FROM 
+			submissions 
+		INNER JOIN round_submissions 
+			ON submissions.submission_owner_id = round_submissions.id
+		WHERE 
+			submissions.verdict = ?
+			AND submission.problem_id = ?
+			AND round_submissions.round_id = ?
+			AND round_submissions.round_participant_id = ?
+			AND submissions.submission_owner_type = "round_submissions"
+	`, constants.SUBMISSION_STATUS_ACCEPTED, problem.ID, round.ID, participant.ID).Scan(&numACSubmissions)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	// If user already AC this problem, then no score delta for that user
+	if numACSubmissions > 0 {
+		return 0, nil
+	}
+	return service.problemAccessor.GetProblemAccessor().DetermineScoreForProblem(problem), nil
+}
+
+
+func (service *RoundService) CreateRoundSubmission(
+	submissionParams RoundSubmissionParameters,
+	submissionAuthor *models.User,
+) (*models.RoundSubmission, error) {
+	// get round object
+	round, err := service.FindRoundByID(submissionParams.RoundID)
+	if err != nil {
+		return nil, err
+	}
+	
+	if round.Status == constants.ROUND_CREATED {
+		return nil, &BSGError{
+			Message: "Round haven't started yet",
+			StatusCode: 400,
+		}
+	}
+
+	if round.Status == constants.ROUND_END {
+		return nil, &BSGError{
+			Message: "Round already ended",
+			StatusCode: 400,
+		}
+	}
+	
+	// get problem object
+	problem, err := service.problemAccessor.GetProblemAccessor().FindProblemByProblemID(submissionParams.ProblemID)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if problem is in round's problemset
+	problemInRoundProblemset, err := service.CheckIfRoundContainsProblem(round, problem)
+	if err != nil {
+		return nil, err
+	}
+	if !problemInRoundProblemset {
+		return nil, &BSGError{
+			Message: "Invalid problem.",
+			StatusCode: 400,
+		}
+	}
+
+	// find participant object with matching round id and user auth id
+	participant, err := service.FindParticipantByRoundAndUserID(submissionParams.RoundID, submissionAuthor.AuthID)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if user joined round
+	if participant == nil {
+		return nil, &BSGError{
+			Message: "User haven't joined round...",
+			StatusCode: 400,
+		}
+	}
+
+	// determine score
+	problemScore, err := service.DetermineScoreDeltaForUserBySubmission(problem, participant, round)
+	if err != nil {
+		return nil, err
+	}
+
+	// create submission object
+	newSubmission := models.RoundSubmission {
+		Submission: models.Submission{
+			Code: submissionParams.Code,
+			Language: submissionParams.Language,
+			ProblemID: problem.ID,
+			ExecutionTime: 0,
+			Verdict: constants.SUBMISSION_STATUS_SUBMITTED,
+			SubmissionTimestamp: time.Now(),
+		},
+		Score: problemScore,
+	}
+	if err := service.db.Create(&newSubmission).Error; err != nil {
+		return nil, err
+	}
+
+	// establish relationship with round
+	if err := service.db.Model(round).Association("RoundSubmissions").Append(&newSubmission); err != nil {
+		return nil, err
+	}
+
+	// establish relationship with round participant
+	if err := service.db.Model(participant).Association("RoundSubmissions").Append(&newSubmission); err != nil {
+		return nil, err
+	}
+	return &newSubmission, nil
 }

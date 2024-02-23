@@ -146,4 +146,5 @@ func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
+	// TODO: add routes to submit problem to room
 }
