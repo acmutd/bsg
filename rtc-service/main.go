@@ -69,7 +69,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 				sendMessage(conn, *response.NewErrorResponse(response.GENERAL, err.Error()))
 			} else {
 				// Pass the message to the appropriate request.
-				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
+				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct, conn)
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
 					sendMessage(conn, *response.NewErrorResponse(respType, err.Error()))

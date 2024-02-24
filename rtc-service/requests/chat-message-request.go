@@ -1,7 +1,8 @@
 package requests
 
 import (
-  "github.com/gorilla/websocket",
+  "github.com/gorilla/websocket"
+
   "github.com/acmutd/bsg/rtc-service/response"
 )
 

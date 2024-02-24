@@ -4,6 +4,8 @@ import (
   "encoding/json"
 
   "github.com/gorilla/websocket"
+  
+  "github.com/acmutd/bsg/rtc-service/response"
 )
 
 // Struct for the leave-room request.

@@ -2,11 +2,13 @@ package requests
 
 import (
   "encoding/json"
-  "github.com/gorilla/websocket"
-  "reflect"
-)
 
-import "github.com/acmutd/bsg/rtc-service/response"
+  "github.com/gorilla/websocket"
+
+  "reflect"
+  
+  "github.com/acmutd/bsg/rtc-service/response"
+)
 
 // Request for a user to join a room.
 type JoinRoomRequest struct {
