@@ -18,8 +18,9 @@ func (r *ChatMessageRequest) Type() string {
 }
 
 // Validates the request.
-func (r *ChatMessageRequest) validate() error {
-  return nil
+func (r *ChatMessageRequest) validate(message string) error {
+	// This method will be completed in the future PR.
+	return nil
 }
 
 // Returns the response type for the request.
