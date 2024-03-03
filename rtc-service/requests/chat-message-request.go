@@ -18,7 +18,7 @@ func (r *ChatMessageRequest) Type() string {
 }
 
 // Validates the request.
-func (r *ChatMessageRequest) validate() error {
+func (r *ChatMessageRequest) validate(message string) error {
 	return nil
 }
 
