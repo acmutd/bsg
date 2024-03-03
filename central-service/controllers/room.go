@@ -113,7 +113,7 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	roundStartTime, err := controller.roomService.StartRoundByRoomID(targetRoomID, userAuthID)
 	if err != nil {
 		log.Printf("Failed to start round for room with id %s: %v\n", targetRoomID, err)
-		if err, ok := err.(services.BSGError); ok {
+		if err, ok := err.(*services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to start round. "+err.Message)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to start round. Please try again later")

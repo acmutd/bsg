@@ -117,6 +117,12 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			StatusCode: 404,
 		}
 	}
+	if round.Status != constants.ROUND_CREATED {
+		return nil, &BSGError{
+			Message:    "Round is either started or ended",
+			StatusCode: 400,
+		}
+	}
 	roundStartTime := time.Now().Add(time.Second * 10)
 	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
