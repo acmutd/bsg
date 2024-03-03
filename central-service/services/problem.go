@@ -12,9 +12,9 @@ type ProblemService struct {
 }
 
 type DifficultyParameter struct {
-	NumEasyProblems int
+	NumEasyProblems   int
 	NumMediumProblems int
-	NumHardProblems int
+	NumHardProblems   int
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -78,24 +78,24 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	err := service.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
-				SQL: "RAND()",
+				SQL: "RANDOM()",
 			},
 		}).Where("difficulty = ?", constants.DIFFICULTY_EASY).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
 			return err
 		}
 		if err := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
-				SQL: "RAND()",
+				SQL: "RANDOM()",
 			},
 		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
 			return err
 		}
 		if err := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
-				SQL: "RAND()",
+				SQL: "RANDOM()",
 			},
 		}).Where("difficulty = ?", constants.DIFFICULTY_HARD).Limit(params.NumHardProblems).Order(clause.Expr{
-			SQL: "RAND()",
+			SQL: "RANDOM()",
 		}).Find(&hardProblems).Error; err != nil {
 			return err
 		}

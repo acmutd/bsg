@@ -30,10 +30,10 @@ type RoundCreationParameters struct {
 }
 
 type RoundSubmissionParameters struct {
-	RoundID uint `json:"roundID"`
-	Code string `json:"code"`
-	Language string `json:"language"`
-	ProblemID uint `json:"problemID"`
+	RoundID   uint   `json:"roundID"`
+	Code      string `json:"code"`
+	Language  string `json:"language"`
+	ProblemID uint   `json:"problemID"`
 }
 
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
@@ -280,7 +280,7 @@ func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
 }
 
 func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserAuthID string) (*models.RoundParticipant, error) {
-	var participant models.RoundParticipant 
+	var participant models.RoundParticipant
 	result := service.db.Limit(1).Where("participant_auth_id = ? AND round_id = ?", UserAuthID, RoundID).Find(&participant)
 	if result.Error != nil {
 		return nil, result.Error
@@ -307,7 +307,7 @@ func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, pr
 
 func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 	problem *models.Problem,
-	participant *models.RoundParticipant, 
+	participant *models.RoundParticipant,
 	round *models.Round,
 ) (uint, error) {
 	var numACSubmissions uint
@@ -335,7 +335,6 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 	return service.problemAccessor.GetProblemAccessor().DetermineScoreForProblem(problem), nil
 }
 
-
 func (service *RoundService) CreateRoundSubmission(
 	submissionParams RoundSubmissionParameters,
 	submissionAuthor *models.User,
@@ -345,21 +344,21 @@ func (service *RoundService) CreateRoundSubmission(
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if round.Status == constants.ROUND_CREATED {
 		return nil, &BSGError{
-			Message: "Round haven't started yet",
+			Message:    "Round haven't started yet",
 			StatusCode: 400,
 		}
 	}
 
 	if round.Status == constants.ROUND_END {
 		return nil, &BSGError{
-			Message: "Round already ended",
+			Message:    "Round already ended",
 			StatusCode: 400,
 		}
 	}
-	
+
 	// get problem object
 	problem, err := service.problemAccessor.GetProblemAccessor().FindProblemByProblemID(submissionParams.ProblemID)
 	if err != nil {
@@ -373,7 +372,7 @@ func (service *RoundService) CreateRoundSubmission(
 	}
 	if !problemInRoundProblemset {
 		return nil, &BSGError{
-			Message: "Invalid problem.",
+			Message:    "Invalid problem.",
 			StatusCode: 400,
 		}
 	}
@@ -387,7 +386,7 @@ func (service *RoundService) CreateRoundSubmission(
 	// check if user joined round
 	if participant == nil {
 		return nil, &BSGError{
-			Message: "User haven't joined round...",
+			Message:    "User haven't joined round...",
 			StatusCode: 400,
 		}
 	}
@@ -399,13 +398,13 @@ func (service *RoundService) CreateRoundSubmission(
 	}
 
 	// create submission object
-	newSubmission := models.RoundSubmission {
+	newSubmission := models.RoundSubmission{
 		Submission: models.Submission{
-			Code: submissionParams.Code,
-			Language: submissionParams.Language,
-			ProblemID: problem.ID,
-			ExecutionTime: 0,
-			Verdict: constants.SUBMISSION_STATUS_SUBMITTED,
+			Code:                submissionParams.Code,
+			Language:            submissionParams.Language,
+			ProblemID:           problem.ID,
+			ExecutionTime:       0,
+			Verdict:             constants.SUBMISSION_STATUS_SUBMITTED,
 			SubmissionTimestamp: time.Now(),
 		},
 		Score: problemScore,

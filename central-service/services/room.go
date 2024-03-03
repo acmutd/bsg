@@ -35,9 +35,10 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID:    uuid.New(),
-		Name:  room.Name,
-		Admin: adminID,
+		ID:     uuid.New(),
+		Name:   room.Name,
+		Admin:  adminID,
+		Rounds: []models.Round{},
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
@@ -79,7 +80,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 			Message:    "roomID could not be parsed",
 		}
 	}
-	result := service.db.Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -275,7 +276,7 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 	if err != nil {
 		return nil, err
 	}
-	if err := service.db.Model(&room).Update("Rounds", append(room.Rounds, *round)).Error; err != nil {
+	if err := service.db.Model(&room).Association("Rounds").Append(round); err != nil {
 		return nil, err
 	}
 	return round, nil
