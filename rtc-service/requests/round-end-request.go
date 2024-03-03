@@ -5,6 +5,7 @@ import (
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
 )
 
 // Struct for the leave-room request.
@@ -42,13 +43,13 @@ func (r *RoundEndRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *RoundEndRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *RoundEndRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
 	// Validate the request.
 	err := r.validate(m.Data)
 	if err != nil {
-		return r.responseType(), "", err
+		return "", err
 	}
 	var req RoundEndRequest
 	json.Unmarshal([]byte(m.Data), &req)
-	return r.responseType(), "Round has ended!", nil
+	return "Round has ended!", nil
 }
