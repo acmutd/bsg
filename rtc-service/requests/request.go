@@ -10,9 +10,12 @@ import (
 // Used to quickly determine the type of a request and
 // to unmarshal the request into the correct struct.
 var RequestTypes = map[RequestType]Request{
-	LEAVE_ROOM_REQUEST:   &LeaveRoomRequest{},
-	JOIN_ROOM_REQUEST:    &JoinRoomRequest{},
-	SEND_MESSAGE_REQUEST: &ChatMessageRequest{},
+	LEAVE_ROOM_REQUEST:     &LeaveRoomRequest{},
+	JOIN_ROOM_REQUEST:      &JoinRoomRequest{},
+	SEND_MESSAGE_REQUEST:   &ChatMessageRequest{},
+	ROUND_START_REQUEST:    &RoundStartRequest{},
+	ROUND_END_REQUEST:      &RoundEndRequest{},
+	NEW_SUBMISSION_REQUEST: &NewSubmissionRequest{},
 }
 
 // Struct for the different request types.
