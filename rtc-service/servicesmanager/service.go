@@ -99,7 +99,9 @@ func (s *Service) ReadMessages() {
 				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
 			} else {
 				// Pass the message to the appropriate request.
-				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
+				// Will update in future PRs
+				respType := response.GENERAL
+				resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct, s.Connection) // Change arguments in future PRs
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
 					s.Egress <- *response.NewErrorResponse(respType, err.Error())
