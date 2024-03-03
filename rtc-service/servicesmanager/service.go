@@ -105,7 +105,8 @@ func (s *Service) ReadMessages() {
 
 				// Dynamically handle the request type.
 				// This is done by using the request type as a key to the map of request types.
-				respType, resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct)
+				respType := response.GENERAL // Will change in future PR's
+				resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct, s.Connection)
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
 					s.Egress <- *response.NewErrorResponse(respType, err.Error())

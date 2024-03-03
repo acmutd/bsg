@@ -8,21 +8,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Struct for the round-start request.
-type RoundStartRequest struct {
-	RoomID      string   `json:"roomID" validate:"required"`
-	ProblemList []string `json:"problemList" validate:"required"`
+// Struct for the leave-room request.
+// Request for a user to leave a room.
+type RoundEndRequest struct {
+	RoomID string `json:"roomID" validate:"required"`
 }
 
 // Returns the type of the request.
-func (r *RoundStartRequest) Type() string {
-	return string(ROUND_START_REQUEST)
+func (r *RoundEndRequest) Type() string {
+	return string(ROUND_END_REQUEST)
 }
 
 // Validates the request.
-func (r *RoundStartRequest) validate(message string) error {
+func (r *RoundEndRequest) validate(message string) error {
 	// Unmarshal the message into the struct.
-	var req RoundStartRequest
+	var req RoundEndRequest
 	err := json.Unmarshal([]byte(message), &req)
 	if err != nil {
 		return err
@@ -33,23 +33,23 @@ func (r *RoundStartRequest) validate(message string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 // Returns the response type for the request.
-func (r *RoundStartRequest) responseType() response.ResponseType {
+func (r *RoundEndRequest) responseType() response.ResponseType {
 	return response.SYSTEM_ANNOUNCEMENT
 }
 
 // Handles the request and returns a response.
-func (r *RoundStartRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+func (r *RoundEndRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
 	// Validate the request.
 	err := r.validate(m.Data)
 	if err != nil {
 		return "", err
 	}
-
-	// Sending the problem list to the room will be determined in a later implementation.
-
-	return "New Round has started!", nil
+	var req RoundEndRequest
+	json.Unmarshal([]byte(m.Data), &req)
+	return "Round has ended!", nil
 }

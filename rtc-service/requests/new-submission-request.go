@@ -6,6 +6,7 @@ import (
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
 )
 
 // Struct for the new-submission request.
@@ -46,11 +47,11 @@ func (r *NewSubmissionRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *NewSubmissionRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
 	// Validate the request.
 	err := r.validate(m.Data)
 	if err != nil {
-		return r.responseType(), "", err
+		return "", err
 	}
 	var req NewSubmissionRequest
 	json.Unmarshal([]byte(m.Data), &req)
@@ -58,5 +59,5 @@ func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string
 	// Triggering a leader board update will be determined in a later implementation.
 
 	message := fmt.Sprint("New submission from ", req.UserHandle, "\nProblem: ", req.ProblemID, "\nVerdict: ", req.Verdict)
-	return r.responseType(), message, nil
+	return message, nil
 }

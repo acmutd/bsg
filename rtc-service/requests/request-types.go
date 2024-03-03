@@ -18,4 +18,7 @@ var (
 
 	// Request when a user made a new submission.
 	NEW_SUBMISSION_REQUEST RequestType = "new-submission"
+
+	// Request to signify the round has ended.
+	ROUND_END_REQUEST RequestType = "round-end"
 )

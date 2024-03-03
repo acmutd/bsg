@@ -1,6 +1,9 @@
 package requests
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/gorilla/websocket"
+)
 
 // Map of request types to their respective structs.
 //
@@ -11,6 +14,7 @@ var RequestTypes = map[RequestType]Request{
 	JOIN_ROOM_REQUEST:      &JoinRoomRequest{},
 	SEND_MESSAGE_REQUEST:   &ChatMessageRequest{},
 	ROUND_START_REQUEST:    &RoundStartRequest{},
+	ROUND_END_REQUEST:      &RoundEndRequest{},
 	NEW_SUBMISSION_REQUEST: &NewSubmissionRequest{},
 }
 
