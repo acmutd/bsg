@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql/driver"
 	"fmt"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -305,9 +306,12 @@ func TestInitiateRoundStart(t *testing.T) {
 	}
 	// Join room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -390,7 +394,7 @@ func TestInitiateRoundStart(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
@@ -418,10 +422,10 @@ func TestInitiateRoundStart(t *testing.T) {
 	var problemSet []models.Problem
 	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
-		AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
-		AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
-		AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
-		AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	err = db.Model(newRound).Association("ProblemSet").Find(&problemSet)
 	if err != nil {
@@ -482,9 +486,12 @@ func TestProblemSetVisibility(t *testing.T) {
 	}
 	// Join room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -588,7 +595,7 @@ func TestProblemSetVisibility(t *testing.T) {
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
@@ -673,9 +680,12 @@ func TestRoundEndTransition(t *testing.T) {
 	}
 	// Join room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -758,16 +768,16 @@ func TestRoundEndTransition(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
-		}).SetVal(1)
+	}).SetVal(1)
 	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
-			sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
-				AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
-				AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
-				AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
-				AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
-		)
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.*)").WithArgs(constants.ROUND_END, newRound.ID).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
@@ -817,7 +827,7 @@ func TestSubmitToRound(t *testing.T) {
 	}
 	defer mockDb.Close()
 	dialector := postgres.New(postgres.Config{
-		Conn: mockDb,
+		Conn:       mockDb,
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
@@ -924,18 +934,21 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectCommit()
 	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
-		LastName: "world",
-		Handle: "helloworld",
-		Email: "helloworld@gmail.com",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
 	})
 	if err != nil {
 		t.Fatalf("Error creating new user: %v\n", err)
 	}
 	// user join room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -962,7 +975,7 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -1010,7 +1023,7 @@ func TestSubmitToRound(t *testing.T) {
 			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
-	mock.ExpectQuery("SELECT(.*)"). 
+	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newUser.AuthID, newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).AddRow(
 			1,
@@ -1019,8 +1032,8 @@ func TestSubmitToRound(t *testing.T) {
 			0,
 			0,
 		))
-	mock.ExpectQuery("SELECT(.*)"). 
-		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1). 
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(0))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 3).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
@@ -1043,9 +1056,9 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 3, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	submissionData, err := roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 1,
 	}, newUser)
 	if err != nil {
@@ -1068,7 +1081,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	}
 	defer mockDb.Close()
 	dialector := postgres.New(postgres.Config{
-		Conn: mockDb,
+		Conn:       mockDb,
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
@@ -1137,7 +1150,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
-	roomService := InitializeRoomService(db, rdb, &roundService,MAX_ROUND_PER_ROOM)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1175,18 +1188,21 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	mock.ExpectCommit()
 	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
-		LastName: "world",
-		Handle: "helloworld",
-		Email: "helloworld@gmail.com",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
 	})
 	if err != nil {
 		t.Fatalf("Error creating new user: %v\n", err)
 	}
 	// user join room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -1213,7 +1229,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -1251,9 +1267,9 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 1,
 	}, newUser)
 	if err == nil {
@@ -1277,7 +1293,7 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	}
 	defer mockDb.Close()
 	dialector := postgres.New(postgres.Config{
-		Conn: mockDb,
+		Conn:       mockDb,
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
@@ -1346,7 +1362,7 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
-	roomService := InitializeRoomService(db, rdb, &roundService,MAX_ROUND_PER_ROOM)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1384,18 +1400,21 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	mock.ExpectCommit()
 	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
-		LastName: "world",
-		Handle: "helloworld",
-		Email: "helloworld@gmail.com",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
 	})
 	if err != nil {
 		t.Fatalf("Error creating new user: %v\n", err)
 	}
 	// user join room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -1412,9 +1431,9 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 		WithArgs(newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 1, mockRoomUUID.String(), constants.ROUND_CREATED))
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 1,
 	}, newUser)
 	if err == nil {
@@ -1438,7 +1457,7 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	}
 	defer mockDb.Close()
 	dialector := postgres.New(postgres.Config{
-		Conn: mockDb,
+		Conn:       mockDb,
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
@@ -1544,9 +1563,9 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	mock.ExpectCommit()
 	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
-		LastName: "world",
-		Handle: "helloworld",
-		Email: "helloworld@gmail.com",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
 	})
 	if err != nil {
 		t.Fatalf("Error creating new user: %v\n", err)
@@ -1581,9 +1600,9 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 		WithArgs(newUser.AuthID, newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}))
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 1,
 	}, newUser)
 	if err == nil {
@@ -1608,7 +1627,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	}
 	defer mockDb.Close()
 	dialector := postgres.New(postgres.Config{
-		Conn: mockDb,
+		Conn:       mockDb,
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
@@ -1616,7 +1635,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
-	roomService := InitializeRoomService(db, rdb, &roundService,MAX_ROUND_PER_ROOM)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	// create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
@@ -1708,18 +1727,21 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	mock.ExpectCommit()
 	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
-		LastName: "world",
-		Handle: "helloworld",
-		Email: "helloworld@gmail.com",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
 	})
 	if err != nil {
 		t.Fatalf("Error creating new user: %v\n", err)
 	}
 	// user joins room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -1746,7 +1768,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -1795,9 +1817,9 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 2,
 	}, newUser)
 	if err == nil {
@@ -1821,7 +1843,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 	}
 	defer mockDb.Close()
 	dialector := postgres.New(postgres.Config{
-		Conn: mockDb,
+		Conn:       mockDb,
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
@@ -1829,7 +1851,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
-	roomService := InitializeRoomService(db, rdb, &roundService,MAX_ROUND_PER_ROOM)
+	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	// create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
@@ -1921,18 +1943,21 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectCommit()
 	newUser, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
-		LastName: "world",
-		Handle: "helloworld",
-		Email: "helloworld@gmail.com",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
 	})
 	if err != nil {
 		t.Fatalf("Error creating new user: %v\n", err)
 	}
 	// user joins room
 	mockRedisZKey := mockRoomUUID.String() + "_joinTimestamp"
-	mock.ExpectQuery("SELECT(.*)").
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rooms" WHERE ID = $1 LIMIT 1`)).
 		WithArgs(mockRoomUUID.String()).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(mockRoomUUID.String()))
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE "rounds"."room_id" = $1`)).
+		WithArgs(mockRoomUUID.String()).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mockRedis.ExpectZAdd(
 		mockRedisZKey,
 		redis.Z{
@@ -1959,7 +1984,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score: compressScoreAndTimeStamp(0, time.Now()),
+		Score:  compressScoreAndTimeStamp(0, time.Now()),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -2007,7 +2032,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
-	mock.ExpectQuery("SELECT(.*)"). 
+	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newUser.AuthID, newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).AddRow(
 			1,
@@ -2016,8 +2041,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 			0,
 			0,
 		))
-	mock.ExpectQuery("SELECT(.*)"). 
-		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1). 
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(0))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 3).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
@@ -2040,9 +2065,9 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 3, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	newSubmission, err := roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 1,
 	}, newUser)
 	if err != nil {
@@ -2051,7 +2076,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 	// mock AC set
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.*)").
-		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1). 
+		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	db.Model(&models.Submission{}).Where("submission_owner_id = ?", newSubmission.ID).Update("verdict", constants.SUBMISSION_STATUS_ACCEPTED)
@@ -2082,7 +2107,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
-	mock.ExpectQuery("SELECT(.*)"). 
+	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newUser.AuthID, newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).AddRow(
 			1,
@@ -2091,8 +2116,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 			0,
 			0,
 		))
-	mock.ExpectQuery("SELECT(.*)"). 
-		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1). 
+	mock.ExpectQuery("SELECT(.*)").
+		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 0).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
@@ -2115,9 +2140,9 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 0, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
-		RoundID: 1,
-		Code: "hello world",
-		Language: "cpp",
+		RoundID:   1,
+		Code:      "hello world",
+		Language:  "cpp",
 		ProblemID: 1,
 	}, newUser)
 	if err != nil {
