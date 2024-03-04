@@ -223,7 +223,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 // User's initial score will be 0 with the current timestamp
 func (service *RoundService) addLeaderboardMember(roundID uint, userID string) error {
 	leaderboardKey := fmt.Sprintf("%d_leaderboard", roundID)
-	score := compressScoreAndTimeStamp(0, time.Now())
+	score := float64(compressScoreAndTimeStamp(0, time.Now()))
 	leaderboardMember := redis.Z{
 		Score:  score,
 		Member: userID,
@@ -277,12 +277,12 @@ func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, e
 }
 
 // First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
-func compressScoreAndTimeStamp(score uint64, timestamp time.Time) float64 {
+func compressScoreAndTimeStamp(score uint64, timestamp time.Time) uint64 {
 	const scoreBits = 10
 	score <<= (64 - scoreBits)
 	time := timestamp.Unix()
 	time &= (1 << (64 - scoreBits)) - 1
-	return float64(score | uint64(^time))
+	return score | uint64(^time)
 }
 
 func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserAuthID string) (*models.RoundParticipant, error) {

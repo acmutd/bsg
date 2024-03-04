@@ -394,7 +394,7 @@ func TestInitiateRoundStart(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
@@ -595,7 +595,7 @@ func TestProblemSetVisibility(t *testing.T) {
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
 	)
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
@@ -768,7 +768,7 @@ func TestRoundEndTransition(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
@@ -975,7 +975,7 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -1229,7 +1229,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -1768,7 +1768,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())
@@ -1984,7 +1984,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectCommit()
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	mockRedis.ExpectZAdd("1_leaderboard", redis.Z{
-		Score:  compressScoreAndTimeStamp(0, time.Now()),
+		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
 	activeParticipants, err := roomService.FindActiveUsers(mockRoomUUID.String())

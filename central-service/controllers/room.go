@@ -142,7 +142,7 @@ func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
-	g.POST("/:roomID/new-round", controller.CreateNewRoundEndpoint)
+	g.POST("/:roomID/rounds/create", controller.CreateNewRoundEndpoint)
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
