@@ -59,8 +59,6 @@ func main() {
 	go egressQueue.ListenForSubmissionData()
 	go ingressQueue.MessageDeliveryHandler()
 
-	// TODO: Inject ingressQueue as dependency of Round Submission service
-
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
@@ -72,7 +70,7 @@ func main() {
 	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue)
 
 	roomService := services.InitializeRoomService(db, rdb, &roundService, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
