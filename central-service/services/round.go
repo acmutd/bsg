@@ -20,6 +20,7 @@ type RoundService struct {
 	rdb             *redis.Client
 	roundScheduler  *tasks.Scheduler
 	problemAccessor *ProblemAccessor
+	submissionQueue *SubmissionIngressQueueService
 }
 
 type RoundCreationParameters struct {
@@ -36,12 +37,13 @@ type RoundSubmissionParameters struct {
 	ProblemID uint   `json:"problemID"`
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService) RoundService {
 	return RoundService{
 		db:              db,
 		rdb:             rdb,
 		roundScheduler:  roundScheduler,
 		problemAccessor: problemAccessor,
+		submissionQueue: submissionQueue,
 	}
 }
 
@@ -428,5 +430,11 @@ func (service *RoundService) CreateRoundSubmission(
 	if err := service.db.Model(participant).Association("RoundSubmissions").Append(&newSubmission); err != nil {
 		return nil, err
 	}
+
+	// service.submissionQueue is nil in unit tests
+	if service.submissionQueue != nil {
+		service.submissionQueue.AddSubmissionToQueue(&newSubmission)
+	}
+
 	return &newSubmission, nil
 }
