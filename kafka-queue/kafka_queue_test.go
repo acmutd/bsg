@@ -20,7 +20,7 @@ func TestNewKafkaConsumer(t *testing.T) {
 		t.Error("Error loading .env file")
 	}
 	kafkaServer := os.Getenv("KAFKA_BROKER")
-	kafkaTopic := os.Getenv("KAFKA_TOPIC")
+	kafkaTopic := os.Getenv("KAFKA_INGRESS_TOPIC")
 	// Create new kafka consumer
 	consumer := NewKafkaConsumer(kafkaServer, kafkaTopic, "worker1")
 	if consumer == nil {
@@ -51,7 +51,7 @@ func TestSendSubmissionResult(t *testing.T) {
 		t.Error("Error loading .env file")
 	}
 	kafkaServer := os.Getenv("KAFKA_BROKER")
-	kafkaTopic := os.Getenv("KAFKA_TOPIC")
+	kafkaTopic := os.Getenv("KAFKA_INGRESS_TOPIC")
 	// Create new kafka producer
 	producer := NewKafkaProducer(kafkaServer)
 	if producer == nil {
