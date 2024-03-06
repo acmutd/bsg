@@ -1,12 +1,15 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	kafka_queue "kafka-queue" // TODO: change dependency name
 	"os"
 
+	kafka_dto "github.com/acmutd/bsg/central-service/kafka"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"gorm.io/gorm"
 )
 
 const MIN_COMMIT_COUNT = 100
@@ -28,14 +31,19 @@ func NewSubmissionIngressQueueService() SubmissionIngressQueueService {
 	}
 }
 
-func (ingressQueueService *SubmissionIngressQueueService) AddSubmissionToQueue(submission *models.RoundSubmission) error {
-	err := ingressQueueService.producer.Produce(
+func (ingressQueueService *SubmissionIngressQueueService) AddSubmissionToQueue(problem *models.Problem, submission *models.RoundSubmission) error {
+	kafkaPayload := kafka_dto.NewKafkaIngressDTO(problem, submission)
+	marshalledData, err := json.Marshal(kafkaPayload)
+	if err != nil {
+		return err
+	}
+	err = ingressQueueService.producer.Produce(
 		&kafka.Message{
 			TopicPartition: kafka.TopicPartition{
 				Topic: &ingressQueueService.ingressChannelName,
-				Partition: int32(0), // TODO: change this to real value
+				Partition: int32(0), // 1 partition should be enough for now
 			},
-			Value: []byte(""), // TODO: change this to real value
+			Value: marshalledData, 
 		},
 		ingressQueueService.deliveryChannel,
 	)
@@ -64,9 +72,10 @@ func (ingressQueueService *SubmissionIngressQueueService) MessageDeliveryHandler
 
 type SubmissionEgressQueueService struct {
 	consumer *kafka.Consumer
+	db *gorm.DB
 }
 
-func NewSubmissionEgressQueueService() SubmissionEgressQueueService {
+func NewSubmissionEgressQueueService(db *gorm.DB) SubmissionEgressQueueService {
 	consumer := kafka_queue.NewKafkaConsumer(
 		os.Getenv("KAFKA_BROKER"), 
 		os.Getenv("KAFKA_EGRESS_TOPIC"), 
@@ -74,12 +83,38 @@ func NewSubmissionEgressQueueService() SubmissionEgressQueueService {
 	)
 	return SubmissionEgressQueueService{
 		consumer,
+		db,
 	}
 }
 
-func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(rawMessage []byte) error  {
-	// TODO: add implementation
-	// Make sure to process duplicate message
+func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(rawSubmissionData []byte) error  {
+	var payload kafka_dto.KafkaEgressDTO
+	if err := json.Unmarshal(rawSubmissionData, &payload); err != nil {
+		return err
+	}
+	// fetch submission object
+	var submission models.Submission
+	result := egressQueueService.db.Where("ID = ?", payload.SubmissionId).Limit(1).Find(&submission)
+	if result.Error != nil {
+		return &BSGError{
+			StatusCode: 500,
+			Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error()),
+		}
+	}
+	if result.RowsAffected == 0 {
+		return &BSGError{
+			StatusCode: 404,
+			Message: "Submission not found",
+		}
+	}
+	// update verdict
+	result = egressQueueService.db.Model(&submission).Update("verdict", payload.Verdict)
+	if result.Error != nil {
+		return &BSGError{
+			StatusCode: 500,
+			Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error()),
+		}
+	}
 	return nil
 }
 

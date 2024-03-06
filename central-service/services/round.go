@@ -433,7 +433,7 @@ func (service *RoundService) CreateRoundSubmission(
 
 	// service.submissionQueue is nil in unit tests
 	if service.submissionQueue != nil {
-		service.submissionQueue.AddSubmissionToQueue(&newSubmission)
+		service.submissionQueue.AddSubmissionToQueue(problem, &newSubmission)
 	}
 
 	return &newSubmission, nil
