@@ -53,7 +53,7 @@ func main() {
 	}
 	// Initialize Kafka-related components
 	ingressQueue := services.NewSubmissionIngressQueueService()
-	egressQueue := services.NewSubmissionEgressQueueService()
+	egressQueue := services.NewSubmissionEgressQueueService(db)
 
 	// Create a co-routine to listen for messages and handle delivery coming from Kafka and update database
 	go egressQueue.ListenForSubmissionData()
