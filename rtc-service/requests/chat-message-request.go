@@ -2,7 +2,6 @@ package requests
 
 import (
 	"github.com/acmutd/bsg/rtc-service/response"
-	"github.com/gorilla/websocket"
 )
 
 // Request for a user to send a message to a room.
@@ -22,7 +21,7 @@ func (r *ChatMessageRequest) New() Request {
 }
 
 // Validates the request.
-func (r *ChatMessageRequest) validate(message string) error {
+func (r *ChatMessageRequest) validate() error {
 	return nil
 }
 
@@ -32,7 +31,7 @@ func (r *ChatMessageRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *ChatMessageRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, error) {
 	// This method will be completed in the future PR.
-	return "Chat Message Request", nil
+	return r.responseType(), "Chat Message Request", nil
 }

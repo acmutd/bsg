@@ -5,7 +5,6 @@ import (
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
 )
 
 // Struct for the round-start request.
@@ -24,16 +23,9 @@ func (r *RoundStartRequest) New() Request {
 }
 
 // Validates the request.
-func (r *RoundStartRequest) validate(message string) error {
-	// Unmarshal the message into the struct.
-	var req RoundStartRequest
-	err := json.Unmarshal([]byte(message), &req)
-	if err != nil {
-		return err
-	}
-
+func (r *RoundStartRequest) validate() error {
 	validate := validator.New()
-	err = validate.Struct(req)
+	err := validate.Struct(r)
 	if err != nil {
 		return err
 	}
@@ -46,14 +38,15 @@ func (r *RoundStartRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *RoundStartRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, error) {
+	json.Unmarshal([]byte(m.Data), r)
+
 	// Validate the request.
-	err := r.validate(m.Data)
+	err := r.validate()
 	if err != nil {
-		return "", err
+		return r.responseType(), "", err
 	}
 
 	// Sending the problem list to the room will be determined in a later implementation.
-
-	return "New Round has started!", nil
+	return r.responseType(), "New Round has started!", nil
 }

@@ -1,68 +1,67 @@
 package requests
 
-import (
-	"encoding/json"
-	"reflect"
+// import (
+// 	"encoding/json"
+// 	"reflect"
 
-	"github.com/acmutd/bsg/rtc-service/response"
-	"github.com/gorilla/websocket"
-)
+// 	"github.com/acmutd/bsg/rtc-service/response"
+// )
 
-// Request for a user to join a room.
-type JoinRoomRequest struct {
-	UserID string `json:"userID"` //validate:"required"`
-	RoomID string `json:"roomID"` //validate:"required"`
-}
+// // Request for a user to join a room.
+// type JoinRoomRequest struct {
+// 	UserID string `json:"userID"` //validate:"required"`
+// 	RoomID string `json:"roomID"` //validate:"required"`
+// }
 
-func init() {
-	register("join-room", &JoinRoomRequest{})
-}
+// // func init() {
+// // 	register("join-room", &JoinRoomRequest{})
+// // }
 
-// Creates a new request.
-func (r *JoinRoomRequest) New() Request {
-	return &JoinRoomRequest{}
-}
+// // Creates a new request.
+// func (r *JoinRoomRequest) New() Request {
+// 	return &JoinRoomRequest{}
+// }
 
-// Validates the request.
-func (r *JoinRoomRequest) validate(message string) error {
-	// This method will be completed in the future PR.
-	return nil
-}
+// // Validates the request.
+// func (r *JoinRoomRequest) validate() error {
+// 	// This method will be completed in the future PR.
+// 	return nil
+// }
 
-// Returns the response type for the request.
-func (r *JoinRoomRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
-}
+// // Returns the response type for the request.
+// func (r *JoinRoomRequest) responseType() response.ResponseType {
+// 	return response.SYSTEM_ANNOUNCEMENT
+// }
 
-// Handles the request and returns a response
-func (r *JoinRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+// // Handles the request and returns a response
+// func (r *JoinRoomRequest) Handle(m *Message) (string, error) {
 
-	/*
-	  Example request
-	  {
-	    "request-type": "join-room",
-	    "data": "{ \"userID\": \"1234\", \"roomID\": \"4321\" }"
-	  }
-	*/
+// 	/*
+// 	  Example request
+// 	  {
+// 	    "request-type": "join-room",
+// 	    "data": "{ \"userID\": \"1234\", \"roomID\": \"4321\" }"
+// 	  }
+// 	*/
 
-	// Process request
-	err := json.Unmarshal([]byte(m.Data), &r)
+// 	// Process request
+// 	err := json.Unmarshal([]byte(m.Data), &r)
 
-	if err != nil {
-		return "Err", err
-	}
+// 	if err != nil {
+// 		return "Err", err
+// 	}
 
-	_, exists := rooms[r.RoomID]
+// 	_, exists := rooms[r.RoomID]
 
-	// Join room
-	if exists && reflect.TypeOf(rooms[r.RoomID]) != nil {
-		rooms[r.RoomID].AddUser(r.UserID, c)
-		return "Added " + r.UserID + " to " + r.RoomID, nil
-	} else {
-		// Room doesn't exist -> create room
-		rooms[r.RoomID] = &Room{RoomID: r.RoomID}
-		rooms[r.RoomID].AddUser(r.UserID, c)
+// 	// Join room
+// 	if exists && reflect.TypeOf(rooms[r.RoomID]) != nil {
+// 		rooms[r.RoomID].AddUser(r.UserID, c)
+// 		return "Added " + r.UserID + " to " + r.RoomID, nil
+// 	} else {
+// 		// Room doesn't exist -> create room
+// 		rooms[r.RoomID] = &Room{RoomID: r.RoomID}
+// 		rooms[r.RoomID].AddUser(r.UserID, c)
 
-		return "Added Room " + r.RoomID + " with " + r.UserID + " as Owner", nil
-	}
-}
+// 		return "Added Room " + r.RoomID + " with " + r.UserID + " as Owner", nil
+// 	}
+// }

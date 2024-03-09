@@ -26,7 +26,7 @@ func (m *Message) Validate(message string) error {
 	}
 
 	// Checks that the request type is valid.
-	if _, ok := RequestTypes[(m.Type)]; !ok {
+	if _, ok := RequestTypes[m.Type]; !ok {
 		// Request type is not valid.
 		return errors.New("invalid request type: " + m.Type)
 	}

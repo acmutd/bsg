@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/acmutd/bsg/rtc-service/response"
-	"github.com/gorilla/websocket"
 )
 
 // Struct for the different request types.
@@ -14,13 +13,13 @@ type Request interface {
 	New() Request
 
 	// Validates the request.
-	validate(string) error
+	validate() error
 
 	// Returns the response type for the request.
 	responseType() response.ResponseType
 
 	// Handles the request and returns a response.
-	Handle(*Message, *websocket.Conn) (string, error)
+	Handle(*Message) (response.ResponseType, string, error)
 }
 
 var RequestTypes = make(map[string]Request)

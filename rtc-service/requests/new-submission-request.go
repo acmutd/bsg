@@ -6,7 +6,6 @@ import (
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
 )
 
 // Struct for the new-submission request.
@@ -28,16 +27,9 @@ func (r *NewSubmissionRequest) New() Request {
 }
 
 // Validates the request.
-func (r *NewSubmissionRequest) validate(message string) error {
-	// Unmarshal the message into the struct.
-	var req NewSubmissionRequest
-	err := json.Unmarshal([]byte(message), &req)
-	if err != nil {
-		return err
-	}
-
+func (r *NewSubmissionRequest) validate() error {
 	validate := validator.New()
-	err = validate.Struct(req)
+	err := validate.Struct(r)
 	if err != nil {
 		return err
 	}
@@ -51,17 +43,17 @@ func (r *NewSubmissionRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *NewSubmissionRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string, error) {
+	json.Unmarshal([]byte(m.Data), r)
+
 	// Validate the request.
-	err := r.validate(m.Data)
+	err := r.validate()
 	if err != nil {
-		return "", err
+		return r.responseType(), "", err
 	}
-	var req NewSubmissionRequest
-	json.Unmarshal([]byte(m.Data), &req)
 
 	// Triggering a leader board update will be determined in a later implementation.
 
-	message := fmt.Sprint("New submission from ", req.UserHandle, "\nProblem: ", req.ProblemID, "\nVerdict: ", req.Verdict)
-	return message, nil
+	message := fmt.Sprint("New submission from ", r.UserHandle, "\nProblem: ", r.ProblemID, "\nVerdict: ", r.Verdict)
+	return r.responseType(), message, nil
 }
