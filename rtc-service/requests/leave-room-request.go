@@ -14,9 +14,13 @@ type LeaveRoomRequest struct {
 	RoomID string `json:"roomID"` // validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *LeaveRoomRequest) Type() string {
-	return string(LEAVE_ROOM_REQUEST)
+func init() {
+	register("leave-room", &LeaveRoomRequest{})
+}
+
+// Creates a new request.
+func (r *LeaveRoomRequest) New() Request {
+	return &LeaveRoomRequest{}
 }
 
 // Validates the request.

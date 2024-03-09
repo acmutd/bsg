@@ -12,9 +12,13 @@ type ChatMessageRequest struct {
 	Message string `json:"message"` // validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *ChatMessageRequest) Type() string {
-	return string(SEND_MESSAGE_REQUEST)
+func init() {
+	register("chat-message", &ChatMessageRequest{})
+}
+
+// Creates a new request.
+func (r *ChatMessageRequest) New() Request {
+	return &ChatMessageRequest{}
 }
 
 // Validates the request.

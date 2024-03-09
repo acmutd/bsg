@@ -14,9 +14,13 @@ type RoundStartRequest struct {
 	ProblemList []string `json:"problemList" validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *RoundStartRequest) Type() string {
-	return string(ROUND_START_REQUEST)
+func init() {
+	register("round-start", &RoundStartRequest{})
+}
+
+// Creates a new request.
+func (r *RoundStartRequest) New() Request {
+	return &RoundStartRequest{}
 }
 
 // Validates the request.

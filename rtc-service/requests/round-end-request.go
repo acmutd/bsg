@@ -14,9 +14,13 @@ type RoundEndRequest struct {
 	RoomID string `json:"roomID" validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *RoundEndRequest) Type() string {
-	return string(ROUND_END_REQUEST)
+func init() {
+	register("round-end", &RoundEndRequest{})
+}
+
+// Creates a new request.
+func (r *RoundEndRequest) New() Request {
+	return &RoundEndRequest{}
 }
 
 // Validates the request.

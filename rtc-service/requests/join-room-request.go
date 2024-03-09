@@ -1,22 +1,26 @@
-package requests 
+package requests
 
 import (
-  "encoding/json"
-  "github.com/gorilla/websocket"
-  "reflect"
-)
+	"encoding/json"
+	"reflect"
 
-import "github.com/acmutd/bsg/rtc-service/response"
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/gorilla/websocket"
+)
 
 // Request for a user to join a room.
 type JoinRoomRequest struct {
-	UserID string `json:"userID"`//validate:"required"`
+	UserID string `json:"userID"` //validate:"required"`
 	RoomID string `json:"roomID"` //validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *JoinRoomRequest) Type() string {
-	return string(JOIN_ROOM_REQUEST)
+func init() {
+	register("join-room", &JoinRoomRequest{})
+}
+
+// Creates a new request.
+func (r *JoinRoomRequest) New() Request {
+	return &JoinRoomRequest{}
 }
 
 // Validates the request.
@@ -33,32 +37,32 @@ func (r *JoinRoomRequest) responseType() response.ResponseType {
 // Handles the request and returns a response
 func (r *JoinRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
 
-  /*
-  Example request
-  {
-    "request-type": "join-room",
-    "data": "{ \"userID\": \"1234\", \"roomID\": \"4321\" }"
-  }
-  */
+	/*
+	  Example request
+	  {
+	    "request-type": "join-room",
+	    "data": "{ \"userID\": \"1234\", \"roomID\": \"4321\" }"
+	  }
+	*/
 
-  // Process request
-  err := json.Unmarshal([]byte(m.Data), &r)
+	// Process request
+	err := json.Unmarshal([]byte(m.Data), &r)
 
-  if err != nil {
-    return "Err", err
-  }
+	if err != nil {
+		return "Err", err
+	}
 
-  _, exists := rooms[r.RoomID] 
+	_, exists := rooms[r.RoomID]
 
-  // Join room 
-  if exists && reflect.TypeOf(rooms[r.RoomID]) != nil {
-    rooms[r.RoomID].AddUser(r.UserID, c) 
-    return "Added " + r.UserID + " to " + r.RoomID, nil;
-  } else {
-    // Room doesn't exist -> create room
-    rooms[r.RoomID] = &Room{ RoomID: r.RoomID }
-    rooms[r.RoomID].AddUser(r.UserID, c)
-    
-    return "Added Room " + r.RoomID + " with " + r.UserID + " as Owner", nil
-  }
+	// Join room
+	if exists && reflect.TypeOf(rooms[r.RoomID]) != nil {
+		rooms[r.RoomID].AddUser(r.UserID, c)
+		return "Added " + r.UserID + " to " + r.RoomID, nil
+	} else {
+		// Room doesn't exist -> create room
+		rooms[r.RoomID] = &Room{RoomID: r.RoomID}
+		rooms[r.RoomID].AddUser(r.UserID, c)
+
+		return "Added Room " + r.RoomID + " with " + r.UserID + " as Owner", nil
+	}
 }

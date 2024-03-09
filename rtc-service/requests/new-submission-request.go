@@ -18,9 +18,13 @@ type NewSubmissionRequest struct {
 	Verdict    string `json:"verdict" validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *NewSubmissionRequest) Type() string {
-	return string(NEW_SUBMISSION_REQUEST)
+func init() {
+	register("new-submission", &NewSubmissionRequest{})
+}
+
+// Creates a new request.
+func (r *NewSubmissionRequest) New() Request {
+	return &NewSubmissionRequest{}
 }
 
 // Validates the request.
