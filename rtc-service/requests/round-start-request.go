@@ -39,10 +39,14 @@ func (r *RoundStartRequest) responseType() response.ResponseType {
 
 // Handles the request and returns a response.
 func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, error) {
-	json.Unmarshal([]byte(m.Data), r)
+	err := json.Unmarshal([]byte(m.Data), r)
+
+	if err != nil {
+		return r.responseType(), "", err
+	}
 
 	// Validate the request.
-	err := r.validate()
+	err = r.validate()
 	if err != nil {
 		return r.responseType(), "", err
 	}

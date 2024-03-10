@@ -37,25 +37,25 @@ func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, er
 	err := json.Unmarshal([]byte(m.Data), &r)
 
 	if err != nil {
-		return r.responseType(), "Err", err
+		return r.responseType(), "", err
 	}
 
-	if rooms[r.RoomID] == nil {
-		return r.responseType(), "Leave Room Request - Room Does Not Exist", nil
-	}
+	// if rooms[r.RoomID] == nil {
+	// 	return r.responseType(), "Leave Room Request - Room Does Not Exist", nil
+	// }
 
-	if len(rooms[r.RoomID].Users) == 0 {
-		return r.responseType(), "Leave Room Request - Room Empty", nil
-	}
+	// if len(rooms[r.RoomID].Users) == 0 {
+	// 	return r.responseType(), "Leave Room Request - Room Empty", nil
+	// }
 
-	// Remove user and delete room if necessary
-	rooms[r.RoomID].RemoveUser(r.UserID)
+	// // Remove user and delete room if necessary
+	// rooms[r.RoomID].RemoveUser(r.UserID)
 
-	// Check if room is empty and if so delete
-	if len(rooms[r.RoomID].Users) == 0 {
-		delete(rooms, r.RoomID)
-		return r.responseType(), "Leave Room Request - Room Deleted", nil
-	}
+	// // Check if room is empty and if so delete
+	// if len(rooms[r.RoomID].Users) == 0 {
+	// 	delete(rooms, r.RoomID)
+	// 	return r.responseType(), "Leave Room Request - Room Deleted", nil
+	// }
 
 	return r.responseType(), "Leave Room Request", nil
 }
