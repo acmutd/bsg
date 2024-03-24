@@ -5,7 +5,6 @@ go 1.21
 require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/google/uuid v1.3.1
 	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/google/uuid v1.3.1
 	github.com/labstack/echo/v4 v4.11.1
@@ -42,6 +41,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/rs/xid v1.5.0 // indirect
+	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
