@@ -5,7 +5,6 @@ import (
 
 	"log"
 
-	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/logging"
 	"github.com/acmutd/bsg/rtc-service/servicesmanager"
 	"github.com/google/uuid"
@@ -22,10 +21,7 @@ var (
 	port = ":8080"
 
 	// Path to the websocket endpoint.
-	path = "/service/ws"
-
-	// Path to the websocket endpoint for chats.
-	chatPath = "/chat/ws"
+	path = "/ws"
 )
 
 // Upgrader for upgrading HTTP connections to websocket connections.
@@ -40,7 +36,6 @@ func main() {
 	logging.Info("Starting RTC Service")
 
 	http.HandleFunc(path, wsHandler)
-	http.HandleFunc(chatPath, chatmanager.ChatWsHandler)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 

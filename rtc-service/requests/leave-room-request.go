@@ -2,6 +2,7 @@ package requests
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
@@ -55,12 +56,12 @@ func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, st
 
 	room := chatmanager.RTCChatManager.GetRoom(r.RoomID)
 	if room == nil {
-		return r.responseType(), "Room doesn't exist", r.RoomID, nil
+		return r.responseType(), "", r.RoomID, errors.New("room doesn't exist")
 	}
 
 	user := room.GetUser(r.UserHandle)
 	if user == nil {
-		return r.responseType(), "User doesn't exist", r.RoomID, nil
+		return r.responseType(), "", r.RoomID, errors.New("user doesn't exist")
 	}
 
 	room.RemoveUser(user)

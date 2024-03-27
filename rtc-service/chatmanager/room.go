@@ -36,7 +36,6 @@ func (r *Room) RemoveUser(user *User) {
 
 	// Only remove a client if they exist.
 	if _, ok := r.Users[user]; ok {
-		user.Connection.Close()
 		delete(r.Users, user)
 		logging.Info("User removed: ", user.Handle, " from room: ", r.RoomID)
 		return

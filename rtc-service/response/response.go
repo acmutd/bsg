@@ -1,6 +1,9 @@
 package response
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
 type ResponseStatus string
 
@@ -27,8 +30,9 @@ type Response struct {
 //
 // Since system-announcements are sent to a specific room.
 type responseMessage struct {
-	RoomID string `json:"roomID"` // Field is empty if the response is any other type.
-	Data   string `json:"data"`
+	RoomID     string `json:"roomID"` // Field is empty if the response is any other type.
+	Data       string `json:"data"`
+	UserHandle string `json:"userHandle"` // Field is empty if response isn't chat_message
 }
 
 // NewErrorResponse creates a new error response.
@@ -37,7 +41,7 @@ func NewErrorResponse(responseType ResponseType, message string, roomID string) 
 		Data: message,
 	}
 
-	if responseType == SYSTEM_ANNOUNCEMENT {
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
 		respMessage.RoomID = roomID
 	}
 	return &Response{
@@ -49,11 +53,20 @@ func NewErrorResponse(responseType ResponseType, message string, roomID string) 
 
 // NewOkResponse creates a new ok response.
 func NewOkResponse(responseType ResponseType, message string, roomID string) *Response {
-	respMessage := responseMessage{
-		Data: message,
+	userHandle := ""
+	data := message
+	if responseType == CHAT_MESSAGE && message != "" {
+		message := strings.Split(message, " - ")
+		userHandle = message[0]
+		data = message[1]
 	}
 
-	if responseType == SYSTEM_ANNOUNCEMENT {
+	respMessage := responseMessage{
+		Data:       data,
+		UserHandle: userHandle,
+	}
+
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
 		respMessage.RoomID = roomID
 	}
 	return &Response{
