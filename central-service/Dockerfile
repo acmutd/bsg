@@ -1,4 +1,4 @@
-FROM golang:1.21.0-alpine
+FROM golang:1.21-bookworm
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./central-service
+RUN CGO_ENABLED=1 GOOS=linux go build -o ./central-service
 
 CMD ["/app/central-service"]
 

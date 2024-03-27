@@ -51,6 +51,22 @@ func main() {
 	if err := db.AutoMigrate(&models.RoundSubmission{}); err != nil {
 		fmt.Printf("Error migrating RoundSubmission schema: %v\n", err)
 	}
+	// Initialize Kafka-related components
+	kafkaManager := services.NewKafkaManagerService()
+	defer kafkaManager.Cleanup()
+	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_INGRESS_TOPIC")); err != nil {
+		log.Fatalf("Error creating Kafka Ingress topic: %v\n", err)
+	}
+	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_EGRESS_TOPIC")); err != nil {
+		log.Fatalf("Error creating Kafka Egress topic: %v\n", err)
+	}
+	ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
+	egressQueue := services.NewSubmissionEgressQueueService(db)
+
+	// Create a co-routine to listen for messages and handle delivery coming from Kafka and update database
+	go egressQueue.ListenForSubmissionData()
+	go ingressQueue.MessageDeliveryHandler()
+
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
@@ -62,7 +78,7 @@ func main() {
 	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor)
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue)
 
 	roomService := services.InitializeRoomService(db, rdb, &roundService, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
