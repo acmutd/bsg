@@ -5,16 +5,16 @@ import (
 	"os"
 	"strings"
 
-	kafka_queue "github.com/acmutd/bsg/kafka-queue"
+	kafka_queue "github.com/acmutd/bsg/worker-service/kafka-queue"
 	"github.com/acmutd/bsg/worker-service/leetcode-worker/lib"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
 var (
-	leetcode_username string = os.Getenv("LEETCODE_USERNAME")
-	leetcode_password string = os.Getenv("LEETCODE_PASSWORD")
-	drivers_path string = "./leetcode-worker/drivers/chromedriver"
-	kafka_server string = os.Getenv("KAFKA_BROKER")
+	leetcode_username        string = os.Getenv("LEETCODE_USERNAME")
+	leetcode_password        string = os.Getenv("LEETCODE_PASSWORD")
+	drivers_path             string = "./leetcode-worker/drivers/chromedriver"
+	kafka_server             string = os.Getenv("KAFKA_BROKER")
 	submission_request_topic string = os.Getenv("KAFKA_SUBMISSION_TOPIC")
 	submission_verdict_topic string = os.Getenv("KAFKA_VERDICT_TOPIC")
 )
@@ -86,12 +86,12 @@ func receiveSubmissionRequest(consumer *kafka.Consumer) (string, error) {
 }
 
 func processSubmissionRequest(LEETCODE_SESSION string, CSRF_Token string, problem_slug string, problem_id int, lang string, code string) (string, error) {
-	for try:=0; try<2; try++ {
+	for try := 0; try < 2; try++ {
 		result, err := lib.Submit(LEETCODE_SESSION, CSRF_Token, problem_slug, problem_id, lang, code)
 		if err == nil && strings.Contains(result, "status_code") {
 			return result, nil
 		}
-		if (try == 0) {
+		if try == 0 {
 			lib.Login(leetcode_username, leetcode_password, "./leetcode-worker/drivers/chromedriver")
 		}
 	}

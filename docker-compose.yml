@@ -21,6 +21,8 @@ services:
     environment:
       LEETCODE_USERNAME: ${LEETCODE_USERNAME}
       LEETCODE_PASSWORD: ${LEETCODE_PASSWORD}
+      KAFKA_BROKER: ${KAFKA_BROKER}
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
   db: 
     image: postgres
     restart: always
