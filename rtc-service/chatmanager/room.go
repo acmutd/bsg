@@ -44,3 +44,22 @@ func (r *Room) RemoveUser(user *User) {
 
 	logging.Info("User not found: ", user.Handle)
 }
+
+func (r *Room) GetUser(userHandle string) *User {
+	r.Lock()
+	defer r.Unlock()
+
+	for user := range r.Users {
+		if user.Handle == userHandle {
+			return user
+		}
+	}
+	return nil
+}
+
+func (r *Room) IsEmpty() bool {
+	r.Lock()
+	defer r.Unlock()
+
+	return len(r.Users) == 0
+}

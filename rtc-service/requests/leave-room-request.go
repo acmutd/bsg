@@ -3,14 +3,16 @@ package requests
 import (
 	"encoding/json"
 
+	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/go-playground/validator/v10"
 )
 
 // Struct for the leave-room request.
 // Request for a user to leave a room.
 type LeaveRoomRequest struct {
-	UserID string `json:"userID"` // validate:"required"`
-	RoomID string `json:"roomID"` // validate:"required"`
+	UserHandle string `json:"userHandle"` // validate:"required"`
+	RoomID     string `json:"roomID"`     // validate:"required"`
 }
 
 func init() {
@@ -24,6 +26,11 @@ func (r *LeaveRoomRequest) New() Request {
 
 // Validates the request.
 func (r *LeaveRoomRequest) validate() error {
+	validate := validator.New()
+	err := validate.Struct(r)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -34,28 +41,34 @@ func (r *LeaveRoomRequest) responseType() response.ResponseType {
 
 // Handles the request and returns a response.
 func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
-	err := json.Unmarshal([]byte(m.Data), &r)
+	err := json.Unmarshal([]byte(m.Data), r)
 
 	if err != nil {
 		return r.responseType(), "", r.RoomID, err
 	}
 
-	// if rooms[r.RoomID] == nil {
-	// 	return r.responseType(), "Leave Room Request - Room Does Not Exist", nil
-	// }
+	// Validate the request.
+	err = r.validate()
+	if err != nil {
+		return r.responseType(), "", r.RoomID, err
+	}
 
-	// if len(rooms[r.RoomID].Users) == 0 {
-	// 	return r.responseType(), "Leave Room Request - Room Empty", nil
-	// }
+	room := chatmanager.RTCChatManager.GetRoom(r.RoomID)
+	if room == nil {
+		return r.responseType(), "Room doesn't exist", r.RoomID, nil
+	}
 
-	// // Remove user and delete room if necessary
-	// rooms[r.RoomID].RemoveUser(r.UserID)
+	user := room.GetUser(r.UserHandle)
+	if user == nil {
+		return r.responseType(), "User doesn't exist", r.RoomID, nil
+	}
 
-	// // Check if room is empty and if so delete
-	// if len(rooms[r.RoomID].Users) == 0 {
-	// 	delete(rooms, r.RoomID)
-	// 	return r.responseType(), "Leave Room Request - Room Deleted", nil
-	// }
+	room.RemoveUser(user)
+
+	// Delete a room if there are no users
+	if room.IsEmpty() {
+		chatmanager.RTCChatManager.RemoveRoom(room)
+	}
 
 	return r.responseType(), "Leave Room Request", r.RoomID, nil
 }

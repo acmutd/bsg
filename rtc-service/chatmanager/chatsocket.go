@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: writeBufferSize,
 }
 
-var chatManager = NewChatManager()
+var RTCChatManager = NewChatManager()
 
 // This is the chat entry point for the service.
 func ChatWsHandler(w http.ResponseWriter, r *http.Request) {
