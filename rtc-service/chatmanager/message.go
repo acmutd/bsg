@@ -23,7 +23,5 @@ func (m *Message) Validate(message string) error {
 		return err
 	}
 
-	// TODO: Add check for valid room id.
-
 	return nil
 }

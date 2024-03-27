@@ -25,6 +25,12 @@ func (r *Room) AddUser(user *User) {
 	r.Lock()
 	defer r.Unlock()
 
+	// Check user already exists
+	if _, ok := r.Users[user]; ok {
+		logging.Error("User already exists")
+		return
+	}
+
 	r.Users[user] = true
 
 	logging.Info("Added: ", user.Handle, " to room: ", r.RoomID)

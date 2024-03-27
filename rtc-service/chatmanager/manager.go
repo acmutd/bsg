@@ -66,5 +66,5 @@ func (sm *ChatManager) RemoveRoom(room *Room) {
 		return
 	}
 
-	logging.Info("Service not found: ", room.RoomID)
+	logging.Error("Service not found: ", room.RoomID)
 }
