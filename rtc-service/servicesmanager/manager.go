@@ -43,3 +43,17 @@ func (sm *ServiceManager) RemoveService(service *Service) {
 
 	logging.Info("Service not found: ", service.Name)
 }
+
+func (sm *ServiceManager) FindService(serviceName string) *Service {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for service := range sm.Services {
+		if service.Name == serviceName {
+			return service
+		}
+	}
+
+	logging.Info("Service not found: ", serviceName)
+	return nil
+}

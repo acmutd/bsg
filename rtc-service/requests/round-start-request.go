@@ -2,6 +2,7 @@ package requests
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
@@ -52,5 +53,5 @@ func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, s
 	}
 
 	// Sending the problem list to the room will be determined in a later implementation.
-	return r.responseType(), "New Round has started!", r.RoomID, nil
+	return r.responseType(), strings.Join(r.ProblemList, ","), r.RoomID, nil
 }

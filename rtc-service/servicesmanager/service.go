@@ -20,6 +20,9 @@ var (
 	// The value is set to 90% of the PONG_WAIT time.
 	// This is to ensure that the service has enough time to respond to the ping.
 	PING_INTERVAL = (PONG_WAIT * 9) / 10
+
+	// Name of the front-end service
+	FRONT_END_SERVICE = "front-end"
 )
 
 // List of all services connected to RTC service.
@@ -107,6 +110,12 @@ func (s *Service) ReadMessages() {
 				} else {
 					// Send the response back to the client.
 					s.Egress <- *response.NewOkResponse(respType, resp, roomID)
+
+					// Send the requests to the front-end
+					frontEnd := s.ServiceManager.FindService(FRONT_END_SERVICE)
+					if frontEnd != nil {
+						frontEnd.Egress <- *response.NewOkResponse(respType, resp, roomID)
+					}
 				}
 			}
 		}
