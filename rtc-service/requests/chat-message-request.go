@@ -31,7 +31,7 @@ func (r *ChatMessageRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
 	// This method will be completed in the future PR.
-	return r.responseType(), "Chat Message Request", nil
+	return r.responseType(), "Chat Message Request", r.RoomID, nil
 }

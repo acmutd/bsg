@@ -33,11 +33,11 @@ func (r *LeaveRoomRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
 	err := json.Unmarshal([]byte(m.Data), &r)
 
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// if rooms[r.RoomID] == nil {
@@ -57,5 +57,5 @@ func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, er
 	// 	return r.responseType(), "Leave Room Request - Room Deleted", nil
 	// }
 
-	return r.responseType(), "Leave Room Request", nil
+	return r.responseType(), "Leave Room Request", r.RoomID, nil
 }

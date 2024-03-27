@@ -39,17 +39,17 @@ func (r *RoundEndRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *RoundEndRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *RoundEndRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
 	err := json.Unmarshal([]byte(m.Data), r)
 
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// Validate the request.
 	err = r.validate()
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
-	return r.responseType(), "Round has ended!", nil
+	return r.responseType(), "Round has ended!", r.RoomID, nil
 }

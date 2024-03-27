@@ -38,19 +38,19 @@ func (r *RoundStartRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
 	err := json.Unmarshal([]byte(m.Data), r)
 
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// Validate the request.
 	err = r.validate()
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// Sending the problem list to the room will be determined in a later implementation.
-	return r.responseType(), "New Round has started!", nil
+	return r.responseType(), "New Round has started!", r.RoomID, nil
 }

@@ -86,7 +86,7 @@ func (s *User) ReadMessages() {
 		err = json.Unmarshal(message, &messageStruct)
 		if err != nil {
 			logging.Error("Failed to unmarshal message: ", err)
-			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
+			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error(), "")
 		} else {
 			// Update the service name from the websocket message.
 			s.Handle = messageStruct.UserHandle
@@ -95,7 +95,7 @@ func (s *User) ReadMessages() {
 			err = messageStruct.Validate(string(message))
 			if err != nil {
 				logging.Error("Failed to validate message: ", err)
-				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
+				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error(), "")
 			} else {
 				// TODO: Handle the chat message
 			}

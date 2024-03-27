@@ -19,7 +19,7 @@ type Request interface {
 	responseType() response.ResponseType
 
 	// Handles the request and returns a response.
-	Handle(*Message) (response.ResponseType, string, error)
+	Handle(*Message) (response.ResponseType, string, string, error)
 }
 
 var RequestTypes = make(map[string]Request)

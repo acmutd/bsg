@@ -43,21 +43,21 @@ func (r *NewSubmissionRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string, error) {
+func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
 	err := json.Unmarshal([]byte(m.Data), r)
 
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// Validate the request.
 	err = r.validate()
 	if err != nil {
-		return r.responseType(), "", err
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// Triggering a leader board update will be determined in a later implementation.
 
 	message := fmt.Sprint("New submission from ", r.UserHandle, "\nProblem: ", r.ProblemID, "\nVerdict: ", r.Verdict)
-	return r.responseType(), message, nil
+	return r.responseType(), message, r.RoomID, nil
 }

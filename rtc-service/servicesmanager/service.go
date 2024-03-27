@@ -87,7 +87,7 @@ func (s *Service) ReadMessages() {
 		err = json.Unmarshal(message, &messageStruct)
 		if err != nil {
 			logging.Error("Failed to unmarshal message: ", err)
-			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
+			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error(), "")
 		} else {
 			// Update the service name from the websocket message.
 			s.Name = messageStruct.ServiceName
@@ -96,17 +96,17 @@ func (s *Service) ReadMessages() {
 			err = messageStruct.Validate(string(message))
 			if err != nil {
 				logging.Error("Failed to validate message: ", err)
-				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
+				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error(), "")
 			} else {
 				// Dynamically handle the request type.
 				// This is done by using the request type as a key to the map of request types.
-				respType, resp, err := requests.RequestTypes[messageStruct.Type].New().Handle(&messageStruct)
+				respType, resp, roomID, err := requests.RequestTypes[messageStruct.Type].New().Handle(&messageStruct)
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
-					s.Egress <- *response.NewErrorResponse(respType, err.Error())
+					s.Egress <- *response.NewErrorResponse(respType, err.Error(), roomID)
 				} else {
 					// Send the response back to the client.
-					s.Egress <- *response.NewOkResponse(respType, resp)
+					s.Egress <- *response.NewOkResponse(respType, resp, roomID)
 				}
 			}
 		}
