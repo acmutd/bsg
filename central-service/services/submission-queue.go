@@ -3,10 +3,10 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	kafka_queue "kafka-queue" // TODO: change dependency name
+	"log"
 	"os"
 
-	kafka_dto "github.com/acmutd/bsg/central-service/kafka"
+	kafka_utils "github.com/acmutd/bsg/central-service/kafka"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"gorm.io/gorm"
@@ -16,23 +16,32 @@ const MIN_COMMIT_COUNT = 100
 const DELIVERY_CHANNEL_SIZE = 10000
 
 type SubmissionIngressQueueService struct {
+	managerService *KafkaManagerService
 	producer *kafka.Producer
 	ingressChannelName string
 	deliveryChannel chan kafka.Event
 }
 
 
-func NewSubmissionIngressQueueService() SubmissionIngressQueueService {
-	producer := kafka_queue.NewKafkaProducer(os.Getenv("KAFKA_BROKER"))
+func NewSubmissionIngressQueueService(kafkaManagerService *KafkaManagerService) SubmissionIngressQueueService {
+	producer, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": os.Getenv("KAFKA_BROKER"),
+		"acks": "all",
+	})
+	if err != nil {
+		log.Fatalf("Failed to create ingress service producer: %v\n", err)
+	}
+	// Create new topic
 	return SubmissionIngressQueueService{
 		producer: producer,
+		managerService: kafkaManagerService,
 		ingressChannelName: os.Getenv("KAFKA_INGRESS_TOPIC"),
 		deliveryChannel: make(chan kafka.Event, DELIVERY_CHANNEL_SIZE),
 	}
 }
 
 func (ingressQueueService *SubmissionIngressQueueService) AddSubmissionToQueue(problem *models.Problem, submission *models.RoundSubmission) error {
-	kafkaPayload := kafka_dto.NewKafkaIngressDTO(problem, submission)
+	kafkaPayload := kafka_utils.NewKafkaIngressDTO(problem, submission)
 	marshalledData, err := json.Marshal(kafkaPayload)
 	if err != nil {
 		return err
@@ -76,11 +85,18 @@ type SubmissionEgressQueueService struct {
 }
 
 func NewSubmissionEgressQueueService(db *gorm.DB) SubmissionEgressQueueService {
-	consumer := kafka_queue.NewKafkaConsumer(
-		os.Getenv("KAFKA_BROKER"), 
-		os.Getenv("KAFKA_EGRESS_TOPIC"), 
-		os.Getenv("KAFKA_CENTRAL_SERVICE_GID"),
-	)
+	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+		"bootstrap.servers": os.Getenv("KAFKA_BROKER"),
+		"group.id": os.Getenv("KAFKA_CENTRAL_SERVICE_GID"),
+		"auto.offset.reset": "smallest",
+	})
+	if err != nil {
+		log.Fatalf("Error creating egress queue consumer: %v\n", err)
+	}
+	err = consumer.Subscribe(os.Getenv("KAFKA_EGRESS_TOPIC"), nil)
+	if err != nil {
+		log.Fatalf("Error subscribing to egress topic: %v\n", err)
+	}
 	return SubmissionEgressQueueService{
 		consumer,
 		db,
@@ -88,7 +104,7 @@ func NewSubmissionEgressQueueService(db *gorm.DB) SubmissionEgressQueueService {
 }
 
 func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(rawSubmissionData []byte) error  {
-	var payload kafka_dto.KafkaEgressDTO
+	var payload kafka_utils.KafkaEgressDTO
 	if err := json.Unmarshal(rawSubmissionData, &payload); err != nil {
 		return err
 	}
@@ -137,7 +153,9 @@ func (egressQueueService *SubmissionEgressQueueService) ListenForSubmissionData(
 			fmt.Printf("Error detected at Kafka Egress Consumer: %v\n", e)
 			run = false
 		default: 
-			fmt.Printf("Unexpected message at Kafka Egress Consumer: %v\n", e)
+			if e != nil {
+				fmt.Printf("Unexpected message at Kafka Egress Consumer: %v\n", e)
+			}
 		} 
 	}
  egressQueueService.consumer.Close()	

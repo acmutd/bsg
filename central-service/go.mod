@@ -5,7 +5,7 @@ go 1.21
 require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/google/uuid v1.3.1
+	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/go-redis/redismock/v9 v9.2.0
 	github.com/google/uuid v1.3.1
 	github.com/labstack/echo/v4 v4.11.1
