@@ -1,35 +1,36 @@
 package requests
 
 import (
-	"github.com/acmutd/bsg/rtc-service/response"
-	"github.com/gorilla/websocket"
-)
+	"fmt"
 
-// Map of request types to their respective structs.
-//
-// Used to quickly determine the type of a request and
-// to unmarshal the request into the correct struct.
-var RequestTypes = map[RequestType]Request{
-	LEAVE_ROOM_REQUEST:     &LeaveRoomRequest{},
-	JOIN_ROOM_REQUEST:      &JoinRoomRequest{},
-	SEND_MESSAGE_REQUEST:   &ChatMessageRequest{},
-	ROUND_START_REQUEST:    &RoundStartRequest{},
-	ROUND_END_REQUEST:      &RoundEndRequest{},
-	NEW_SUBMISSION_REQUEST: &NewSubmissionRequest{},
-}
+	"github.com/acmutd/bsg/rtc-service/response"
+)
 
 // Struct for the different request types.
 // All request types must implement these methods to be valid.
 type Request interface {
-	// Returns the type of the request.
-	Type() string
+	// Creates a new request.
+	New() Request
 
 	// Validates the request.
-	validate(string) error
+	validate() error
 
 	// Returns the response type for the request.
 	responseType() response.ResponseType
 
 	// Handles the request and returns a response.
-	Handle(*Message, *websocket.Conn) (string, error)
+	Handle(*Message) (response.ResponseType, string, string, error)
+}
+
+var RequestTypes = make(map[string]Request)
+
+// Registers a new request type.
+func register(r string, req Request) {
+	_, exists := RequestTypes[r]
+	if exists {
+		errorMessage := fmt.Sprintf("a resource with the name %s already exists", r)
+		panic(errorMessage) // Panic because this is a critical error that can lead to conflicts if two requests have the same name.
+	}
+
+	RequestTypes[r] = req
 }

@@ -2,10 +2,10 @@ package requests
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
 )
 
 // Struct for the round-start request.
@@ -14,22 +14,19 @@ type RoundStartRequest struct {
 	ProblemList []string `json:"problemList" validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *RoundStartRequest) Type() string {
-	return string(ROUND_START_REQUEST)
+func init() {
+	register("round-start", &RoundStartRequest{})
+}
+
+// Creates a new request.
+func (r *RoundStartRequest) New() Request {
+	return &RoundStartRequest{}
 }
 
 // Validates the request.
-func (r *RoundStartRequest) validate(message string) error {
-	// Unmarshal the message into the struct.
-	var req RoundStartRequest
-	err := json.Unmarshal([]byte(message), &req)
-	if err != nil {
-		return err
-	}
-
+func (r *RoundStartRequest) validate() error {
 	validate := validator.New()
-	err = validate.Struct(req)
+	err := validate.Struct(r)
 	if err != nil {
 		return err
 	}
@@ -42,14 +39,19 @@ func (r *RoundStartRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *RoundStartRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
-	// Validate the request.
-	err := r.validate(m.Data)
+func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
+	err := json.Unmarshal([]byte(m.Data), r)
+
 	if err != nil {
-		return "", err
+		return r.responseType(), "", r.RoomID, err
+	}
+
+	// Validate the request.
+	err = r.validate()
+	if err != nil {
+		return r.responseType(), "", r.RoomID, err
 	}
 
 	// Sending the problem list to the room will be determined in a later implementation.
-
-	return "New Round has started!", nil
+	return r.responseType(), strings.Join(r.ProblemList, ","), r.RoomID, nil
 }

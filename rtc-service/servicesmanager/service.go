@@ -2,7 +2,6 @@ package servicesmanager
 
 import (
 	"encoding/json"
-	"strings"
 	"time"
 
 	"github.com/acmutd/bsg/rtc-service/logging"
@@ -21,6 +20,9 @@ var (
 	// The value is set to 90% of the PONG_WAIT time.
 	// This is to ensure that the service has enough time to respond to the ping.
 	PING_INTERVAL = (PONG_WAIT * 9) / 10
+
+	// Name of the front-end service
+	FRONT_END_SERVICE = "front-end"
 )
 
 // List of all services connected to RTC service.
@@ -88,7 +90,7 @@ func (s *Service) ReadMessages() {
 		err = json.Unmarshal(message, &messageStruct)
 		if err != nil {
 			logging.Error("Failed to unmarshal message: ", err)
-			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
+			s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error(), "")
 		} else {
 			// Update the service name from the websocket message.
 			s.Name = messageStruct.ServiceName
@@ -97,22 +99,23 @@ func (s *Service) ReadMessages() {
 			err = messageStruct.Validate(string(message))
 			if err != nil {
 				logging.Error("Failed to validate message: ", err)
-				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error())
+				s.Egress <- *response.NewErrorResponse(response.GENERAL, err.Error(), "")
 			} else {
-				// Pass the message to the appropriate request.
-				// Replace single quotes with double quotes to avoid JSON parsing issues.
-				messageStruct.Data = strings.Replace(messageStruct.Data, "'", "\"", -1)
-
 				// Dynamically handle the request type.
 				// This is done by using the request type as a key to the map of request types.
-				respType := response.GENERAL // Will change in future PR's
-				resp, err := requests.RequestTypes[requests.RequestType(messageStruct.Type)].Handle(&messageStruct, s.Connection)
+				respType, resp, roomID, err := requests.RequestTypes[messageStruct.Type].New().Handle(&messageStruct)
 				if err != nil {
 					logging.Error("Failed to handle message: ", err)
-					s.Egress <- *response.NewErrorResponse(respType, err.Error())
+					s.Egress <- *response.NewErrorResponse(respType, err.Error(), roomID)
 				} else {
 					// Send the response back to the client.
-					s.Egress <- *response.NewOkResponse(respType, resp)
+					s.Egress <- *response.NewOkResponse(respType, resp, roomID)
+
+					// Send the requests to the front-end
+					frontEnd := s.ServiceManager.FindService(FRONT_END_SERVICE)
+					if frontEnd != nil {
+						frontEnd.Egress <- *response.NewOkResponse(respType, resp, roomID)
+					}
 				}
 			}
 		}

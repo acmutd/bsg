@@ -1,27 +1,35 @@
-package requests 
+package requests
 
 import (
-  "encoding/json"
-  "github.com/gorilla/websocket"
-  "reflect"
-)
+	"encoding/json"
 
-import "github.com/acmutd/bsg/rtc-service/response"
+	"github.com/acmutd/bsg/rtc-service/chatmanager"
+	"github.com/acmutd/bsg/rtc-service/response"
+	"github.com/go-playground/validator/v10"
+)
 
 // Request for a user to join a room.
 type JoinRoomRequest struct {
-	UserID string `json:"userID"`//validate:"required"`
-	RoomID string `json:"roomID"` //validate:"required"`
+	UserHandle string `json:"userHandle" validate:"required"`
+	RoomID     string `json:"roomID" validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *JoinRoomRequest) Type() string {
-	return string(JOIN_ROOM_REQUEST)
+func init() {
+	register("join-room", &JoinRoomRequest{})
+}
+
+// Creates a new request.
+func (r *JoinRoomRequest) New() Request {
+	return &JoinRoomRequest{}
 }
 
 // Validates the request.
-func (r *JoinRoomRequest) validate(message string) error {
-	// This method will be completed in the future PR.
+func (r *JoinRoomRequest) validate() error {
+	validate := validator.New()
+	err := validate.Struct(r)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -31,34 +39,39 @@ func (r *JoinRoomRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response
-func (r *JoinRoomRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
+//
+//	Example request
+//	{
+//	  "request-type": "join-room",
+//	  "data": "{ \"userID\": \"1234\", \"roomID\": \"4321\" }"
+//	}
+func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
+	err := json.Unmarshal([]byte(m.Data), r)
 
-  /*
-  Example request
-  {
-    "request-type": "join-room",
-    "data": "{ \"userID\": \"1234\", \"roomID\": \"4321\" }"
-  }
-  */
+	if err != nil {
+		return r.responseType(), "", r.RoomID, err
+	}
 
-  // Process request
-  err := json.Unmarshal([]byte(m.Data), &r)
+	// Validate the request.
+	err = r.validate()
+	if err != nil {
+		return r.responseType(), "", r.RoomID, err
+	}
 
-  if err != nil {
-    return "Err", err
-  }
+	room := chatmanager.RTCChatManager.GetRoom(r.RoomID)
+	if room == nil {
+		room = &chatmanager.Room{
+			RoomID: r.RoomID,
+			Users:  make(chatmanager.UserList),
+		}
+		chatmanager.RTCChatManager.CreateRoom(room)
+	}
 
-  _, exists := rooms[r.RoomID] 
+	user := &chatmanager.User{
+		Handle: r.UserHandle,
+		Room:   room,
+	}
+	room.AddUser(user)
 
-  // Join room 
-  if exists && reflect.TypeOf(rooms[r.RoomID]) != nil {
-    rooms[r.RoomID].AddUser(r.UserID, c) 
-    return "Added " + r.UserID + " to " + r.RoomID, nil;
-  } else {
-    // Room doesn't exist -> create room
-    rooms[r.RoomID] = &Room{ RoomID: r.RoomID }
-    rooms[r.RoomID].AddUser(r.UserID, c)
-    
-    return "Added Room " + r.RoomID + " with " + r.UserID + " as Owner", nil
-  }
+	return r.responseType(), "Join Room Request", r.RoomID, nil
 }

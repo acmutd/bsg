@@ -5,7 +5,6 @@ import (
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
 )
 
 // Struct for the leave-room request.
@@ -14,22 +13,19 @@ type RoundEndRequest struct {
 	RoomID string `json:"roomID" validate:"required"`
 }
 
-// Returns the type of the request.
-func (r *RoundEndRequest) Type() string {
-	return string(ROUND_END_REQUEST)
+func init() {
+	register("round-end", &RoundEndRequest{})
+}
+
+// Creates a new request.
+func (r *RoundEndRequest) New() Request {
+	return &RoundEndRequest{}
 }
 
 // Validates the request.
-func (r *RoundEndRequest) validate(message string) error {
-	// Unmarshal the message into the struct.
-	var req RoundEndRequest
-	err := json.Unmarshal([]byte(message), &req)
-	if err != nil {
-		return err
-	}
-
+func (r *RoundEndRequest) validate() error {
 	validate := validator.New()
-	err = validate.Struct(req)
+	err := validate.Struct(r)
 	if err != nil {
 		return err
 	}
@@ -43,13 +39,17 @@ func (r *RoundEndRequest) responseType() response.ResponseType {
 }
 
 // Handles the request and returns a response.
-func (r *RoundEndRequest) Handle(m *Message, c *websocket.Conn) (string, error) {
-	// Validate the request.
-	err := r.validate(m.Data)
+func (r *RoundEndRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
+	err := json.Unmarshal([]byte(m.Data), r)
+
 	if err != nil {
-		return "", err
+		return r.responseType(), "", r.RoomID, err
 	}
-	var req RoundEndRequest
-	json.Unmarshal([]byte(m.Data), &req)
-	return "Round has ended!", nil
+
+	// Validate the request.
+	err = r.validate()
+	if err != nil {
+		return r.responseType(), "", r.RoomID, err
+	}
+	return r.responseType(), "Round has ended!", r.RoomID, nil
 }

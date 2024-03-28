@@ -1,6 +1,9 @@
 package response
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"strings"
+)
 
 type ResponseStatus string
 
@@ -14,28 +17,61 @@ var (
 
 // Response is a struct that represents a response to a request.
 //
-// This is used to send responses to the client since websockets
+// This is used to send responses to the client since websocket
 // don't have a built-in way to send success or error messages.
 type Response struct {
-	RespStatus  ResponseStatus `json:"status"`
-	RespMessage string         `json:"message"`
-	RespType    ResponseType   `json:"responseType"`
+	RespStatus  ResponseStatus  `json:"status"`
+	RespMessage responseMessage `json:"message"`
+	RespType    ResponseType    `json:"responseType"`
+}
+
+// This is allows for nested json to be sent if the
+// message is a system-announcement.
+//
+// Since system-announcements are sent to a specific room.
+type responseMessage struct {
+	RoomID     string `json:"roomID"` // Field is empty if the response is any other type.
+	Data       string `json:"data"`
+	UserHandle string `json:"userHandle"` // Field is empty if response isn't chat_message
 }
 
 // NewErrorResponse creates a new error response.
-func NewErrorResponse(responseType ResponseType, message string) *Response {
+func NewErrorResponse(responseType ResponseType, message string, roomID string) *Response {
+	respMessage := responseMessage{
+		Data: message,
+	}
+
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
+		respMessage.RoomID = roomID
+	}
 	return &Response{
 		RespStatus:  error_response,
-		RespMessage: message,
+		RespMessage: respMessage,
 		RespType:    responseType,
 	}
 }
 
 // NewOkResponse creates a new ok response.
-func NewOkResponse(responseType ResponseType, message string) *Response {
+func NewOkResponse(responseType ResponseType, message string, roomID string) *Response {
+	userHandle := ""
+	data := message
+	if responseType == CHAT_MESSAGE && message != "" {
+		message := strings.Split(message, " - ")
+		userHandle = message[0]
+		data = message[1]
+	}
+
+	respMessage := responseMessage{
+		Data:       data,
+		UserHandle: userHandle,
+	}
+
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
+		respMessage.RoomID = roomID
+	}
 	return &Response{
 		RespStatus:  ok_response,
-		RespMessage: message,
+		RespMessage: respMessage,
 		RespType:    responseType,
 	}
 }

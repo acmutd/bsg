@@ -1,17 +1,15 @@
-package requests
+package chatmanager
 
 import (
-	"errors"
-
 	"github.com/go-playground/validator/v10"
 )
 
 // Message struct for websocket messages.
 // Contains the request type and data associated with the request.
 type Message struct {
-	ServiceName string `json:"name" validate:"required"`
-	Type        string `json:"request-type" validate:"required"`
-	Data        string `json:"data" validate:"required"`
+	UserHandle string `json:"user-handle" validate:"required"`
+	RoomID     string `json:"room-id" validate:"required"`
+	Content    string `json:"content" validate:"required"`
 }
 
 // Validates the messages sent to the server.
@@ -23,12 +21,6 @@ func (m *Message) Validate(message string) error {
 
 	if err != nil {
 		return err
-	}
-
-	// Checks that the request type is valid.
-	if _, ok := RequestTypes[m.Type]; !ok {
-		// Request type is not valid.
-		return errors.New("invalid request type: " + m.Type)
 	}
 
 	return nil
