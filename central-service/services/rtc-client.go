@@ -20,6 +20,12 @@ type RTCClient struct {
 	conn *websocket.Conn
 }
 
+type RTCClientResponse struct {
+	RespStatus  string `json:"status"`
+	RespMessage string `json:"message"`
+	RespType    string `json:"responseType"`
+}
+
 func InitializeRTCClient(name string) (*RTCClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(RTCWebSocketURL, nil)
 	if err != nil {
@@ -29,11 +35,11 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 	return &RTCClient{name, conn}, nil
 }
 
-func (client *RTCClient) SendMessage(requestType string, data interface{}) error {
+func (client *RTCClient) SendMessage(requestType string, data interface{}) (*RTCClientResponse, error) {
 	// Marshal data
 	dataJson, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Create message
 	message := struct {
@@ -48,14 +54,30 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) error
 	// Marshal message
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Send message
+	log.Println("send start")
 	err = client.conn.WriteMessage(websocket.TextMessage, jsonMessage)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	log.Println("send end")
+	// Read response
+	log.Println("read start")
+	_, responseBytes, err := client.conn.ReadMessage()
+	if err != nil {
+		log.Println("Error reading rtc-service response: %v", err)
+		return nil, err
+	}
+	log.Println("read end")
+	// Unmarshal response
+	var responseObject RTCClientResponse
+	err = json.Unmarshal(responseBytes, &responseObject)
+	if err != nil {
+		return nil, err
+	}
+	return &responseObject, nil
 }
 
 func (client *RTCClient) Close() error {
