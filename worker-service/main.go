@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
-	kafka_queue "github.com/acmutd/bsg/worker-service/kafka-queue"
+	kafka_dto "github.com/acmutd/bsg/worker-service/kafka/kafka-dto"
+	kafka_queue "github.com/acmutd/bsg/worker-service/kafka/kafka-queue"
 	"github.com/acmutd/bsg/worker-service/leetcode-worker/lib"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
@@ -15,8 +18,8 @@ var (
 	leetcode_password        string = os.Getenv("LEETCODE_PASSWORD")
 	drivers_path             string = "./leetcode-worker/drivers/chromedriver"
 	kafka_server             string = os.Getenv("KAFKA_BROKER")
-	submission_request_topic string = os.Getenv("KAFKA_SUBMISSION_TOPIC")
-	submission_verdict_topic string = os.Getenv("KAFKA_VERDICT_TOPIC")
+	submission_request_topic string = os.Getenv("KAFKA_INGRESS_TOPIC")
+	submission_verdict_topic string = os.Getenv("KAFKA_EGRESS_TOPIC")
 )
 
 func main() {
@@ -46,14 +49,35 @@ func main() {
 		go func() {
 			// Process submission request
 			problem_slug, problem_id, lang, code := parseSubmissionRequest(request)
-			verdict, err := processSubmissionRequest(LEETCODE_SESSION, CSRF_Token, problem_slug, problem_id, lang, code)
+			submission_id, verdict, err := processSubmissionRequest(LEETCODE_SESSION, CSRF_Token, problem_slug, problem_id, lang, code)
 			if err != nil {
 				fmt.Println("Failed to process request due to error - ", err.Error())
 				return
 			}
+
+			// Process submission id
+			submissionID, err := strconv.ParseUint(submission_id, 10, 32)
+			if err != nil {
+				fmt.Println("Failed to parse submission id due to error - ", err.Error())
+				return
+			}
+
+			// Serialize submission id and verdict into a KafkaEgressDTO struct
+			egressDTO := kafka_dto.KafkaEgressDTO{
+				SubmissionId: uint(submissionID),
+				Verdict:      verdict,
+			}
+
+			// JSON Marshal the submission result
+			marshalData, marshalErr := json.Marshal(egressDTO)
+			if marshalErr != nil {
+				fmt.Println("Unable to marshal submission result due to " + marshalErr.Error())
+				return
+			}
+
 			// Send submission verdict
 			partitionAny := int(kafka.PartitionAny)
-			err = kafka_queue.SendSubmissionResult(producer, kafka_server, submission_verdict_topic, verdict, partitionAny)
+			err = kafka_queue.SendSubmissionResult(producer, kafka_server, submission_verdict_topic, string(marshalData), partitionAny)
 			if err != nil {
 				fmt.Println("Failed to send submission verdict due to error - ", err.Error())
 				return
@@ -85,15 +109,15 @@ func receiveSubmissionRequest(consumer *kafka.Consumer) (string, error) {
 	return receivedRequest, nil
 }
 
-func processSubmissionRequest(LEETCODE_SESSION string, CSRF_Token string, problem_slug string, problem_id int, lang string, code string) (string, error) {
+func processSubmissionRequest(LEETCODE_SESSION string, CSRF_Token string, problem_slug string, problem_id int, lang string, code string) (string, string, error) {
 	for try := 0; try < 2; try++ {
-		result, err := lib.Submit(LEETCODE_SESSION, CSRF_Token, problem_slug, problem_id, lang, code)
+		submission_id, result, err := lib.Submit(LEETCODE_SESSION, CSRF_Token, problem_slug, problem_id, lang, code)
 		if err == nil && strings.Contains(result, "status_code") {
-			return result, nil
+			return submission_id, result, nil
 		}
 		if try == 0 {
 			lib.Login(leetcode_username, leetcode_password, "./leetcode-worker/drivers/chromedriver")
 		}
 	}
-	return "", fmt.Errorf("Failed to submit the solution")
+	return "", "", fmt.Errorf("Failed to submit the solution")
 }

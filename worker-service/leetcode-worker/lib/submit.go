@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, problemID int, lang string, code string) (string, error) {
+func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, problemID int, lang string, code string) (string, string, error) {
 	// Define the URL, request method, and payload
 	url := strings.Replace(Uris_US.Submit, "$slug", problemSlug, -1)
 	method := "POST"
@@ -24,27 +24,27 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 	// Create an HTTP request
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
 	if err != nil {
-		return "Submit Failed", errors.New("Error creating request: " + err.Error())
+		return "", "Submit Failed", errors.New("Error creating request: " + err.Error())
 	}
 
 	// Set the request headers
 	req.Header.Add("authority", "leetcode.com")
 	req.Header.Add("method", "POST")
-	req.Header.Add("path", "/problems/" + problemSlug + "/submit/")
+	req.Header.Add("path", "/problems/"+problemSlug+"/submit/")
 	req.Header.Add("scheme", "https")
 	req.Header.Add("Accept", "*/*")
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
 	req.Header.Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", "csrftoken=" + CSRF_Token + ";LEETCODE_SESSION=" + LEETCODE_SESSION + ";")
+	req.Header.Add("Cookie", "csrftoken="+CSRF_Token+";LEETCODE_SESSION="+LEETCODE_SESSION+";")
 	req.Header.Add("Origin", "https://leetcode.com")
-	req.Header.Add("Referer", "https://leetcode.com/problems/" + problemSlug + "/")
+	req.Header.Add("Referer", "https://leetcode.com/problems/"+problemSlug+"/")
 	req.Header.Add("X-Csrftoken", CSRF_Token)
 
 	// Perform the HTTP request
 	resp, err := client.Do(req)
 	if err != nil {
-		return "Submit Failed", errors.New("Error sending request: " + err.Error())
+		return "", "Submit Failed", errors.New("Error sending request: " + err.Error())
 	}
 	defer resp.Body.Close()
 
@@ -52,7 +52,7 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 	body, err := io.ReadAll(resp.Body)
 	submissionID, err := parseSubmissionID(string(body))
 	if err != nil {
-		return "Submit Failed", errors.New("Error parsing submission ID: " + err.Error())
+		return submissionID, "Submit Failed", errors.New("Error parsing submission ID: " + err.Error())
 	}
 
 	// Poll the submission status
@@ -61,28 +61,28 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 		method := "GET"
 		req, err := http.NewRequest(method, url, nil)
 		if err != nil {
-			return "Submit Failed", errors.New("Error creating request: " + err.Error())
+			return submissionID, "Submit Failed", errors.New("Error creating request: " + err.Error())
 		}
 		req.Header.Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Cookie", "csrftoken=" + CSRF_Token + ";LEETCODE_SESSION=" + LEETCODE_SESSION + ";")
+		req.Header.Add("Cookie", "csrftoken="+CSRF_Token+";LEETCODE_SESSION="+LEETCODE_SESSION+";")
 
 		// Perform the HTTP request
 		resp, err := client.Do(req)
 		if err != nil {
-			return "Submit Failed", errors.New("Error sending request: " + err.Error())
+			return submissionID, "Submit Failed", errors.New("Error sending request: " + err.Error())
 		}
 		defer resp.Body.Close()
 
 		// Stop polling when the submission status is available
 		body, err := io.ReadAll(resp.Body)
 		if strings.Contains(string(body), "status_code") == true {
-			return string(body), nil
+			return submissionID, string(body), nil
 		}
 
 		time.Sleep(500 * time.Millisecond)
 	}
-	return "Submit Failed", errors.New("Submit not sucess")
+	return submissionID, "Submit Failed", errors.New("Submit not sucess")
 }
 
 func parseSubmissionID(input string) (string, error) {

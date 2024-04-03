@@ -50,7 +50,7 @@ func TestSubmitSuccess(t *testing.T) {
 	LEETCODE_SESSION, CSRF_Token := Login(username, password, "../drivers/chromedriver")
 	// Submit a solution
 	code := `class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        int n = nums.size();\n        for (int i = 0; i < n - 1; i++) {\n            for (int j = i + 1; j < n; j++) {\n                if (nums[i] + nums[j] == target) {\n                    return {i, j};\n                }\n            }\n        }\n        return {}; // No solution found\n    }\n};`
-	result, err := Submit(LEETCODE_SESSION, CSRF_Token, "two-sum", 1, "cpp", code)
+	_, result, err := Submit(LEETCODE_SESSION, CSRF_Token, "two-sum", 1, "cpp", code)
 	if err != nil || strings.Contains(result, "status_code") != true {
 		t.Error(err)
 	}
@@ -68,7 +68,7 @@ func TestSubmitFail(t *testing.T) {
 	LEETCODE_SESSION, CSRF_Token := Login(username, password, "../drivers/chromedriver")
 	// Submit a solution
 	code := `class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        int n = nums.size();\n        for (int i = 0; i < n - 1; i++) {\n            for (int j = i + 1; j < n; j++) {\n                if (nums[i] + nums[j] == target) {\n                    return {i, j};\n                }\n            }\n        }\n        return {}; // No solution found\n    }\n};`
-	result, err := Submit(LEETCODE_SESSION, CSRF_Token, "two-sum", 1, "cpp", code)
+	_, result, err := Submit(LEETCODE_SESSION, CSRF_Token, "two-sum", 1, "cpp", code)
 	if err == nil || strings.Contains(result, "status_code") == true {
 		t.Fail()
 	}
