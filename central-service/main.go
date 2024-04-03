@@ -67,6 +67,13 @@ func main() {
 	go egressQueue.ListenForSubmissionData()
 	go ingressQueue.MessageDeliveryHandler()
 
+	// Create new RTC client
+	rtcClient, err := services.InitializeRTCClient("central-service")
+	if err != nil {
+		log.Fatalf("Error creating RTC client: %v\n", err)
+	}
+	defer rtcClient.Close()
+
 	e := echo.New()
 
 	userService := services.InitializeUserService(db)
@@ -80,7 +87,7 @@ func main() {
 	defer roundScheduler.Stop()
 	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue)
 
-	roomService := services.InitializeRoomService(db, rdb, &roundService, maxNumRoundsPerRoom)
+	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 
 	e.Use(middleware.CORS())

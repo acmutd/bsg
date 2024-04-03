@@ -17,11 +17,12 @@ type RoomService struct {
 	db                  *gorm.DB
 	rdb                 *redis.Client
 	roundService        *RoundService
+	rtcClient           *RTCClient
 	MaxNumRoundsPerRoom int
 }
 
-func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, roundService, maxNumRoundsPerRoom}
+func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, rdb, roundService, rtcClient, maxNumRoundsPerRoom}
 }
 
 type RoomDTO struct {
@@ -111,7 +112,13 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			}
 		}
 	}
-	// TODO: notify RTC
+	joinRoom := map[string]string{
+		"userHandle": userID,
+		"roomID":     roomID,
+	}
+	if err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
+		log.Fatal("Error sending join-room message:", err)
+	}
 	return room, nil
 }
 

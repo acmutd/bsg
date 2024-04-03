@@ -2,12 +2,17 @@ package services
 
 import (
 	"encoding/json"
+	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 var (
 	RTCWebSocketURL = "ws://rtc-service:8080/ws"
+
+	PONG_WAIT     = 10 * time.Second
+	PING_INTERVAL = (PONG_WAIT * 9) / 10
 )
 
 type RTCClient struct {
@@ -20,28 +25,32 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	go pingHandler(conn)
 	return &RTCClient{name, conn}, nil
 }
 
 func (client *RTCClient) SendMessage(requestType string, data interface{}) error {
-	// Construct JSON message
+	// Marshal data
+	dataJson, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	// Create message
 	message := struct {
-		Name        string      `json:"name"`
-		RequestType string      `json:"request-type"`
-		Data        interface{} `json:"data"`
+		Name        string `json:"name"`
+		RequestType string `json:"request-type"`
+		Data        string `json:"data"`
 	}{
 		Name:        client.name,
 		RequestType: requestType,
-		Data:        data,
+		Data:        string(dataJson),
 	}
-
-	// Marshal JSON
+	// Marshal message
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-
-	// Send JSON message to server
+	// Send message
 	err = client.conn.WriteMessage(websocket.TextMessage, jsonMessage)
 	if err != nil {
 		return err
@@ -56,4 +65,16 @@ func (client *RTCClient) Close() error {
 		return err
 	}
 	return nil
+}
+
+func pingHandler(conn *websocket.Conn) {
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			return
+		}
+		if err := conn.WriteMessage(websocket.PongMessage, []byte{}); err != nil {
+			log.Printf("Ping Error: %v", err)
+			return
+		}
+	}
 }
