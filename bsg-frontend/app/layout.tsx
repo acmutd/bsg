@@ -1,7 +1,6 @@
 import './globals.css'
 import type {Metadata} from 'next'
 import {Poppins} from 'next/font/google'
-import Navbar from "@/components/customComponents/navbar";
 
 const poppins = Poppins({weight: '400', subsets: ['latin'], variable: '--poppins'})
 
@@ -20,8 +19,10 @@ export default function RootLayout({
         <body className={poppins.className}>
         <main className={'h-screen flex flex-col justify-center items-center'}>
             <div>
-                <Navbar/>
-                {children}
+                {/*<Navbar/>*/}
+                <div className={"flex flex-1"}>
+                    {children}
+                </div>
             </div>
         </main>
         </body>
