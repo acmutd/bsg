@@ -1,6 +1,6 @@
 "use client"
 import React from "react";
-import {NavigationMenu, NavigationMenuLink, navigationMenuTriggerStyle,} from "@/components/ui/navigation-menu"
+import { NavigationMenu, NavigationMenuLink, navigationMenuTriggerStyle, } from "@/components/ui/navigation-menu"
 import Link from "next/link";
 
 const Navbar = () => {

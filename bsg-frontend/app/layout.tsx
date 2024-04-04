@@ -1,8 +1,9 @@
+import Navbar from '@/components/customComponents/navbar'
 import './globals.css'
-import type {Metadata} from 'next'
-import {Poppins} from 'next/font/google'
+import type { Metadata } from 'next'
+import { Poppins } from 'next/font/google'
 
-const poppins = Poppins({weight: '400', subsets: ['latin'], variable: '--poppins'})
+const poppins = Poppins({ weight: '400', subsets: ['latin'], variable: '--poppins' })
 
 export const metadata: Metadata = {
     title: 'Create Next App',
@@ -10,22 +11,22 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({
-                                       children,
-                                   }: {
+    children,
+}: {
     children: React.ReactNode
 }) {
     return (
         <html lang="en">
-        <body className={poppins.className}>
-        <main className={'h-screen flex flex-col justify-center items-center'}>
-            <div>
-                {/*<Navbar/>*/}
-                <div className={"flex flex-1"}>
-                    {children}
-                </div>
-            </div>
-        </main>
-        </body>
+            <body className={poppins.className}>
+                <main className={'h-screen flex flex-col justify-center items-center'}>
+                    <div className='w-full h-full'>
+                        <Navbar />
+                        <div className={"w-full h-full flex flex-1"}>
+                            {children}
+                        </div>
+                    </div>
+                </main>
+            </body>
         </html>
     )
 }

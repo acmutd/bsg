@@ -1,13 +1,13 @@
 "use client"
-import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from "@/components/ui/resizable";
-import React, {useRef, useState} from 'react';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import React, { useRef, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
-import {javascript} from "@codemirror/lang-javascript";
-import {vscodeDark} from "@uiw/codemirror-theme-vscode";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
-import {Button} from "@/components/ui/button";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faCheckCircle} from "@fortawesome/free-solid-svg-icons";
+import { javascript } from "@codemirror/lang-javascript";
+import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle } from "@fortawesome/free-solid-svg-icons";
 
 const Problem = () => {
     const [value, setValue] = useState("console.log('hello world!');\n\n\n\n\n\n\n\n\n");
@@ -15,7 +15,7 @@ const Problem = () => {
 
     return (
         <div
-            className="flex top-0 bottom-0 absolute right-0 left-0 ">
+            className="flex w-full h-full">
             <ResizablePanelGroup
                 direction="horizontal"
                 className="flex-1"
@@ -32,7 +32,7 @@ const Problem = () => {
                         <TabsContent value="solutions">Solutions</TabsContent>
                     </Tabs>
                 </ResizablePanel>
-                <ResizableHandle withHandle={true}/>
+                <ResizableHandle withHandle={true} />
                 <ResizablePanel defaultSize={50}>
                     <ResizablePanelGroup direction="vertical">
                         <ResizablePanel
@@ -43,23 +43,23 @@ const Problem = () => {
                             }}
                         >
                             <div onClick={() => editorRef.current.focus()}
-                                 className="flex h-full items-center justify-center bg-editorBackground">
+                                className="flex h-full items-center justify-center bg-editorBackground">
                                 <CodeMirror
                                     value={value}
                                     autoFocus={true}
                                     ref={editorRef}
                                     theme={vscodeDark}
-                                    extensions={[javascript({jsx: true})]}
+                                    extensions={[javascript({ jsx: true })]}
                                     className="w-full h-full bottom-0 left-1"
                                 />
                             </div>
                         </ResizablePanel>
-                        <ResizableHandle withHandle={true}/>
+                        <ResizableHandle withHandle={true} />
                         <ResizablePanel defaultSize={75}>
                             <div className={'flex flex-1 bg-inputBackground items-center'}>
                                 <p className={'p-3'}>Test Cases</p>
                                 <FontAwesomeIcon icon={faCheckCircle} size={'xl'}
-                                                 className={'text-primary'}/>
+                                    className={'text-primary'} />
                             </div>
                             <div className={'flex-row flex m-10'}>
                                 <Tabs defaultValue="case1" className="flex-1 w-fit ">
