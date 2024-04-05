@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"log"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,9 +13,10 @@ var (
 )
 
 type RTCClient struct {
-	Name       string
-	Connection *websocket.Conn
-	Ingress    chan RTCClientResponse
+	Name            string
+	Connection      *websocket.Conn
+	Ingress         chan RTCClientResponse
+	ConnectionMutex sync.Mutex
 }
 
 type RTCClientResponse struct {
@@ -35,9 +37,10 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 		return nil, err
 	}
 	rtcClient := RTCClient{
-		Name:       name,
-		Connection: conn,
-		Ingress:    make(chan RTCClientResponse),
+		Name:            name,
+		Connection:      conn,
+		Ingress:         make(chan RTCClientResponse),
+		ConnectionMutex: sync.Mutex{},
 	}
 	go rtcClient.IngressHandler() // Start listening for incomingm essages
 	return &rtcClient, nil
@@ -64,6 +67,8 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*RTC
 	if err != nil {
 		return nil, err
 	}
+	// Lock connection
+	client.ConnectionMutex.Lock()
 	// Send message
 	err = client.Connection.WriteMessage(websocket.TextMessage, jsonMessage)
 	if err != nil {
@@ -71,6 +76,8 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*RTC
 	}
 	// Read response from Ingress
 	responseObject := <-client.Ingress
+	// Unlock connection
+	client.ConnectionMutex.Unlock()
 	return &responseObject, nil
 }
 
