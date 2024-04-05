@@ -3,16 +3,12 @@ package services
 import (
 	"encoding/json"
 	"log"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 var (
 	RTCWebSocketURL = "ws://rtc-service:8080/ws"
-
-	PONG_WAIT     = 10 * time.Second
-	PING_INTERVAL = (PONG_WAIT * 9) / 10
 )
 
 type RTCClient struct {
@@ -38,12 +34,13 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	// go pingHandler(conn)
-	return &RTCClient{
+	rtcClient := RTCClient{
 		Name:       name,
 		Connection: conn,
 		Ingress:    make(chan RTCClientResponse),
-	}, nil
+	}
+	go rtcClient.IngressHandler() // Start listening for incomingm essages
+	return &rtcClient, nil
 }
 
 func (client *RTCClient) SendMessage(requestType string, data interface{}) (*RTCClientResponse, error) {
@@ -68,26 +65,11 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*RTC
 		return nil, err
 	}
 	// Send message
-	log.Println("send start")
 	err = client.Connection.WriteMessage(websocket.TextMessage, jsonMessage)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("send end")
-	// Read response
-	// log.Println("read start")
-	// _, responseBytes, err := client.Connection.ReadMessage()
-	// if err != nil {
-	// 	log.Println("Error reading rtc-service response: %v", err)
-	// 	return nil, err
-	// }
-	// log.Println("read end")
-	// // Unmarshal response
-	// var responseObject RTCClientResponse
-	// err = json.Unmarshal(responseBytes, &responseObject)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// Read response from Ingress
 	responseObject := <-client.Ingress
 	return &responseObject, nil
 }
@@ -103,39 +85,21 @@ func (client *RTCClient) Close() error {
 
 func (client *RTCClient) IngressHandler() {
 	for {
-		messageType, message, err := client.Connection.ReadMessage()
+		// Read response
+		_, message, err := client.Connection.ReadMessage()
 		if err != nil {
 			log.Printf("Failed to read message: %v", err)
 			break
 		}
-		if messageType == websocket.PingMessage {
-			// Respond with a Pong message
-			if err := client.Connection.WriteMessage(websocket.PongMessage, message); err != nil {
-				log.Printf("Failed to respond to ping: %v", err)
-				break
-			}
-		} else {
-			// Unmarshal response
-			var responseObject RTCClientResponse
-			err = json.Unmarshal(message, &responseObject)
-			if err != nil {
-				log.Printf("Failed to unmarshal response message: %v", err)
-				break
-			}
-			// Pass non-ping messages to the SendMessage method
-			client.Ingress <- responseObject
+		log.Println("Received message: ", string(message))
+		// Unmarshal response
+		var responseObject RTCClientResponse
+		err = json.Unmarshal(message, &responseObject)
+		if err != nil {
+			log.Printf("Failed to unmarshal response message: %v", err)
+			break
 		}
+		// Pass non-control messages to the SendMessage method
+		client.Ingress <- responseObject
 	}
 }
-
-// func pingHandler(conn *websocket.Conn) {
-// 	for {
-// 		if _, _, err := conn.ReadMessage(); err != nil {
-// 			return
-// 		}
-// 		if err := conn.WriteMessage(websocket.PongMessage, []byte{}); err != nil {
-// 			log.Printf("Ping Error: %v", err)
-// 			return
-// 		}
-// 	}
-// }

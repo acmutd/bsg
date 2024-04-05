@@ -73,7 +73,6 @@ func main() {
 		log.Fatalf("Error creating RTC client: %v\n", err)
 	}
 	defer rtcClient.Close()
-	go rtcClient.IngressHandler()
 
 	e := echo.New()
 
