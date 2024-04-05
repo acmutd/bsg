@@ -136,16 +136,19 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	var problemList []string
-	for _, problem := range round.ProblemSet {
-		problemList = append(problemList, string(problem.ID))
-	}
-	var roundStart = requests.RoundStartRequest{
-		RoomID:      round.RoomID.String(),
-		ProblemList: problemList,
-	}
-	if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
-		log.Printf("Error sending round-start message: %v", err)
+	// RTCClient is nil in test cases
+	if service.rtcClient != nil {
+		var problemList []string
+		for _, problem := range round.ProblemSet {
+			problemList = append(problemList, string(problem.ID))
+		}
+		var roundStart = requests.RoundStartRequest{
+			RoomID:      round.RoomID.String(),
+			ProblemList: problemList,
+		}
+		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
+			log.Printf("Error sending round-start message: %v", err)
+		}
 	}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
@@ -215,11 +218,14 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 							StatusCode: 500,
 						}
 					}
-					var roundEnd = requests.RoundEndRequest{
-						RoomID: round.RoomID.String(),
-					}
-					if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
-						log.Printf("Error sending round-end message: %v", err)
+					// RTCClient is nil in test cases
+					if service.rtcClient != nil {
+						var roundEnd = requests.RoundEndRequest{
+							RoomID: round.RoomID.String(),
+						}
+						if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
+							log.Printf("Error sending round-end message: %v", err)
+						}
 					}
 					return nil
 				},

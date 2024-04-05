@@ -116,7 +116,7 @@ func TestCreateNewRound(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          20,
 		NumEasyProblems:   1,
@@ -171,8 +171,8 @@ func TestCreateNewRoundExceededLimit(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, 0)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, 0)
 	roundLimitExceeded, err := roomService.CheckRoundLimitExceeded(mockRoom)
 	if err != nil {
 		t.Fatalf("Error checking round limit exceeded: %v\n", err)
@@ -234,7 +234,7 @@ func TestFindRoundByID(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	defer roundScheduler.Stop()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration: 20,
 	}, &mockRoom.ID)
@@ -298,8 +298,8 @@ func TestInitiateRoundStart(t *testing.T) {
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -478,8 +478,8 @@ func TestProblemSetVisibility(t *testing.T) {
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -672,8 +672,8 @@ func TestRoundEndTransition(t *testing.T) {
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -895,8 +895,8 @@ func TestSubmitToRound(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1149,8 +1149,8 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1361,8 +1361,8 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1525,7 +1525,7 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1634,8 +1634,8 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	// create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
@@ -1850,8 +1850,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	// create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
