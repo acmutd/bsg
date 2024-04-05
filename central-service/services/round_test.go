@@ -336,21 +336,21 @@ func TestInitiateRoundStart(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -516,21 +516,21 @@ func TestProblemSetVisibility(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -710,21 +710,21 @@ func TestRoundEndTransition(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -856,21 +856,21 @@ func TestSubmitToRound(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1110,21 +1110,21 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1322,21 +1322,21 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1486,21 +1486,21 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1664,21 +1664,21 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1880,21 +1880,21 @@ func TestDuplicateACSubmission(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
