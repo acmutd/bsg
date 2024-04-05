@@ -69,9 +69,6 @@ func main() {
 
 	// Create new RTC client
 	rtcClient, err := services.InitializeRTCClient("central-service")
-	if err != nil {
-		log.Fatalf("Error creating RTC client: %v\n", err)
-	}
 	defer rtcClient.Close()
 
 	e := echo.New()
@@ -85,7 +82,7 @@ func main() {
 	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue)
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue, rtcClient)
 
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)

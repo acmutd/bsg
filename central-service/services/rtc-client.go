@@ -23,6 +23,7 @@ type RTCClient struct {
 func InitializeRTCClient(name string) (*RTCClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(RTCWebSocketURL, nil)
 	if err != nil {
+		log.Fatalf("Error creating RTC client: %v\n", err)
 		return nil, err
 	}
 	rtcClient := RTCClient{

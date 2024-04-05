@@ -21,6 +21,7 @@ type RoundService struct {
 	roundScheduler  *tasks.Scheduler
 	problemAccessor *ProblemAccessor
 	submissionQueue *SubmissionIngressQueueService
+	rtcClient       *RTCClient
 }
 
 type RoundCreationParameters struct {
@@ -37,13 +38,14 @@ type RoundSubmissionParameters struct {
 	ProblemID uint   `json:"problemID"`
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService, rtcClient *RTCClient) RoundService {
 	return RoundService{
 		db:              db,
 		rdb:             rdb,
 		roundScheduler:  roundScheduler,
 		problemAccessor: problemAccessor,
 		submissionQueue: submissionQueue,
+		rtcClient:       rtcClient,
 	}
 }
 
