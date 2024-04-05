@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,20 +16,8 @@ var (
 type RTCClient struct {
 	Name            string
 	Connection      *websocket.Conn
-	Ingress         chan RTCClientResponse
+	Ingress         chan response.Response
 	ConnectionMutex sync.Mutex
-}
-
-type RTCClientResponse struct {
-	RespStatus  string                   `json:"status"`
-	RespMessage RTCClientResponseMessage `json:"message"`
-	RespType    string                   `json:"responseType"`
-}
-
-type RTCClientResponseMessage struct {
-	RoomID     string `json:"roomID"`
-	Data       string `json:"data"`
-	UserHandle string `json:"userHandle"`
 }
 
 func InitializeRTCClient(name string) (*RTCClient, error) {
@@ -39,14 +28,14 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 	rtcClient := RTCClient{
 		Name:            name,
 		Connection:      conn,
-		Ingress:         make(chan RTCClientResponse),
+		Ingress:         make(chan response.Response),
 		ConnectionMutex: sync.Mutex{},
 	}
 	go rtcClient.IngressHandler() // Start listening for incomingm essages
 	return &rtcClient, nil
 }
 
-func (client *RTCClient) SendMessage(requestType string, data interface{}) (*RTCClientResponse, error) {
+func (client *RTCClient) SendMessage(requestType string, data interface{}) (*response.Response, error) {
 	// Marshal data
 	dataJson, err := json.Marshal(data)
 	if err != nil {
@@ -100,7 +89,7 @@ func (client *RTCClient) IngressHandler() {
 		}
 		log.Println("Received message: ", string(message))
 		// Unmarshal response
-		var responseObject RTCClientResponse
+		var responseObject response.Response
 		err = json.Unmarshal(message, &responseObject)
 		if err != nil {
 			log.Printf("Failed to unmarshal response message: %v", err)
