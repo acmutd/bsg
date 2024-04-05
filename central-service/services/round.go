@@ -9,6 +9,7 @@ import (
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
@@ -135,6 +136,17 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	if result.Error != nil {
 		return nil, result.Error
 	}
+	var problemList []string
+	for _, problem := range round.ProblemSet {
+		problemList = append(problemList, string(problem.ID))
+	}
+	var roundStart = requests.RoundStartRequest{
+		RoomID:      round.RoomID.String(),
+		ProblemList: problemList,
+	}
+	if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
+		log.Printf("Error sending round-start message: %v", err)
+	}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
 	_, err := service.roundScheduler.Add(&tasks.Task{
@@ -202,6 +214,12 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 							Message:    "Error ending round",
 							StatusCode: 500,
 						}
+					}
+					var roundEnd = requests.RoundEndRequest{
+						RoomID: round.RoomID.String(),
+					}
+					if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
+						log.Printf("Error sending round-end message: %v", err)
 					}
 					return nil
 				},

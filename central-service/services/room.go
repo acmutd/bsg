@@ -8,6 +8,7 @@ import (
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -112,13 +113,12 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			}
 		}
 	}
-	joinRoom := map[string]string{
-		"userHandle": userID,
-		"roomID":     roomID,
+	joinRoom := requests.JoinRoomRequest{
+		UserHandle: userID,
+		RoomID:     roomID,
 	}
-	_, err = service.rtcClient.SendMessage("join-room", joinRoom)
-	if err != nil {
-		log.Fatal("Error sending join-room message:", err)
+	if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
+		log.Print("Error sending join-room message: %v", err)
 	}
 	return room, nil
 }
@@ -133,13 +133,12 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	if err := service.removeJoinMember(roomID, userID); err != nil {
 		return err
 	}
-	leaveRoom := map[string]string{
-		"userHandle": userID,
-		"roomID":     roomID,
+	leaveRoom := requests.LeaveRoomRequest{
+		UserHandle: userID,
+		RoomID:     roomID,
 	}
-	_, err = service.rtcClient.SendMessage("leave-room", leaveRoom)
-	if err != nil {
-		log.Fatal("Error sending leave-room message:", err)
+	if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
+		log.Printf("Error sending leave-room message: %v", err)
 	}
 	if users, err := service.FindActiveUsers(roomID); err != nil {
 		return err
