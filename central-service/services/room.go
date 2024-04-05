@@ -133,7 +133,14 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	if err := service.removeJoinMember(roomID, userID); err != nil {
 		return err
 	}
-	// TODO: notify RTC user left room
+	leaveRoom := map[string]string{
+		"userHandle": userID,
+		"roomID":     roomID,
+	}
+	_, err = service.rtcClient.SendMessage("leave-room", leaveRoom)
+	if err != nil {
+		log.Fatal("Error sending leave-room message:", err)
+	}
 	if users, err := service.FindActiveUsers(roomID); err != nil {
 		return err
 	} else if len(users) <= 0 {
