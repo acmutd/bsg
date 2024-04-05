@@ -41,7 +41,7 @@ func createMockProblems(db *gorm.DB, mock *sqlmock.Sqlmock) error {
 			problemIndex := j*10 + i + 1
 			(*mock).ExpectBegin()
 			(*mock).ExpectQuery("INSERT(.*)").
-				WithArgs(fmt.Sprintf("problem%d", problemIndex), "", "", diff).
+				WithArgs(fmt.Sprintf("problem%d", problemIndex), "", "", "", diff).
 				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(fmt.Sprintf("%d", problemIndex)))
 			(*mock).ExpectCommit()
 			result := db.Create(&models.Problem{
