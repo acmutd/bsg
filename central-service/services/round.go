@@ -140,7 +140,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	if service.rtcClient != nil {
 		var problemList []string
 		for _, problem := range round.ProblemSet {
-			problemList = append(problemList, string(problem.ID))
+			problemList = append(problemList, fmt.Sprint(problem.ID))
 		}
 		var roundStart = requests.RoundStartRequest{
 			RoomID:      round.RoomID.String(),

@@ -118,7 +118,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 		RoomID:     roomID,
 	}
 	if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
-		log.Print("Error sending join-room message: %v", err)
+		log.Printf("Error sending join-room message: %v", err)
 	}
 	return room, nil
 }
