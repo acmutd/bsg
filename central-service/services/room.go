@@ -116,11 +116,10 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 		"userHandle": userID,
 		"roomID":     roomID,
 	}
-	response, err := service.rtcClient.SendMessage("join-room", joinRoom)
+	_, err = service.rtcClient.SendMessage("join-room", joinRoom)
 	if err != nil {
 		log.Fatal("Error sending join-room message:", err)
 	}
-	log.Printf("Received: %v", response)
 	return room, nil
 }
 

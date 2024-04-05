@@ -67,6 +67,9 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*res
 	responseObject := <-client.Ingress
 	// Unlock connection
 	client.ConnectionMutex.Unlock()
+	if responseObject.RespStatus != "ok" {
+		return &responseObject, BSGError{StatusCode: 500, Message: responseObject.Message()}
+	}
 	return &responseObject, nil
 }
 
