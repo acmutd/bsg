@@ -227,7 +227,6 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			if err != nil {
 				return err
 			}
-			// TODO: Send data to rtc service
 			return nil
 		},
 		ErrFunc: func(e error) {

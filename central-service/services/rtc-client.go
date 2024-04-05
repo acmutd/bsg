@@ -32,10 +32,13 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 		Ingress:         make(chan response.Response),
 		ConnectionMutex: sync.Mutex{},
 	}
-	go rtcClient.IngressHandler() // Start listening for incomingm essages
+	// Start listening for incoming messages
+	go rtcClient.IngressHandler()
 	return &rtcClient, nil
 }
 
+// Sends messages to rtc-service and waits until a response is received
+// Returns an error if rtc-service responds with an error
 func (client *RTCClient) SendMessage(requestType string, data interface{}) (*response.Response, error) {
 	// Marshal data
 	dataJson, err := json.Marshal(data)
@@ -74,8 +77,8 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*res
 	return &responseObject, nil
 }
 
+// Close the WebSocket connection
 func (client *RTCClient) Close() error {
-	// Close the WebSocket connection
 	err := client.Connection.Close()
 	if err != nil {
 		return err
@@ -83,6 +86,7 @@ func (client *RTCClient) Close() error {
 	return nil
 }
 
+// Reads messages from rtc-service and responds to ping requests (default ping handler)
 func (client *RTCClient) IngressHandler() {
 	for {
 		// Read response
