@@ -22,7 +22,7 @@ export const columns: ColumnDef<Submission>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({row}) => {
-      const status = row.getValue("status");
+      const status = row.getValue<string>("status");
       const color = status === "Accepted" ? "text-green-500" : "text-red-500";
       return <div className={`font-medium ${color}`}>{status}</div>;
     },
