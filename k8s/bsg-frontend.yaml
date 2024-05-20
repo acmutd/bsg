@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: frontend-deployment
+  labels:
+    app: bsg-frontend
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      app: bsg-frontend
+  template:
+    metadata: 
+      labels:
+        app: bsg-frontend
+    spec:
+      containers:
+      - name: bsg-frontend
+        image: "" # acmutd/bsg-frontend:latest  
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: bsg-frontend
+  type: LoadBalancer
+  ports: 
+  - name: http
+    port: 3000
+    targetPort: 3000
+    nodePort: 30000
