@@ -1,26 +1,37 @@
 package kafka_queue
 
 import (
+	"encoding/json"
 	"fmt"
-	"os"
-	"slices"
-	"strconv"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 
+	kafka_dto "github.com/acmutd/bsg/worker-service/kafka/kafka-dto"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/joho/godotenv"
 )
 
-func TestNewKafkaConsumer(t *testing.T) {
-	// Get the username and password environment variables
-	err := godotenv.Load("../.env")
-	if err != nil {
-		t.Error("Error loading .env file")
+// Generate submission result struct
+func GenSubmissionResult(submissionID uint, StatusMessage string, CodeOutput string, StdOutput string, 
+	ExpectedOutput string, LastTestcase string, ExecutionTime string) kafka_dto.KafkaEgressDTO {
+	return kafka_dto.KafkaEgressDTO{
+		SubmissionId: submissionID,
+		Verdict: kafka_dto.SubmissionVerdict{
+			StatusMessage:  StatusMessage,
+			CodeOutput:     CodeOutput,
+			StdOutput:      StdOutput,
+			ExpectedOutput: ExpectedOutput,
+			LastTestcase:   LastTestcase,
+			ExecutionTime:  ExecutionTime,
+		},
 	}
-	kafkaServer := os.Getenv("KAFKA_BROKER")
-	kafkaTopic := os.Getenv("KAFKA_TOPIC")
+}
+
+// Test create new kafka consumer successfully
+func TestNewKafkaConsumer(t *testing.T) {
+	kafkaServer := "localhost:9092"
+	kafkaTopic := "KAFKA_TOPIC"
 	// Create new kafka consumer
 	consumer := NewKafkaConsumer(kafkaServer, kafkaTopic, "worker1")
 	if consumer == nil {
@@ -29,13 +40,9 @@ func TestNewKafkaConsumer(t *testing.T) {
 	consumer.Close()
 }
 
+// Test create new kafka producer successfully
 func TestNewKafkaProducer(t *testing.T) {
-	// Get the username and password environment variables
-	err := godotenv.Load("../.env")
-	if err != nil {
-		t.Error("Error loading .env file")
-	}
-	kafkaServer := os.Getenv("KAFKA_BROKER")
+	kafkaServer := "localhost:9092"
 	// Create new kafka producer
 	producer := NewKafkaProducer(kafkaServer)
 	if producer == nil {
@@ -44,37 +51,31 @@ func TestNewKafkaProducer(t *testing.T) {
 	producer.Close()
 }
 
+// Test send a submission result to kafka topic successfully
 func TestSendSubmissionResult(t *testing.T) {
-	// Get the username and password environment variables
-	err := godotenv.Load("../.env")
-	if err != nil {
-		t.Error("Error loading .env file")
-	}
-	kafkaServer := os.Getenv("KAFKA_BROKER")
-	kafkaTopic := os.Getenv("KAFKA_TOPIC")
+	kafkaServer := "localhost:9092"
+	kafkaTopic := "SUBMISSION_RESULT"
 	// Create new kafka producer
 	producer := NewKafkaProducer(kafkaServer)
 	if producer == nil {
 		t.Error("Failed to create kafka producer")
 	}
 	// Send submission result
-	err = SendSubmissionResult(producer, kafkaServer, kafkaTopic, "test", 0)
+	submissionResult := GenSubmissionResult(1, "Accepted", "", "", "", "", "1 ms")
+	submissionResultBytes, err := json.Marshal(submissionResult)
+	if err != nil {
+		t.Error("Failed to marshal submission result: " + err.Error())
+	}
+	err = SendEvent(producer, kafkaServer, kafkaTopic, submissionResultBytes)
 	if err != nil {
 		t.Error("Failed to send submission result due to error - ", err.Error())
 	}
 }
 
-func TestReceiveRequest(t *testing.T) {
-	var wg sync.WaitGroup
-	request := make(chan string)
-	receiveRequestErr := make(chan error)
-	// Get the username and password environment variables
-	err := godotenv.Load("../.env")
-	if err != nil {
-		t.Error("Error loading .env file")
-	}
-	kafkaServer := os.Getenv("KAFKA_BROKER")
-	kafkaTopic := "submission_requests_for_test_receive_request"
+// Test receive an event from kafka topic successfully
+func TestReceiveEvent(t *testing.T) {
+	kafkaServer := "localhost:9092"
+	kafkaTopic := "KAFKA_TOPIC"
 	// Create new kafka consumer
 	consumer := NewKafkaConsumer(kafkaServer, kafkaTopic, "worker")
 	if consumer == nil {
@@ -86,43 +87,50 @@ func TestReceiveRequest(t *testing.T) {
 		t.Error("Failed to create kafka producer")
 	}
 	// Send submission result
-	err = SendSubmissionResult(producer, kafkaServer, kafkaTopic, "test", 0)
+	submissionResult := GenSubmissionResult(1, "Accepted", "", "", "", "", "1 ms")
+	submissionResultBytes, err := json.Marshal(submissionResult)
+	if err != nil {
+		t.Error("Failed to marshal submission result: " + err.Error())
+	}
+	err = SendEvent(producer, kafkaServer, kafkaTopic, submissionResultBytes)
 	if err != nil {
 		t.Error("Failed to send submission result due to error - ", err.Error())
 	}
 	// Receive request from producer
+	var wg sync.WaitGroup
+	request := make(chan []byte)
+	receiveRequestErr := make(chan error)
 	wg.Add(1)
-	go func(request chan string, receiveRequestErr chan error, consumer *kafka.Consumer) {
+	go func(request chan []byte, receiveRequestErr chan error, consumer *kafka.Consumer) {
 		defer wg.Done()
-		req, err := ReceiveRequest(consumer)
+		req, err := ReceiveEvent(consumer)
 		request <- req
 		receiveRequestErr <- err
 	}(request, receiveRequestErr, consumer)
-	// Check the received request outputs
-	receivedRequest := <-request
-	if receivedRequest != "test" {
-		t.Error("Received request is not equal to sent request")
-	}
+	receivedRequestBytes := <-request
 	receivedRequestErr := <-receiveRequestErr
+	wg.Wait()
+	// Check the received request outputs
+	var receivedRequest kafka_dto.KafkaEgressDTO
+	unmarshalErr := json.Unmarshal(receivedRequestBytes, &receivedRequest)
 	if receivedRequestErr != nil {
 		t.Error("Failed to receive request due to error - ", err.Error())
 	}
-	wg.Wait()
+	if (unmarshalErr != nil) {
+		t.Error("Failed to unmarshal received request due to error - ", unmarshalErr.Error())
+	}
+	if reflect.DeepEqual(receivedRequest, submissionResult) == false{
+		t.Error("Received request is not equal to sent request")
+	}
 	producer.Close()
 	consumer.Close()
 }
 
+
+// Test multiple workers receive multiple requests successfully
 func TestMultipleWorkerReceiveMultipleRequest(t *testing.T) {
-	var wg sync.WaitGroup
-	request := make(chan string)
-	receiveRequestErr := make(chan error)
-	// Get the username and password environment variables
-	err := godotenv.Load("../.env")
-	if err != nil {
-		t.Error("Error loading .env file")
-	}
-	kafkaServer := os.Getenv("KAFKA_BROKER")
-	kafkaTopic := "submission_requests_for_test_multiple_worker_receive_multiple_request"
+	kafkaServer := "localhost:9092"
+	kafkaTopic := "SUBMISSION_REQUEST"
 	// Create new topic
 	CreateTopic(kafkaServer, kafkaTopic, 2, 1)
 	// Create new kafka consumers
@@ -139,48 +147,61 @@ func TestMultipleWorkerReceiveMultipleRequest(t *testing.T) {
 	if producer == nil {
 		t.Error("Failed to create kafka producer")
 	}
-	// Send submission results
-	for i := 1; i <= 2; i++ {
+	// Send submission requests
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
 		wg.Add(1)
-		go func(testNum int) {
+		go func(partition int) {
 			wg.Done()
-			err = SendSubmissionResult(producer, kafkaServer, kafkaTopic, "test"+strconv.Itoa(testNum), testNum-1)
+			submissionRequest := kafka_dto.KafkaIngressDTO{ProblemId: uint(partition)}
+			submissionRequestBytes, err := json.Marshal(submissionRequest)
+			if err != nil {
+				t.Error("Failed to marshal submission result: " + err.Error())
+			}
+			err = SendEvent(producer, kafkaServer, kafkaTopic, submissionRequestBytes, partition)
 			if err != nil {
 				t.Error("Failed to send submission result due to error - ", err.Error())
 			}
 		}(i)
 	}
-	// Simulate receive multiple requests behaviour of multiple consumers
-	wg.Add(2)
-	go func(request chan string, receiveRequestErr chan error, consumer *kafka.Consumer) {
-		defer wg.Done()
-		req, err := ReceiveRequest(consumer)
-		request <- req
-		receiveRequestErr <- err
-		time.Sleep(3 * time.Second)
-	}(request, receiveRequestErr, consumer1)
-	go func(request chan string, receiveRequestErr chan error, consumer *kafka.Consumer) {
-		defer wg.Done()
-		req, err := ReceiveRequest(consumer)
-		request <- req
-		receiveRequestErr <- err
-		time.Sleep(3 * time.Second)
-	}(request, receiveRequestErr, consumer2)
-	// Check the received request outputs
-	var receivedRequest []string
-	for i := 1; i <= 2; i++ {
-		receivedRequest = append(receivedRequest, <-request)
-		fmt.Println("Received request - ", receivedRequest)
+	// Receive multiple requests using multiple consumers
+	request := make(chan []byte)
+	receiveRequestErr := make(chan error)
+	consumers := []*kafka.Consumer{consumer1, consumer2}
+	for _, consumer := range consumers {
+		wg.Add(1)
+		go func(request chan []byte, receiveRequestErr chan error, consumer *kafka.Consumer) {
+			defer wg.Done()
+			req, err := ReceiveEvent(consumer)
+			request <- req
+			receiveRequestErr <- err
+			time.Sleep(3 * time.Second)
+		}(request, receiveRequestErr, consumer)
+	}
+	// Process received requests
+	var receivedRequests []kafka_dto.KafkaIngressDTO
+	var receivedRequest kafka_dto.KafkaIngressDTO
+	for i := 0; i < 2; i++ {
+		unmarshalErr := json.Unmarshal(<-request, &receivedRequest)
+		if (unmarshalErr != nil) {
+			t.Error("Failed to unmarshal received request due to error - ", unmarshalErr.Error())
+		}
+		receivedRequests = append(receivedRequests, receivedRequest)
+		fmt.Printf("Received request - %+v\n", receivedRequest)
 
 		err := <-receiveRequestErr
 		if err != nil {
 			t.Error("Failed to receive request due to error - ", err.Error())
 		}
 	}
-	if slices.Contains(receivedRequest, "test1") == false || slices.Contains(receivedRequest, "test2") == false {
-		t.Error("Received request is not equal to sent request")
-	}
 	wg.Wait()
+	// Check the received request outputs
+	for i := 0; i < 2; i++ {
+		if reflect.DeepEqual(receivedRequests[0], kafka_dto.KafkaIngressDTO{ProblemId: uint(i)}) == false &&
+			reflect.DeepEqual(receivedRequests[1], kafka_dto.KafkaIngressDTO{ProblemId: uint(i)}) == false {
+			t.Error("Received request is not equal to sent request")
+		}
+	}
 	producer.Close()
 	consumer1.Close()
 	consumer2.Close()

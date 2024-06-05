@@ -8,6 +8,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
+// Create a new kafka producer
 func NewKafkaProducer(kafkaServer string) *kafka.Producer {
 	producer, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers": kafkaServer,
@@ -19,7 +20,8 @@ func NewKafkaProducer(kafkaServer string) *kafka.Producer {
 	return producer
 }
 
-func DeleteTopics(kafkaServer string, deleteTopics []string) (error) {
+// Delete topics from the kafka
+func DeleteTopics(kafkaServer string, deleteTopics []string) error {
 	// Configuration for the AdminClient
 	config := &kafka.ConfigMap{"bootstrap.servers": kafkaServer}
 	adminClient, err := kafka.NewAdminClient(config)
@@ -39,14 +41,15 @@ func DeleteTopics(kafkaServer string, deleteTopics []string) (error) {
 	}
 	// Check the results
 	for _, result := range results {
-		if (result.Error.Code().String() != "ErrNoError") {
+		if result.Error.Code().String() != "ErrNoError" {
 			return errors.New("Error deleting topic: " + result.Error.Error())
 		}
 	}
 	return nil
 }
 
-func CreateTopic(kafkaServer string, kafkaTopic string, partitions int, replicationFactor int) (error) {
+// Create a new topic in the kafka
+func CreateTopic(kafkaServer string, kafkaTopic string, partitions int, replicationFactor int) error {
 	// Configuration for the AdminClient
 	config := &kafka.ConfigMap{"bootstrap.servers": kafkaServer}
 	adminClient, err := kafka.NewAdminClient(config)
@@ -73,39 +76,48 @@ func CreateTopic(kafkaServer string, kafkaTopic string, partitions int, replicat
 	}
 	// Check the results
 	for _, result := range results {
-		if (result.Error.Code().String() != "ErrNoError") {
+		if result.Error.Code().String() != "ErrNoError" {
 			return errors.New("Error creating topic: " + result.Error.Error())
 		}
 	}
 	return nil
 }
 
-func SendSubmissionResult(producer *kafka.Producer, kafkaServer string, kafkaTopic string, submissionResult string, partition int) error {
+// Send an event to the kafka queue
+func SendEvent(producer *kafka.Producer, kafkaServer string, kafkaTopic string, data []byte, partition ...int) error {
 	// Send submission result to kafka queue
+	kafkaPartition := kafka.PartitionAny
+	if len(partition) > 0 {
+		kafkaPartition = int32(partition[0])
+	}
 	produceMessageErr := producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &kafkaTopic, Partition: int32(partition)},
-		Value:          []byte(submissionResult),
+		TopicPartition: kafka.TopicPartition{
+			Topic:     &kafkaTopic,
+			Partition: kafkaPartition,
+		},
+		Value: data,
 	}, nil)
 	if produceMessageErr != nil {
-		return errors.New("Unable to enqueue message " + submissionResult)
+		return errors.New("Unable to enqueue event " + string(data))
 	}
 	// Wait for message to be delivered
 	event := <-producer.Events()
 	switch event := event.(type) {
 	case *kafka.Message:
 		if event.TopicPartition.Error != nil {
-			return errors.New("Failed to deliver message: %v\n" + event.TopicPartition.String())
+			return errors.New("Failed to deliver event: %v\n" + event.TopicPartition.String())
 		} else {
 			fmt.Printf("Produced event to topic %s at partision %d: value = %s\n",
 				*event.TopicPartition.Topic, partition, (event.Value))
 			return nil
 		}
 	case *kafka.Error:
-		return errors.New("Failed to produce message due to " + event.Error())
+		return errors.New("Failed to produce event due to " + event.Error())
 	}
-	return errors.New("Failed to produce message due to unknown error")
+	return errors.New("Failed to produce event due to unknown error")
 }
 
+// Create a new kafka consumer
 func NewKafkaConsumer(kafkaServer string, kafkaTopic string, workerID string) *kafka.Consumer {
 	consumer, initConsumerErr := kafka.NewConsumer(&kafka.ConfigMap{"bootstrap.servers": kafkaServer, "group.id": workerID, "auto.offset.reset": "smallest"})
 	if initConsumerErr != nil {
@@ -121,7 +133,8 @@ func NewKafkaConsumer(kafkaServer string, kafkaTopic string, workerID string) *k
 	return consumer
 }
 
-func ReceiveRequest(consumer *kafka.Consumer) (string, error) {
+// Receive an event from the kafka queue
+func ReceiveEvent(consumer *kafka.Consumer) ([]byte, error) {
 	fmt.Println("waiting for event...")
 	for {
 		event := consumer.Poll(100)
@@ -129,11 +142,11 @@ func ReceiveRequest(consumer *kafka.Consumer) (string, error) {
 		case *kafka.Message:
 			_, err := consumer.CommitMessage(event)
 			if err == nil {
-				fmt.Println("Received message from kafka queue: ", string(event.Value))
-				return string(event.Value), nil
+				fmt.Println("Received event from kafka queue: ", string(event.Value))
+				return event.Value, nil
 			}
 		case *kafka.Error:
-			return "", errors.New("Error while receiving message from kafka due to " + event.Error())
+			return nil, errors.New("Error while receiving event from kafka due to " + event.Error())
 		default:
 			continue
 		}
