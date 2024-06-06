@@ -148,6 +148,10 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		}
 		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
 			log.Printf("Error sending round-start message: %v", err)
+			return nil, BSGError{
+				StatusCode: 500,
+				Message: "Internal Server Error",
+			}
 		}
 	}
 	ctx := context.Background()
@@ -225,6 +229,10 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 						}
 						if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
 							log.Printf("Error sending round-end message: %v", err)
+							return BSGError{
+								StatusCode: 500,
+								Message: "Internal Server Error",
+							}
 						}
 					}
 					return nil

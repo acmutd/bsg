@@ -121,6 +121,10 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
+			return nil, BSGError{
+				StatusCode: 500,
+				Message: "Internal Server Error",
+			}
 		}
 	}
 	return room, nil
@@ -144,6 +148,10 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 		}
 		if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
 			log.Printf("Error sending leave-room message: %v", err)
+			return BSGError{
+				StatusCode: 500,
+				Message: "Internal Server Error",
+			}
 		}
 	}
 	if users, err := service.FindActiveUsers(roomID); err != nil {

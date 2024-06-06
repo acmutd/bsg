@@ -69,6 +69,9 @@ func main() {
 
 	// Create new RTC client
 	rtcClient, err := services.InitializeRTCClient("central-service")
+	if err != nil {
+		log.Fatalf("Error creating RTC Client: %v\n", err)
+	}
 	defer rtcClient.Close()
 
 	e := echo.New()
