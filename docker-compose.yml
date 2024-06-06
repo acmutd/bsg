@@ -23,6 +23,8 @@ services:
       KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
   rtc-service:
     build: ./rtc-service
+    ports:
+      - 5001:8080
   worker-service:
     build: ./worker-service
     environment:

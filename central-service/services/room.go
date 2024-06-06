@@ -8,6 +8,7 @@ import (
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -17,11 +18,12 @@ type RoomService struct {
 	db                  *gorm.DB
 	rdb                 *redis.Client
 	roundService        *RoundService
+	rtcClient           *RTCClient
 	MaxNumRoundsPerRoom int
 }
 
-func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, roundService, maxNumRoundsPerRoom}
+func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, rdb, roundService, rtcClient, maxNumRoundsPerRoom}
 }
 
 type RoomDTO struct {
@@ -111,7 +113,20 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			}
 		}
 	}
-	// TODO: notify RTC
+	// RTCClient is nil in test cases
+	if service.rtcClient != nil {
+		joinRoom := requests.JoinRoomRequest{
+			UserHandle: userID,
+			RoomID:     roomID,
+		}
+		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
+			log.Printf("Error sending join-room message: %v", err)
+			return nil, BSGError{
+				StatusCode: 500,
+				Message: "Internal Server Error",
+			}
+		}
+	}
 	return room, nil
 }
 
@@ -125,7 +140,20 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 	if err := service.removeJoinMember(roomID, userID); err != nil {
 		return err
 	}
-	// TODO: notify RTC user left room
+	// RTCClient is nil in test cases
+	if service.rtcClient != nil {
+		leaveRoom := requests.LeaveRoomRequest{
+			UserHandle: userID,
+			RoomID:     roomID,
+		}
+		if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
+			log.Printf("Error sending leave-room message: %v", err)
+			return BSGError{
+				StatusCode: 500,
+				Message: "Internal Server Error",
+			}
+		}
+	}
 	if users, err := service.FindActiveUsers(roomID); err != nil {
 		return err
 	} else if len(users) <= 0 {

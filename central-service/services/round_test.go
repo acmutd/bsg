@@ -41,7 +41,7 @@ func createMockProblems(db *gorm.DB, mock *sqlmock.Sqlmock) error {
 			problemIndex := j*10 + i + 1
 			(*mock).ExpectBegin()
 			(*mock).ExpectQuery("INSERT(.*)").
-				WithArgs(fmt.Sprintf("problem%d", problemIndex), "", "", diff).
+				WithArgs(fmt.Sprintf("problem%d", problemIndex), "", "", "", diff).
 				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(fmt.Sprintf("%d", problemIndex)))
 			(*mock).ExpectCommit()
 			result := db.Create(&models.Problem{
@@ -116,7 +116,7 @@ func TestCreateNewRound(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          20,
 		NumEasyProblems:   1,
@@ -171,8 +171,8 @@ func TestCreateNewRoundExceededLimit(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, 0)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, 0)
 	roundLimitExceeded, err := roomService.CheckRoundLimitExceeded(mockRoom)
 	if err != nil {
 		t.Fatalf("Error checking round limit exceeded: %v\n", err)
@@ -234,7 +234,7 @@ func TestFindRoundByID(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	defer roundScheduler.Stop()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration: 20,
 	}, &mockRoom.ID)
@@ -298,8 +298,8 @@ func TestInitiateRoundStart(t *testing.T) {
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -336,21 +336,21 @@ func TestInitiateRoundStart(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -478,8 +478,8 @@ func TestProblemSetVisibility(t *testing.T) {
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -516,21 +516,21 @@ func TestProblemSetVisibility(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -672,8 +672,8 @@ func TestRoundEndTransition(t *testing.T) {
 	roundScheduler := tasks.New()
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	_, err = createMockRoom(db, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating mock room: %v\n", err)
@@ -710,21 +710,21 @@ func TestRoundEndTransition(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -856,21 +856,21 @@ func TestSubmitToRound(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -895,8 +895,8 @@ func TestSubmitToRound(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1110,21 +1110,21 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1149,8 +1149,8 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1322,21 +1322,21 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1361,8 +1361,8 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1486,21 +1486,21 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1525,7 +1525,7 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	userService := InitializeUserService(db)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration:          1,
@@ -1634,8 +1634,8 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	// create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
@@ -1664,21 +1664,21 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
@@ -1850,8 +1850,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 	problemService := InitializeProblemService(db)
 	problemAccessor := NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
-	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil)
-	roomService := InitializeRoomService(db, rdb, &roundService, MAX_ROUND_PER_ROOM)
+	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
+	roomService := InitializeRoomService(db, rdb, &roundService, nil, MAX_ROUND_PER_ROOM)
 	userService := InitializeUserService(db)
 	// create mock problems
 	if err := createMockProblems(db, &mock); err != nil {
@@ -1880,21 +1880,21 @@ func TestDuplicateACSubmission(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
