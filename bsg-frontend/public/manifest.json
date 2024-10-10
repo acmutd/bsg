@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "BSG",
+  "version": "1.0",
+  "description": "A Chrome extension built with Next.js",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html"
+  }
+}
