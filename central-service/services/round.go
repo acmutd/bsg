@@ -32,6 +32,7 @@ type RoundCreationParameters struct {
 	NumHardProblems   int `json:"numHardProblems"`
 }
 
+// TODO: Update with parameters provided by Chrome extension
 type RoundSubmissionParameters struct {
 	RoundID   uint   `json:"roundID"`
 	Code      string `json:"code"`
@@ -378,7 +379,7 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 
 func (service *RoundService) CreateRoundSubmission(
 	submissionParams RoundSubmissionParameters,
-	submissionAuthor *models.User,
+	submissionAuthor string,
 ) (*models.RoundSubmission, error) {
 	// get round object
 	round, err := service.FindRoundByID(submissionParams.RoundID)
@@ -419,7 +420,7 @@ func (service *RoundService) CreateRoundSubmission(
 	}
 
 	// find participant object with matching round id and user auth id
-	participant, err := service.FindParticipantByRoundAndUserID(submissionParams.RoundID, submissionAuthor.AuthID)
+	participant, err := service.FindParticipantByRoundAndUserID(submissionParams.RoundID, submissionAuthor)
 	if err != nil {
 		return nil, err
 	}
