@@ -9,6 +9,7 @@ import (
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
+	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
@@ -21,6 +22,7 @@ type RoundService struct {
 	roundScheduler  *tasks.Scheduler
 	problemAccessor *ProblemAccessor
 	submissionQueue *SubmissionIngressQueueService
+	rtcClient       *RTCClient
 }
 
 type RoundCreationParameters struct {
@@ -37,13 +39,14 @@ type RoundSubmissionParameters struct {
 	ProblemID uint   `json:"problemID"`
 }
 
-func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService) RoundService {
+func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService, rtcClient *RTCClient) RoundService {
 	return RoundService{
 		db:              db,
 		rdb:             rdb,
 		roundScheduler:  roundScheduler,
 		problemAccessor: problemAccessor,
 		submissionQueue: submissionQueue,
+		rtcClient:       rtcClient,
 	}
 }
 
@@ -133,6 +136,24 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	if result.Error != nil {
 		return nil, result.Error
 	}
+	// RTCClient is nil in test cases
+	if service.rtcClient != nil {
+		var problemList []string
+		for _, problem := range round.ProblemSet {
+			problemList = append(problemList, fmt.Sprint(problem.ID))
+		}
+		var roundStart = requests.RoundStartRequest{
+			RoomID:      round.RoomID.String(),
+			ProblemList: problemList,
+		}
+		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
+			log.Printf("Error sending round-start message: %v", err)
+			return nil, BSGError{
+				StatusCode: 500,
+				Message: "Internal Server Error",
+			}
+		}
+	}
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
 	_, err := service.roundScheduler.Add(&tasks.Task{
@@ -201,13 +222,25 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 							StatusCode: 500,
 						}
 					}
+					// RTCClient is nil in test cases
+					if service.rtcClient != nil {
+						var roundEnd = requests.RoundEndRequest{
+							RoomID: round.RoomID.String(),
+						}
+						if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
+							log.Printf("Error sending round-end message: %v", err)
+							return BSGError{
+								StatusCode: 500,
+								Message: "Internal Server Error",
+							}
+						}
+					}
 					return nil
 				},
 			})
 			if err != nil {
 				return err
 			}
-			// TODO: Send data to rtc service
 			return nil
 		},
 		ErrFunc: func(e error) {

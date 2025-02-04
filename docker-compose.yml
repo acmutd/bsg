@@ -20,9 +20,11 @@ services:
       KAFKA_BROKER: ${KAFKA_BROKER}
       KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
       KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
-      KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GROUP_ID}
+      KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
   rtc-service:
     build: ./rtc-service
+    ports:
+      - 5001:8080
   worker-service:
     build: ./worker-service
     environment:
