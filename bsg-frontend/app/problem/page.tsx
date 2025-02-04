@@ -17,9 +17,9 @@ const Problem = () => {
     const editorRef = useRef();
 
     return (
-        <div className="flex w-full h-full">
+        <div className="flex w-full h-full flex-1 contents">
             <ResizablePanelGroup direction="horizontal" className="flex-1">
-                <ResizablePanel maxSize={50} className={"bg-inputBackground"}>
+                <ResizablePanel maxSize={50} className={"bg-editorBackground"}>
                     <Tabs
                         defaultValue="problem"
                         className="flex-1 w-fit bg-inputBackground">
