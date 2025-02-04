@@ -16,7 +16,7 @@ export default function RootLayout({children}: { children: React.ReactNode }) {
         <body className={poppins.className}>
         {/* Navbar should be outside main for correct layout */}
         <Navbar/>
-        <main className="min-h-screen pt-[64px] flex flex-col">
+        <main className="min-h-screen pt-[64px] flex flex-col items-center justify-center">
             {children}
         </main>
         </body>
