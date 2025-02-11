@@ -1,12 +1,34 @@
-import React from "react";
+import React, {useState} from "react";
 import Topic from "@/components/customComponents/Topic/Topic";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {faAnglesDown, faAnglesUp} from "@fortawesome/free-solid-svg-icons";
 
-const TopicList = (props: { topics: Topic[] }) => {
+type TopicListProps = {
+    topics: Topic[];
+    maxVisible?: number;
+};
+
+const TopicList = ({topics, maxVisible = 5}: TopicListProps) => {
+    const [expanded, setExpanded] = useState(false);
+
+    const visibleTopics = expanded ? topics : topics.slice(0, maxVisible);
+
     return (
-        <div className={'flex flex-row space-x-2 flex-wrap '}>
-            {props.topics.map((topic, index) => {
-                return <Topic topic={topic} key={index}/>;
-            })}
+        <div className="relative w-full max-w-[650px]">
+            <div className="flex flex-wrap gap-2">
+                {visibleTopics.map((topic, index) => (
+                    <Topic topic={topic} key={index}/>
+                ))}
+
+                {topics.length > maxVisible && (
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        className="px-3 py-1 text-sm font-medium rounded-full transition bg-inputBackground hover:opacity-75 flex items-center"
+                    >
+                        {expanded ? <FontAwesomeIcon icon={faAnglesUp}/> : <FontAwesomeIcon icon={faAnglesDown}/>}
+                    </button>
+                )}
+            </div>
         </div>
     );
 };

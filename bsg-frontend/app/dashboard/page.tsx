@@ -25,6 +25,9 @@ const Dashboard = () => {
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
     ];
     const roomList: RoomItem[] = [
         {
