@@ -32,12 +32,14 @@ type RoundCreationParameters struct {
 	NumHardProblems   int `json:"numHardProblems"`
 }
 
-// TODO: Update with parameters provided by Chrome extension
 type RoundSubmissionParameters struct {
-	RoundID   uint   `json:"roundID"`
-	Code      string `json:"code"`
-	Language  string `json:"language"`
-	ProblemID uint   `json:"problemID"`
+	RoundID		   uint `json:"roundID"`
+	ProblemID	   uint `json:"problemID"`
+	// Code      string `json:"code"`
+	// Language  string `json:"language"`
+	// Maybe the score could be related to proportion of test cases passed
+	// TotalCorrect   uint `json:"totalCorrect"`
+	// TotalTestcases uint `json:"totalTestcases"`
 }
 
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService, rtcClient *RTCClient) RoundService {
@@ -442,8 +444,8 @@ func (service *RoundService) CreateRoundSubmission(
 	// create submission object
 	newSubmission := models.RoundSubmission{
 		Submission: models.Submission{
-			Code:                submissionParams.Code,
-			Language:            submissionParams.Language,
+			// Code:                submissionParams.Code,
+			// Language:            submissionParams.Language,
 			ProblemID:           problem.ID,
 			ExecutionTime:       0,
 			Verdict:             constants.SUBMISSION_STATUS_SUBMITTED,
