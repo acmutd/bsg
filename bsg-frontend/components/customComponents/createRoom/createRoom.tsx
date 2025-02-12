@@ -18,6 +18,8 @@ import {faPlus} from "@fortawesome/free-solid-svg-icons";
 import IncDecButtons from "@/components/customComponents/IncDecButtons";
 import NumberOfProblemsWithDifficultyLabel from "@/components/customComponents/NumberOfProblemsWithDifficultyLabel";
 import Difficulty from "@/app/models/Difficulty";
+import Topic from "@/components/customComponents/Topic/Topic";
+import {ScrollArea} from "@/components/ui/scroll-area";
 
 const CreateRoom = () => {
     const [numberOfEasyProblems, setNumberOfEasyProblems] = useState(1);
@@ -30,6 +32,26 @@ const CreateRoom = () => {
     const handleSubmit = () => {
         console.log({easy: numberOfEasyProblems, medium: numberOfMediumProblems, hard: numberOfHardProblems, duration});
     };
+
+    // delete this later
+    const topics: Topic[] = [
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+        {name: "Arrays", numberOfProblems: 214, isSelected: false},
+    ];
 
     return (
         <Dialog>
@@ -66,6 +88,18 @@ const CreateRoom = () => {
                         <IncDecButtons
                             decrementOnClick={() => setNumberOfHardProblems(Math.max(minNumberOfProblems, numberOfHardProblems - 1))}
                             incrementOnClick={() => setNumberOfHardProblems(Math.min(maxNumberOfProblems, numberOfHardProblems + 1))}/>
+                    </div>
+
+                    <div>
+                        <Label className="text-lg">Select Topics</Label>
+                        <ScrollArea
+                            className="max-h-32 overflow-y-auto rounded-md p-2 mt-2 border-2 border-inputBackground">
+                            <div className="flex flex-wrap gap-2">
+                                {topics.map((topic, index) => (
+                                    <Topic key={index} topic={topic}/>
+                                ))}
+                            </div>
+                        </ScrollArea>
                     </div>
 
                     <div>
