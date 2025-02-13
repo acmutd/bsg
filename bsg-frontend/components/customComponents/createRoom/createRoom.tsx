@@ -1,6 +1,5 @@
 'use client';
 
-import {useState} from "react";
 import {Button} from "@/components/ui/button";
 import {
     Dialog,
@@ -20,38 +19,24 @@ import NumberOfProblemsWithDifficultyLabel from "@/components/customComponents/N
 import Difficulty from "@/app/models/Difficulty";
 import Topic from "@/components/customComponents/Topic/Topic";
 import {ScrollArea} from "@/components/ui/scroll-area";
+import useCreateRoom from "@/components/customComponents/createRoom/useCreateRoom";
 
 const CreateRoom = () => {
-    const [numberOfEasyProblems, setNumberOfEasyProblems] = useState(1);
-    const [numberOfMediumProblems, setNumberOfMediumProblems] = useState(0);
-    const [numberOfHardProblems, setNumberOfHardProblems] = useState(0);
-    const [duration, setDuration] = useState(30);
-    const minNumberOfProblems: number = 0;
-    const maxNumberOfProblems: number = 10;
-
-    const handleSubmit = () => {
-        console.log({easy: numberOfEasyProblems, medium: numberOfMediumProblems, hard: numberOfHardProblems, duration});
-    };
-
-    // delete this later
-    const topics: Topic[] = [
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-    ];
+    const {
+        numberOfEasyProblems,
+        numberOfMediumProblems,
+        numberOfHardProblems,
+        topics,
+        duration,
+        setDuration,
+        handleSubmit,
+        decrementEasy,
+        incrementEasy,
+        decrementMedium,
+        incrementMedium,
+        decrementHard,
+        incrementHard
+    } = useCreateRoom();
 
     return (
         <Dialog>
@@ -71,23 +56,23 @@ const CreateRoom = () => {
                     <div className="flex items-center justify-between">
                         <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Easy} num={numberOfEasyProblems}/>
                         <IncDecButtons
-                            decrementOnClick={() => setNumberOfEasyProblems(Math.max(minNumberOfProblems, numberOfEasyProblems - 1))}
-                            incrementOnClick={() => setNumberOfEasyProblems(Math.min(maxNumberOfProblems, numberOfEasyProblems + 1))}/>
+                            decrementOnClick={() => decrementEasy()}
+                            incrementOnClick={() => incrementEasy()}/>
                     </div>
 
                     <div className="flex items-center justify-between">
                         <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Medium}
                                                              num={numberOfMediumProblems}/>
                         <IncDecButtons
-                            decrementOnClick={() => setNumberOfMediumProblems(Math.max(minNumberOfProblems, numberOfMediumProblems - 1))}
-                            incrementOnClick={() => setNumberOfMediumProblems(Math.min(maxNumberOfProblems, numberOfMediumProblems + 1))}/>
+                            decrementOnClick={() => decrementMedium()}
+                            incrementOnClick={() => incrementMedium()}/>
                     </div>
 
                     <div className="flex items-center justify-between">
                         <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Hard} num={numberOfHardProblems}/>
                         <IncDecButtons
-                            decrementOnClick={() => setNumberOfHardProblems(Math.max(minNumberOfProblems, numberOfHardProblems - 1))}
-                            incrementOnClick={() => setNumberOfHardProblems(Math.min(maxNumberOfProblems, numberOfHardProblems + 1))}/>
+                            decrementOnClick={() => decrementHard()}
+                            incrementOnClick={() => incrementHard()}/>
                     </div>
 
                     <div>
