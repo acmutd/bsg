@@ -49,7 +49,7 @@ const CreateRoom = () => {
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Create Room</DialogTitle>
-                    <DialogDescription>Customize your room settings.</DialogDescription>
+                    <DialogDescription>Customize your room settings (Max: 10).</DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">

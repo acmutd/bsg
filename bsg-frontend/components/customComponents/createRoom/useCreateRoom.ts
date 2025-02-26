@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {Dispatch, SetStateAction, useState} from "react";
 import Topic from "@/components/customComponents/Topic/Topic";
 
 const useCreateRoom = () => {
@@ -6,6 +6,7 @@ const useCreateRoom = () => {
     const [numberOfMediumProblems, setNumberOfMediumProblems] = useState(0);
     const [numberOfHardProblems, setNumberOfHardProblems] = useState(0);
     const [duration, setDuration] = useState(30);
+    const [total, setTotal] = useState(1); // total must be between 1 and 10 problems
     const minNumberOfProblems: number = 0;
     const maxNumberOfProblems: number = 10;
 
@@ -13,7 +14,7 @@ const useCreateRoom = () => {
         console.log({easy: numberOfEasyProblems, medium: numberOfMediumProblems, hard: numberOfHardProblems, duration});
     };
 
-    // delete this later
+    // dummy data
     const topics: Topic[] = [
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
@@ -33,23 +34,39 @@ const useCreateRoom = () => {
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
     ];
 
+    const decrement = (set: Dispatch<SetStateAction<number>>, num: number) => {
+        if (total <= 1 || num <= minNumberOfProblems) {
+            return;
+        }
+        set(num - 1);
+        setTotal(total - 1);
+    }
+
+    const increment = (set: Dispatch<SetStateAction<number>>, num: number) => {
+        if (total >= maxNumberOfProblems) {
+            return;
+        }
+        set(num + 1);
+        setTotal(total + 1);
+    }
+
     const decrementEasy = () => {
-        setNumberOfEasyProblems(Math.max(minNumberOfProblems, numberOfEasyProblems - 1))
+        decrement(setNumberOfEasyProblems, numberOfEasyProblems);
     }
     const incrementEasy = () => {
-        setNumberOfEasyProblems(Math.min(maxNumberOfProblems, numberOfEasyProblems + 1))
+        increment(setNumberOfEasyProblems, numberOfEasyProblems);
     }
     const decrementMedium = () => {
-        setNumberOfMediumProblems(Math.max(minNumberOfProblems, numberOfMediumProblems - 1));
+        decrement(setNumberOfMediumProblems, numberOfMediumProblems);
     }
     const incrementMedium = () => {
-        setNumberOfMediumProblems(Math.min(maxNumberOfProblems, numberOfMediumProblems + 1))
+        increment(setNumberOfMediumProblems, numberOfMediumProblems);
     }
     const decrementHard = () => {
-        setNumberOfHardProblems(Math.max(minNumberOfProblems, numberOfHardProblems - 1))
+        decrement(setNumberOfHardProblems, numberOfHardProblems);
     }
     const incrementHard = () => {
-        setNumberOfHardProblems(Math.min(maxNumberOfProblems, numberOfHardProblems + 1))
+        increment(setNumberOfHardProblems, numberOfHardProblems);
     }
 
     return {
