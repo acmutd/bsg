@@ -3,6 +3,7 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"firebase.google.com/go/auth"
 	"github.com/acmutd/bsg/central-service/models"
@@ -138,13 +139,38 @@ func (controller *RoomController) GetLeaderboardEndpoint(c echo.Context) error {
 	})
 }
 
+func (controller *RoomController) CreateSubmissionEndpoint(c echo.Context) error {
+	roomID := c.Param("roomID")
+	problemID := c.Param("problemID")
+	userAuthID := c.Get("authToken").(*auth.Token).UID
+	parsedProblemID, err := strconv.Atoi(problemID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problemID. Please try again")
+	}
+	// var roundSubmissionParameters services.RoundSubmissionParameters
+	// if err := c.Bind(&roundSubmissionParameters); err != nil {
+	// 	return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
+	// }
+	result, err := controller.roomService.CreateRoomSubmission(roomID, uint(parsedProblemID), userAuthID)
+	if err != nil {
+		log.Printf("User id: %s failed to create submission: %v\n", userAuthID, err)
+		if err, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to create submission. "+err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create submission. Please try again later")
+	}
+	return c.JSON(http.StatusOK, map[string]models.RoundSubmission{
+		"submission": *result,
+	})
+}
+
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 	g.POST("/:roomID/rounds/create", controller.CreateNewRoundEndpoint)
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
+	g.POST("/:roomID/:problemID", controller.CreateSubmissionEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
-	// TODO: add routes to submit problem to room
 }
