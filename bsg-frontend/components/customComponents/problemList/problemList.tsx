@@ -3,6 +3,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faAngleLeft, faAngleRight} from '@fortawesome/free-solid-svg-icons';
 import ProblemItem from './problemItem';
 import {Button} from '@/components/ui/button';
+import TooltipWrapper from "@/components/TooltipWrapper";
 
 interface ProblemListProps {
     problemList: ProblemItem[];
@@ -32,12 +33,16 @@ const ProblemList = ({problemList, page}: ProblemListProps) => {
             <div className='flex justify-between'>
                 <p className='text-2xl font-black mb-2 ml-2'>Problems</p>
                 <div className='flex space-x-2'>
-                    <Button size='sm' onClick={handlePrevPage}>
-                        <FontAwesomeIcon icon={faAngleLeft}/>
-                    </Button>
-                    <Button size='sm' onClick={handleNextPage}>
-                        <FontAwesomeIcon icon={faAngleRight}/>
-                    </Button>
+                    <TooltipWrapper text={"Previous"}>
+                        <Button size='sm' onClick={handlePrevPage}>
+                            <FontAwesomeIcon icon={faAngleLeft}/>
+                        </Button>
+                    </TooltipWrapper>
+                    <TooltipWrapper text={"Next"}>
+                        <Button size='sm' onClick={handleNextPage}>
+                            <FontAwesomeIcon icon={faAngleRight}/>
+                        </Button>
+                    </TooltipWrapper>
                 </div>
             </div>
             <div className='px-3 grid grid-cols-9 gap-4 mb-2'>

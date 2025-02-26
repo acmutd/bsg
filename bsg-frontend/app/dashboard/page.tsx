@@ -9,6 +9,7 @@ import RoomItem from "@/components/customComponents/roomList/roomItem";
 import RoomList from "@/components/customComponents/roomList/roomList";
 import ProblemList from "@/components/customComponents/problemList/problemList";
 import problemItem from "@/components/customComponents/problemList/problemItem";
+import QuickStart from "@/components/customComponents/quickStart/quickStart";
 
 const Dashboard = () => {
     const [difficulty, setDifficulty] = React.useState<Difficulty>(
@@ -251,8 +252,11 @@ const Dashboard = () => {
     return (
         <div className="flex">
             <div className={"w-full m-5 flex flex-col space-y-8"}>
-                <SearchBar/>
-                <DifficultyDropdown position={difficulty} setPosition={setDifficulty}/>
+                <div className={"flex row-auto space-x-2"}>
+                    <SearchBar/>
+                    <DifficultyDropdown position={difficulty} setPosition={setDifficulty}/>
+                    <QuickStart/>
+                </div>
                 <TopicList topics={topics}/>
                 <ProblemList problemList={problemList} page={problemPage}/>
             </div>
