@@ -1,7 +1,7 @@
 import {Button} from "@/components/ui/button";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faShuffle} from "@fortawesome/free-solid-svg-icons";
-import TooltipWrapper from "@/components/TooltipWrapper";
+import TooltipWrapper from "@/components/customComponents/TooltipWrapper";
 
 const QuickStart = () => {
     return (
