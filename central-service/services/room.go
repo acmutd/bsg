@@ -349,3 +349,26 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 	return service.roundService.GetLeaderboardByRoomID(roomID)
 }
+
+func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, userID string) (*models.RoundSubmission, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
+		return nil, err
+	}
+	if len(room.Rounds) <= 0 {
+		log.Printf("Error creating room submission: Round has not been created")
+		return nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
+	}
+	round := room.Rounds[len(room.Rounds)-1]
+	roundSubmissionParamters := RoundSubmissionParameters{
+		RoundID: round.ID,
+		ProblemID: problemID,
+	}
+	result, err := service.roundService.CreateRoundSubmission(roundSubmissionParamters, userID)
+	if err != nil {
+		log.Printf("Error initiating creating round submission start: %v\n", err)
+		return nil, err
+	}
+	return result, nil
+}
