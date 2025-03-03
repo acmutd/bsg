@@ -5,7 +5,7 @@ import TooltipWrapper from "@/components/customComponents/TooltipWrapper";
 
 const QuickStart = () => {
     return (
-        <TooltipWrapper text={"Pick Random"}>
+        <TooltipWrapper text={"Pick random"}>
             <Button variant="default">
                 <FontAwesomeIcon icon={faShuffle} size={'lg'}/>
             </Button>

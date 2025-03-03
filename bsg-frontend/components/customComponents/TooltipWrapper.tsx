@@ -8,7 +8,7 @@ const TooltipWrapper = (props: { children: ReactNode, text: string }) => {
                 <TooltipTrigger asChild>
                     {props.children}
                 </TooltipTrigger>
-                <TooltipContent className={'bg-inputBackground '}>
+                <TooltipContent className={'bg-inputBackground border-gray-600'}>
                     <p className={'text-white'}>{props.text}</p>
                 </TooltipContent>
             </Tooltip>
