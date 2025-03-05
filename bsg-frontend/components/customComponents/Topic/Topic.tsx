@@ -7,15 +7,24 @@ type Topic = {
     numberOfProblems: number;
     isSelected: boolean;
 };
-const Topic = (props: { topic: Topic }) => {
-    const {isTopicSelected, handleTopicPress} = useTopic(props.topic.isSelected);
+
+const Topic = ({topic}: { topic: Topic }) => {
+    const {isTopicSelected, handleTopicPress} = useTopic(topic.isSelected);
+
     return (
-        <div>
-            <button className={'flex flex-row space-x-2 mt-2'} onClick={handleTopicPress}>
-                <p className={'mt-1 hover:underline font-thin'}>{props.topic.name}</p>
-                <p className={`${isTopicSelected ? 'bg-primary' : 'bg-inputBackground brightness-150'}  p-1 pl-2 pr-2 rounded-2xl`}>{props.topic.numberOfProblems}</p>
-            </button>
-        </div>
+        <button
+            className={`flex items-center space-x-2 px-3 py-1 rounded-full transition 
+            ${isTopicSelected ? 'bg-primary text-white border-primary' : 'bg-inputBackground  hover:opacity-75'}`}
+            onClick={handleTopicPress}
+        >
+            <span className="text-sm font-medium">{topic.name}</span>
+            <span
+                className={`px-2 py-0.5 text-xs font-semibold rounded-full 
+                ${isTopicSelected ? 'bg-white text-primary' : 'bg-gray-300 text-gray-700 opacity-75'}`}
+            >
+                {topic.numberOfProblems}
+            </span>
+        </button>
     );
 };
 
