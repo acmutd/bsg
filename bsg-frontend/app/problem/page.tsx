@@ -1,7 +1,8 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup,} from "@/components/ui/resizable";
 import React, {useRef, useState} from "react";
-import CodeMirror from "@uiw/react-codemirror";
+import CodeMirror, {EditorView} from "@uiw/react-codemirror";
 import {javascript} from "@codemirror/lang-javascript";
 import {vscodeDark} from "@uiw/codemirror-theme-vscode";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
@@ -14,7 +15,7 @@ const Problem = () => {
     const [value, setValue] = useState(
         "console.log('hello world!');\n\n\n\n\n\n\n\n\n",
     );
-    const editorRef = useRef();
+    const editorRef = useRef<EditorView | null>(null);
 
     return (
         <div className="flex w-full h-full flex-1 contents">
@@ -46,7 +47,7 @@ const Problem = () => {
                                 // Adjust the CodeMirror editor size here if needed
                             }}>
                             <div
-                                onClick={() => editorRef.current.focus()}
+                                onClick={() => editorRef.current?.focus()}
                                 className="flex h-full items-center justify-center bg-editorBackground">
                                 <CodeMirror
                                     value={value}

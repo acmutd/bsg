@@ -8,6 +8,7 @@ import {Separator} from "@/components/ui/separator";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faGithub, faGoogle} from "@fortawesome/free-brands-svg-icons";
 import useSignUpForm from "@/components/customComponents/signUpForm/useSignUpForm";
+import {IconProp} from "@fortawesome/fontawesome-svg-core";
 
 const SignUpForm = () => {
     const {form, onSubmit} = useSignUpForm();
@@ -88,11 +89,13 @@ const SignUpForm = () => {
                     <div className={'flex justify-center flex-row'}>
                         <button onClick={() => {
                         }}>
-                            <FontAwesomeIcon icon={faGoogle} className={'pr-5'} size={'3x'} color={'#ACACAC'}/>
+                            <FontAwesomeIcon icon={faGoogle as IconProp} className={'pr-5'} size={'3x'}
+                                             color={'#ACACAC'}/>
                         </button>
                         <button onClick={() => {
                         }}>
-                            <FontAwesomeIcon icon={faGithub} className={'pl-5'} size={'3x'} color={'#ACACAC'}/>
+                            <FontAwesomeIcon icon={faGithub as IconProp} className={'pl-5'} size={'3x'}
+                                             color={'#ACACAC'}/>
                         </button>
                     </div>
                 </div>
