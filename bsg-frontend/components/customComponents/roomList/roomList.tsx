@@ -9,7 +9,7 @@ const RoomList = (props: { roomList: RoomItem[] }) => {
     return (
         <div className='bg-inputBackground p-4 rounded-md w-80 overflow-y-auto'>
             <div className='flex items-center justify-between px-2 mb-2'>
-                <p className='text-2xl my-2 font-black'>Rooms</p>
+                <p className='text-2xl my-2 font-medium'>Rooms</p>
 
                 <CreateRoom/>
             </div>

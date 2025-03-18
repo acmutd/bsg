@@ -31,7 +31,7 @@ const ProblemList = ({problemList, page}: ProblemListProps) => {
     return (
         <div className='bg-inputBackground p-4 rounded-md overflow-y-auto'>
             <div className='flex justify-between'>
-                <p className='text-2xl font-black mb-2 ml-2'>Problems</p>
+                <p className='text-2xl font-medium mb-2 ml-2'>Problems</p>
                 <div className='flex space-x-2'>
                     <TooltipWrapper text={"Previous"}>
                         <Button size='sm' onClick={handlePrevPage}>

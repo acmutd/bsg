@@ -8,7 +8,7 @@ const Navbar = () => {
         <div>
             <NavigationMenu>
                 <Link href={"/"}>
-                    <p className={"p-4 text-3xl font-bold"}>BSG_</p>
+                    <p className={"p-4 text-3xl font-medium"}>BSG_</p>
                 </Link>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()} href={'/'}>
                     Problems

@@ -19,7 +19,7 @@ const Topic = ({topic}: { topic: Topic }) => {
         >
             <span className="text-sm font-medium">{topic.name}</span>
             <span
-                className={`px-2 py-0.5 text-xs font-semibold rounded-full 
+                className={`px-2 py-0.5 text-xs font-medium rounded-full 
                 ${isTopicSelected ? 'bg-white text-primary' : 'bg-gray-300 text-gray-700 opacity-75'}`}
             >
                 {topic.numberOfProblems}
