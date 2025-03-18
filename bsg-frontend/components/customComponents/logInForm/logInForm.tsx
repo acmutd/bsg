@@ -17,7 +17,7 @@ const LogInForm = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className='w-full'>
                 <div className={'space-y-3'}>
                     <div className={'flex justify-center'}>
-                        <p className={'text-4xl mb-6 font-black'}>Log In</p>
+                        <p className={'text-4xl mb-6 font-medium'}>Log In</p>
                     </div>
                     <FormField
                         control={form.control}
