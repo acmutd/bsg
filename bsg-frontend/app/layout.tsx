@@ -1,7 +1,6 @@
 import './globals.css'
 import type {Metadata} from 'next'
 import {Poppins} from 'next/font/google'
-import Navbar from "@/components/customComponents/navbar"
 
 const poppins = Poppins({weight: '400', subsets: ['latin'], variable: '--poppins'})
 
@@ -15,7 +14,7 @@ export default function RootLayout({children}: { children: React.ReactNode }) {
         <html lang="en">
         <body className={poppins.className}>
         {/* Navbar should be outside main for correct layout */}
-        <Navbar/>
+        {/*<Navbar/>*/}
         <main className="min-h-screen pt-[64px] flex flex-col items-center justify-center">
             {children}
         </main>
