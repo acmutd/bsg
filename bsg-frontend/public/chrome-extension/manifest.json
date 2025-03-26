@@ -2,17 +2,17 @@
   "manifest_version": 3,
   "name": "BSG",
   "version": "0.1.0",
-  "permissions": ["storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": ["storage", "scripting"],
+  "host_permissions": ["http://localhost:3000/*"],
   "action": {
-    "default_popup": "popup.html"
+    "default_title": "the injectornator"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["http://localhost:3000/*"],
       "js": ["content.js"]
     }
   ]
