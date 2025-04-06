@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && shx mv out/_next out/next && shx cp -R ./extension/* ./out/",
+    "build": "next build",
+    "build-extension": "next build && shx mv out/_next out/next && shx cp -R ./extension/* ./out/ && npm run fix-paths",
+    "fix-paths": "replace-in-file --configFile=replacementFileConfig.json",
     "start": "next start",
     "lint": "next lint"
   },
@@ -51,6 +53,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "replace-in-file": "^8.3.0",
     "shx": "^0.4.0"
   }
 }

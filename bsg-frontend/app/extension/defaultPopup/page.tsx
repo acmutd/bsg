@@ -1,6 +1,8 @@
+import {Button} from "@/components/ui/button";
+
 const defaultPopup = () => {
     return (
-        <p>hello</p>
+        <Button>Hello</Button>
     );
 };
 

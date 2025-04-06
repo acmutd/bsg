@@ -4,5 +4,8 @@
   "version": "1.0.0",
   "action": {
     "default_popup": "./extension/defaultPopup.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
   }
 }
