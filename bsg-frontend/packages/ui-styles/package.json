@@ -1,0 +1,6 @@
+{
+  "name": "@bsg/ui-styles",
+  "version": "1.0.0",
+  "main": "global.css",
+  "sideEffects": ["*.css"]
+}

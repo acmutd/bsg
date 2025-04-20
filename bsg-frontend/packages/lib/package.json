@@ -1,0 +1,6 @@
+{
+  "name": "@bsg/lib",
+  "version": "1.0.0",
+  "main": "utils.ts",
+  "type": "module"
+}
