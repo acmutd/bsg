@@ -17,8 +17,6 @@ export default function RootLayout({children}: { children: React.ReactNode }) {
         <Navbar/>
         <main className="min-h-screen pt-[64px] flex flex-col items-center justify-center">
             {children}
-            <div className="bg-red-500 text-white p-4">If this is styled, Tailwind is working</div>
-
         </main>
         </body>
         </html>
