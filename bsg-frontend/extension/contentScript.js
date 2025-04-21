@@ -19,7 +19,7 @@
 
     // 2) an <iframe> pointing at your exported index.html
     const iframe = document.createElement("iframe");
-    iframe.src = chrome.runtime.getURL("defaultPopup.html");
+    iframe.src = chrome.runtime.getURL("logIn.html");
     iframe.style = "width:100%; height:100%; border:none;";
     c.appendChild(iframe);
 })();

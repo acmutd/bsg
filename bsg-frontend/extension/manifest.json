@@ -13,7 +13,7 @@
       "resources": [
         "defaultPopup.html",
         "next/*",
-        "index.html"
+        "logIn.html"
       ],
       "matches": [
         "<all_urls>"
