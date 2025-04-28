@@ -6,7 +6,7 @@
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-ancestors 'self' https://leetcode.com https://*.leetcode.com;"
+    "extension_pages": "script-src 'self'; object-src 'self';"
   },
   "web_accessible_resources": [
     {

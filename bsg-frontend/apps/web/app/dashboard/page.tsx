@@ -251,7 +251,7 @@ const Dashboard = () => {
 
     return (
         <div className="flex">
-            <div className={"w-full m-5 flex flex-col space-y-8"}>
+            <div className={"w-fit m-5 flex flex-col space-y-8"}>
                 <div className={"flex row-auto space-x-2"}>
                     <SearchBar/>
                     <DifficultyDropdown position={difficulty} setPosition={setDifficulty}/>

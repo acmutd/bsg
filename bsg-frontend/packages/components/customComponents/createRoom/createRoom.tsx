@@ -20,6 +20,7 @@ import Difficulty from "@bsg/models/Difficulty";
 import Topic from "@bsg/components/Topic/Topic";
 import {ScrollArea} from "@bsg/ui/scroll-area";
 import useCreateRoom from "@bsg/components/createRoom/useCreateRoom";
+import React from "react";
 
 const CreateRoom = () => {
     const {

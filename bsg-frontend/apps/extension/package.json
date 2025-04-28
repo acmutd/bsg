@@ -4,17 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build-extension": "next build && shx mv out/_next out/next && shx cp -R ../../extension/* ./out/ && npm run fix-paths",
+    "build-extension": "next build && shx mv out/_next out/next && shx cp -R ../../extension/* ./out/ && npm run fix-paths && npm run extract-inline",
     "fix-paths": "replace-in-file --configFile=replacementFileConfig.json",
+    "extract-inline": "node scripts/extract-inline.js",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "next-transpile-modules": "^10.0.1",
     "@bsg/components": "1.0.0",
+    "@bsg/models": "1.0.0",
     "@bsg/ui": "1.0.0",
     "@bsg/ui-styles": "1.0.0",
-    "@bsg/models": "1.0.0",
     "@fortawesome/fontawesome-svg-core": "^6.5.1",
     "@fortawesome/free-brands-svg-icons": "^6.5.1",
     "@fortawesome/free-solid-svg-icons": "^6.5.1",
@@ -42,6 +42,7 @@
     "eslint-config-next": "13.5.1",
     "lucide-react": "^0.298.0",
     "next": "^13.5.6",
+    "next-transpile-modules": "^10.0.1",
     "postcss": "8.4.30",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -54,10 +55,10 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "replace-in-file": "^8.3.0",
-    "shx": "^0.4.0",
     "css-loader": "^7.1.2",
     "postcss-loader": "^8.1.1",
+    "replace-in-file": "^8.3.0",
+    "shx": "^0.4.0",
     "style-loader": "^4.0.0"
   },
   "description": "BSG Extension",

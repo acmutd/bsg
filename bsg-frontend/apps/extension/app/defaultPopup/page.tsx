@@ -1,9 +1,12 @@
+"use client";
 import {Button} from "@bsg/ui/button";
+import useDefaultPopup from "@/app/defaultPopup/useDefaultPopup";
 
-const defaultPopup = () => {
+const DefaultPopup = () => {
+    const {handleClick, title} = useDefaultPopup();
     return (
-        <Button>Hello</Button>
+        <Button onClick={() => handleClick()}>{title}</Button>
     );
 };
 
-export default defaultPopup;
+export default DefaultPopup;
