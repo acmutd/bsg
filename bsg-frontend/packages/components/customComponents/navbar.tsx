@@ -2,13 +2,14 @@
 import React from "react";
 import {NavigationMenu, NavigationMenuLink, navigationMenuTriggerStyle,} from "@bsg/ui/navigation-menu"
 import Link from "next/link";
+import Logo from "./Logo";
 
 const Navbar = () => {
     return (
         <div>
             <NavigationMenu>
                 <Link href={"/public"}>
-                    <p className={"p-4 text-3xl font-medium"}>BSG_</p>
+                    <Logo/>
                 </Link>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()} href={'/public'}>
                     Problems
