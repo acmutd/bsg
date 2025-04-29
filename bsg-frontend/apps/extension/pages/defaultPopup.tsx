@@ -7,6 +7,10 @@ import Logo from "@bsg/components/Logo";
 export default function DefaultPopup() {
     const {redirectToLeetCode, isOnLeetCode} = useDefaultPopup();
 
+    if (isOnLeetCode === null) {
+        return <div className="p-4 text-sm">Loading...</div>;
+    }
+
     return (
         <div className={'my-5 mx-7'}>
             <Logo/>

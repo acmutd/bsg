@@ -1,10 +1,10 @@
 "use client";
-import LogInForm from '@bsg/components/logInForm/logInForm';
+import CreateRoom from "@bsg/components/createRoom/createRoom";
 
 export default function LogIn() {
     return (
         <div>
-            <LogInForm/>
+            <CreateRoom/>
         </div>
     );
 }
