@@ -13,5 +13,8 @@
     "apps/*",
     "packages/components/*",
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "@types/chrome": "^0.0.317"
+  }
 }
