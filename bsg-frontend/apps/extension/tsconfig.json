@@ -24,14 +24,25 @@
     ],
     "paths": {
       "@/*": [
-        "./*",
+        "./*"
       ],
-      "@bsg/ui*": ["../../packages/components/ui"],
-      "@bsg/components*": ["../../packages/components/customComponents"],
-      "@bsg/models*": ["../../packages/models"],
-      "@bsg/lib/*": ["../../packages/lib/*"],
-      "@bsg/ui-styles": ["../../packages/ui-styles"]
-    }
+      "@bsg/ui*": [
+        "../../packages/components/ui"
+      ],
+      "@bsg/components*": [
+        "../../packages/components/customComponents"
+      ],
+      "@bsg/models*": [
+        "../../packages/models"
+      ],
+      "@bsg/lib/*": [
+        "../../packages/lib/*"
+      ],
+      "@bsg/ui-styles": [
+        "../../packages/ui-styles"
+      ]
+    },
+    "strictNullChecks": true
   },
   "include": [
     "next-env.d.ts",

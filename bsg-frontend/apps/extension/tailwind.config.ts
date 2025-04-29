@@ -4,7 +4,7 @@ import {join} from "path";
 module.exports = {
     darkMode: ["class"],
     content: [
-        './app/**/*.{ts,tsx}',
+        './pages/**/*.{ts,tsx}',
         join(__dirname, '../../packages/**/*.{js,ts,jsx,tsx}'),
     ],
     theme: {
