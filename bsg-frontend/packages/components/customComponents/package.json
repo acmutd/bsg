@@ -1,0 +1,7 @@
+{
+  "name": "@bsg/components",
+  "version": "1.0.0",
+  "dependencies": {
+    "@bsg/models": "1.0.0"
+  }
+}
