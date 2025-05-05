@@ -1,4 +1,3 @@
-// pages/_app.tsx
 import '../../../packages/ui-styles/global.css'
 import logo from '../../../packages/ui-styles/assets/bsgLogo.png'
 import Image from 'next/image'
@@ -9,11 +8,8 @@ import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    // match LeetCode dark background RGB(26,26,26)
     <div className="min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8">
-      {/* dark card */}
       <div className="bg-[#1e1e1f] border border-gray-700 rounded-lg shadow-lg w-full max-w-md p-8 space-y-6">
-        {/* logo */}
         <div className="flex justify-center">
           <Image
             src={logo.src}
@@ -24,7 +20,6 @@ export default function App({ Component, pageProps }: AppProps) {
           />
         </div>
 
-        {/* Google button—green variant */}
         <Button
           className={
             'w-full flex items-center justify-center space-x-2 ' +
