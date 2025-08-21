@@ -6,7 +6,7 @@ import '@bsg/ui-styles/global.css';
 import {Poppins} from 'next/font/google'
 import { Button } from '@bsg/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGoogle } from '@fortawesome/free-brands-svg-icons'
+import { faDiscord, faGithub, faGoogle } from '@fortawesome/free-brands-svg-icons'
 import { faPaperPlane, faSmile } from '@fortawesome/free-solid-svg-icons'
 
 const poppins = Poppins({weight: '400', subsets: ['latin'], variable: '--poppins'})
@@ -32,7 +32,7 @@ export default function App({ Component, pageProps }: AppProps) {
     const text = inputRef.current?.value.trim()
     if (!text) return
 
-    console.log('[BSG] User typed:', text)
+    console.log('typed:', text)
     // 1) add the user’s message
     setMessages((msgs) => [...msgs, `You: ${text}`])
     // clear input
@@ -42,21 +42,39 @@ export default function App({ Component, pageProps }: AppProps) {
   if (!loggedIn) {
     return (
       <div className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
-        <div className="bg-[#1e1e1f] border border-gray-700 rounded-lg shadow-lg w-full max-w-md p-8 space-y-6">
-          <div className="flex justify-center">
-            <Logo />
+        <div className="bg-[#333333] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8" style={{boxShadow: '0 8px 32px rgba(0,0,0,0.45), 0 1.5px 8px rgba(88,101,242,0.12)'}}>
+          <div className="flex justify-center mb-2">
+            <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
           </div>
-          <Button
-            onClick={() => setLoggedIn(true)}
-            className={
-              'w-full flex items-center justify-center space-x-2 ' +
-              'bg-green-500 text-white rounded-md py-2 ' +
-              'hover:bg-green-600 focus:ring-2 focus:ring-offset-1 focus:ring-green-400'
-            }
-          >
-            <FontAwesomeIcon icon={faGoogle} />
-            <span>Continue with Google</span>
-          </Button>
+          <div className="flex flex-col justify-center items-center gap-y-4">
+            <Button
+              onClick={() => setLoggedIn(true)}
+              className={
+                'w-full block flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-[#000000] hover:scale-105 hover:bg-[#222222] focus:ring-2 focus:ring-offset-1 focus:ring-gray-800 transition-transform duration-150 outline-none focus:outline-none'
+              }
+            >
+              <FontAwesomeIcon icon={faGithub} />
+              <span className="">Sign in with Github</span>
+            </Button>
+            <Button
+              onClick={() => setLoggedIn(true)}
+              className={
+                'w-full block flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-[#1c71e8] hover:scale-105 hover:bg-[#c13c2b] focus:ring-2 focus:ring-offset-1 focus:ring-red-400 transition-transform duration-150 outline-none focus:outline-none'
+              }
+            >
+              <FontAwesomeIcon icon={faGoogle} />
+              <span className="">Sign in with Google</span>
+            </Button>
+            <Button
+              onClick={() => setLoggedIn(true)}
+              className={
+                'w-full block flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-[#5865F2] hover:scale-105 hover:bg-[#4752c4] focus:ring-2 focus:ring-offset-1 focus:ring-indigo-400 transition-transform duration-150 outline-none focus:outline-none'
+              }
+            >
+              <FontAwesomeIcon icon={faDiscord} />
+              <span className="">Sign in with Discord</span>
+            </Button>
+          </div>
         </div>
       </div>
     )
