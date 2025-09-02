@@ -3,9 +3,12 @@ import {Button} from "@bsg/ui/button";
 import useDefaultPopup from "@/hooks/useDefaultPopup";
 import React from "react";
 import Logo from "@bsg/components/Logo";
+import LogInForm from "@bsg/components/logInForm/logInForm";
+import {useState} from 'react';
 
 export default function DefaultPopup() {
     const {redirectToLeetCode, isOnLeetCode} = useDefaultPopup();
+    const [showLogin, setShowLogin] = useState(false);
 
     if (isOnLeetCode === null) {
         return <div className="p-4 text-sm">Loading...</div>;

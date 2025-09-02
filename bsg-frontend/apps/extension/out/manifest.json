@@ -3,13 +3,14 @@
   "name": "BSG",
   "version": "1.0.0",
   "permissions": [
-    "tabs"
+    "tabs",
+    "identity"
   ],
   "action": {
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
+    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com; object-src 'self';"
   },
   "web_accessible_resources": [
     {
