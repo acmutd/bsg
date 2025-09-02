@@ -6,6 +6,10 @@
     "tabs",
     "identity"
   ],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "https://*.leetcode.com/*"
+  ],
   "action": {
     "default_popup": "defaultPopup.html"
   },
@@ -27,8 +31,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://leetcode.com/problems/*",
-        "https://*.leetcode.com/problems/*"
+        "*://leetcode.com/problems/*",
+        "*://*.leetcode.com/problems/*"
       ],
       "js": [
         "contentScript.js"

@@ -11,4 +11,7 @@ module.exports = {
         '@bsg/ui-styles',
     ],
 
+    images: {
+        unoptimized: true,
+    },
 }
