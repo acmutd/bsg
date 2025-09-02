@@ -2,6 +2,7 @@ import '@bsg/ui-styles/global.css';
 import type {Metadata} from 'next'
 import {Poppins} from 'next/font/google'
 import Navbar from "@bsg/components/navbar";
+import AuthProvider from "../contexts/authContext";
 
 const poppins = Poppins({weight: '400', subsets: ['latin'], variable: '--poppins'})
 

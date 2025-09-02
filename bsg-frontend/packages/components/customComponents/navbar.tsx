@@ -8,10 +8,10 @@ const Navbar = () => {
     return (
         <div>
             <NavigationMenu>
-                <Link href={"/public"}>
+                <Link href={"/dashboard"}>
                     <Logo/>
                 </Link>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()} href={'/public'}>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()} href={'/problem'}>
                     Problems
                 </NavigationMenuLink>
             </NavigationMenu>

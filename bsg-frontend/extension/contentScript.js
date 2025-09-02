@@ -10,7 +10,7 @@
         bottom: "0px",
         right: "0px",
         width: "360px",
-        height: "600px",
+        height: "1000px",
         zIndex: "999999",
     });
     document.body.appendChild(c);

@@ -15,7 +15,7 @@ const SignUpForm = () => {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="w-96">
                 <div className={'space-y-3'}>
                     <div className={'flex justify-center'}>
                         <p className={'text-4xl mb-6 font-medium'}>Sign Up</p>
@@ -77,7 +77,7 @@ const SignUpForm = () => {
                     </Link>
                     <div className={'flex justify-center flex-row'}>
                         <p className={''}>Already have an account?</p>
-                        <Link href={'/apps/web/app/auth/logIn'}>
+                        <Link href={'/auth/logIn'}>
                             <p className={'ml-2 text-primary hover:underline'}>Log In</p>
                         </Link>
                     </div>
