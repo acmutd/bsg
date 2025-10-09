@@ -175,8 +175,13 @@
     window.addEventListener('pointermove', (e) => {
       if (!isDragging) return;
       const rightEdge = panelWrapper.getBoundingClientRect().right;
-      // left boundary = pointer x, width = rightEdge - pointerX
-      panel.style.width = `${rightEdge - e.clientX}px`;
+
+      const minWidth = 280;
+      const maxWidth = 600;
+      const newWidth = rightEdge - e.clientX;
+      
+      const boundedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      panel.style.width = `${boundedWidth}px`;
     });
 
     window.addEventListener('pointerup', endDrag);
