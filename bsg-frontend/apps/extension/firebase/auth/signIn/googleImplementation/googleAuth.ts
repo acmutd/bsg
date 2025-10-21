@@ -24,6 +24,16 @@ export async function SignInWithGoogleRedirect(): Promise<void> {
     }
   }
 
+export async function SignInWithGooglePopup(): Promise<User> {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error) {
+    console.error("Popup auth error: ", error);
+    throw error;
+  }
+}
+
 export async function HandleAuthRedirectedResult(): Promise<User>{
 
   try{
