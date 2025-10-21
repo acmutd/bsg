@@ -1,19 +1,24 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getAuth, setPersistence, browserSessionPersistence } from "firebase/auth";
 
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAbnquJEKaB_WQjirtA8tGKdf2OktRHn58",
-  authDomain: "binary-search-gang-utd.firebaseapp.com",
-  projectId: "binary-search-gang-utd",
-  storageBucket: "binary-search-gang-utd.firebasestorage.app",
-  messagingSenderId: "497587004129",
-  appId: "1:497587004129:web:84e1021a140101e6a8cda0",
-  measurementId: "G-S22E096XFP"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
+
+// Initialize Auth with session persistence
+export const auth = getAuth(app);
+setPersistence(auth, browserSessionPersistence);
 
 
