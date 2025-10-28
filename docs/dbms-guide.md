@@ -23,7 +23,7 @@ $ docker compose --env-file ./.env up --build --force-recreate
 ## How to use RedisInsight
 1. To start with, spin up all containers using the following command: 
 ```bash
-$ docker compose --env-file ./.env up --build --force-recreate
+$ `docker compose --env-file ./.env up --build --force-recreate`
 ``` 
 
 2. Go to `localhost:8001` and follow the prompt. 

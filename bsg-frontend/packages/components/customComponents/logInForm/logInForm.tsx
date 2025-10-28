@@ -6,7 +6,7 @@ import {Input} from '@bsg/ui/input';
 import Link from 'next/link';
 import {Separator} from '@bsg/ui/separator';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faGithub, faGoogle} from '@fortawesome/free-brands-svg-icons';
+import {faGithub, faGoogle, faDiscord} from '@fortawesome/free-brands-svg-icons';
 import useLogInForm from '@bsg/components/logInForm/useLogInForm';
 import {IconProp} from "@fortawesome/fontawesome-svg-core";
 
@@ -60,7 +60,7 @@ const LogInForm = () => {
                     </Button>
                     <div className={'flex justify-center flex-row'}>
                         <p className={''}>Don&apos;t have an account?</p>
-                        <Link href={'/public'}>
+                        <Link href={'/auth/signUp'}>
                             <p className={'ml-2 text-primary hover:underline'}>Sign Up</p>
                         </Link>
                     </div>
@@ -70,8 +70,7 @@ const LogInForm = () => {
                         <Separator className={'ml-3 w-5/12'}/>
                     </div>
                     <div className={'flex justify-center flex-row'}>
-                        <button onClick={() => {
-                        }}>
+                        <button onClick={() => {}}>
                             <FontAwesomeIcon
                                 icon={faGoogle as IconProp}
                                 className={'pr-5'}
@@ -79,10 +78,17 @@ const LogInForm = () => {
                                 color={'#ACACAC'}
                             />
                         </button>
-                        <button onClick={() => {
-                        }}>
+                        <button onClick={() => {}}>
                             <FontAwesomeIcon
                                 icon={faGithub as IconProp}
+                                className={'px-5'}
+                                size={'3x'}
+                                color={'#ACACAC'}
+                            />
+                        </button>
+                        <button onClick={() => {}}>
+                            <FontAwesomeIcon
+                                icon={faDiscord as IconProp}
                                 className={'pl-5'}
                                 size={'3x'}
                                 color={'#ACACAC'}
