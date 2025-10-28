@@ -23,7 +23,7 @@ export async function SignInWithChromeIdentity(): Promise<User> {
 
       try {
         // Use the token to get user info from Google API
-        const userInfo = await getUserInfoFromToken(token);
+        //const userInfo = await getUserInfoFromToken(token);
 
         // Create a Firebase credential using the token
         const credential = GoogleAuthProvider.credential(null, token);
