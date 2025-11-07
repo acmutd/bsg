@@ -1,3 +1,4 @@
+import React from 'react';
 import {Label} from "@bsg/ui/label";
 import Difficulty from "@bsg/models/Difficulty";
 

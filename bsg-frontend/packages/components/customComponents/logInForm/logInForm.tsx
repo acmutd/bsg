@@ -60,7 +60,7 @@ const LogInForm = () => {
                     </Button>
                     <div className={'flex justify-center flex-row'}>
                         <p className={''}>Don&apos;t have an account?</p>
-                        <Link href={'/public'}>
+                        <Link href={'/auth/signUp'}>
                             <p className={'ml-2 text-primary hover:underline'}>Sign Up</p>
                         </Link>
                     </div>

@@ -9,7 +9,7 @@ services:
       - redis-cache
     restart: on-failure
     ports:
-      - 5000:5000
+      - 5050:5000
     environment:
       FIREBASE_CREDENTIALS_FILEPATH: '/app/serviceKey.json'
       DB_USER: ${POSTGRES_USER}
@@ -82,7 +82,10 @@ services:
   redisinsight:
     image: redislabs/redisinsight:latest
     ports: 
-      - 8001:8001
+      - 8001:5540
+    volumes:
+      - redisinsight-volume:/data
+    restart: always
 
 volumes:
   db-volume:
@@ -90,4 +93,5 @@ volumes:
     driver: local
   zookeeper-data-volume:
   zookeeper-log-volume:
+  redisinsight-volume:
   kafka-data-volume:
