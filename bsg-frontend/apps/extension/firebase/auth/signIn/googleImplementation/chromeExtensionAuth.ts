@@ -1,7 +1,5 @@
-import { app } from "../../../config";
-import { getAuth, signInWithCredential, GoogleAuthProvider, User } from "firebase/auth";
-
-const auth = getAuth(app);
+import { getFirebaseAuth } from "../../../config";
+import { signInWithCredential, GoogleAuthProvider, User } from "firebase/auth";
 
 export async function SignInWithChromeIdentity(): Promise<User> {
   return new Promise((resolve, reject) => {
@@ -22,8 +20,12 @@ export async function SignInWithChromeIdentity(): Promise<User> {
       }
 
       try {
-        // Use the token to get user info from Google API
-        //const userInfo = await getUserInfoFromToken(token);
+        // get auth lazily (may be null during server/build)
+        const auth = getFirebaseAuth();
+        if (!auth) {
+          reject(new Error('Firebase auth not available in this environment'));
+          return;
+        }
 
         // Create a Firebase credential using the token
         const credential = GoogleAuthProvider.credential(null, token);
@@ -40,7 +42,7 @@ export async function SignInWithChromeIdentity(): Promise<User> {
   });
 }
 
-async function getUserInfoFromToken(token: string) {
+export async function getUserInfoFromToken(token: string) {
   const response = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${token}`);
   if (!response.ok) {
     throw new Error('Failed to get user info');
@@ -59,9 +61,7 @@ export async function SignOutFromChrome(): Promise<void> {
     chrome.identity.getAuthToken({ interactive: false }, (token) => {
 
       const tokenToRevoke = token.toString();
-      const requestBody = new URLSearchParams({
-      token: tokenToRevoke,
-        }).toString();
+      const requestBody = new URLSearchParams({ token: tokenToRevoke }).toString();
       
       fetch('https://oauth2.googleapis.com/revoke', {
         method:'POST',
@@ -74,10 +74,17 @@ export async function SignOutFromChrome(): Promise<void> {
         if(response.ok){
           console.log("Reached google servers")
 
-          chrome.identity.clearAllCachedAuthTokens(() => {
-            auth.signOut().then(resolve).catch(reject);
-          }
-          )
+          chrome.identity.clearAllCachedAuthTokens(async () => {
+            const auth = getFirebaseAuth();
+            if (auth) {
+              try {
+                await auth.signOut();
+              } catch (e) {
+                // ignore sign out error
+              }
+            }
+            resolve();
+          });
                 
         }
         else {

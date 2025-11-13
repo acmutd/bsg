@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { User, onAuthStateChanged }  from 'firebase/auth';
 import { useNewTab } from '../hooks/useNewTab';
 import { SignInWithChromeIdentity, SignOutFromChrome } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
-import { auth } from '../firebase/config';
+import { getFirebaseAuth } from '../firebase/config';
 
 
 export default function LogIn() {
@@ -27,7 +27,10 @@ export default function LogIn() {
             });
         }
 
-        // Listen for auth state changes
+        // Listen for auth state changes (only in browser when auth available)
+        const auth = getFirebaseAuth();
+        if (!auth) return;
+
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setLoading(false);
