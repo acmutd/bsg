@@ -53,6 +53,13 @@ module.exports = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+                customGreen: {
+                    DEFAULT: "#3C5721",
+                    dark: "#2e4317", // for hover
+                },
+                fontFamily: {
+                    sans: ["Inter", "ui-sans-serif", "system-ui"],
+                },
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -77,3 +84,4 @@ module.exports = {
     },
     plugins: [require("tailwindcss-animate")],
 }
+

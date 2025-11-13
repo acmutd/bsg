@@ -1,10 +1,7 @@
-"use client"
-import Page from "@bsg/components/signUpForm/signUpForm";
+// apps/web/app/page.tsx
+"use client";
+import LandingPage from "../../../packages/components/landingPage/LandingPage";
 
-export default function Home() {
-    return (
-        <>
-            <Page/>
-        </>
-    );
+export default function Page() {
+  return <LandingPage />;
 }
