@@ -17,7 +17,8 @@
   "devDependencies": {
     "@types/chrome": "^0.0.317",
     "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "@fontsource/inter": "^5.2.8"
   },
   "dependencies": {
     "firebase": "^11.9.1",
