@@ -87,3 +87,34 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+/*Removing scroll bar*/
+html,
+body {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+
+
+.collab-grey-box {
+  width: 90vw; 
+  max-width: none; 
+  margin: 0; 
+  border-radius: 1.25rem;
+  background: rgba(50, 50, 50, 0.564);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  padding: 5rem;
+  height: 680px;
+  transition: all 0.3s ease;
+}
+
+

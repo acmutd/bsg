@@ -16,5 +16,8 @@
   ],
   "devDependencies": {
     "@types/chrome": "^0.0.317"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8"
   }
 }
