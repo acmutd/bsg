@@ -9,6 +9,7 @@ import { faPaperPlane, faSmile, faCopy } from '@fortawesome/free-solid-svg-icons
 import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
 import { SignInWithChromeIdentity, getUserInfoFromToken } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth'
+import { useChatSocket } from '../hooks/useChatSocket'
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
@@ -17,14 +18,14 @@ type Participant = { id: string; name?: string; avatarUrl?: string }
 export default function App({ Component, pageProps }: AppProps) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [currentRoom, setCurrentRoom] = useState<{ code: string, options?: any } | null>(null)
-  const [messages, setMessages] = useState<string[]>([
-    'Welcome to BSG Chat!',
-  ])
   const [copied, setCopied] = useState(false)
   const [userProfile, setUserProfile] = useState<Participant | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Initialize WebSocket Hook
+  const { messages, isConnected, joinRoom, sendChatMessage } = useChatSocket(userProfile?.id);
 
   // copy room code to clipboard (works in extension and locally)
   function copyRoomCode(roomCode: string) {
@@ -63,8 +64,11 @@ export default function App({ Component, pageProps }: AppProps) {
 
   function sendMessage() {
     const text = inputRef.current?.value.trim()
-    if (!text) return
-    setMessages((msgs) => [...msgs, `You: ${text}`])
+    if (!text || !currentRoom) return
+    
+    // Send message via WebSocket
+    sendChatMessage(currentRoom.code, text);
+    
     inputRef.current!.value = ''
   }
 
@@ -74,13 +78,17 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [messages])
 
-  // join/create handlers - do not inject demo data; participants should come from server/RTC
+  // join/create handlers
   const handleJoin = (roomCode: string) => {
     setCurrentRoom({ code: roomCode, options: {} })
+    joinRoom(roomCode);
   }
 
   const handleCreate = (roomCode: string, options: any) => {
     setCurrentRoom({ code: roomCode, options: { ...options } })
+    // Currently just joins the room code generated. 
+    // Future: Send 'create-room' request if backend distinguishes it.
+    joinRoom(roomCode);
   }
 
   // --- RENDER LOGIC ---
@@ -109,7 +117,7 @@ export default function App({ Component, pageProps }: AppProps) {
                           else if ((tResult as any).token) t = (tResult as any).token
                           if (!t) return
                           const info = await getUserInfoFromToken(t)
-                          setUserProfile({ id: info.id || info.sub || 'me', name: info.name, avatarUrl: info.picture })
+                          setUserProfile({ id: info.email || info.id || info.sub || 'me', name: info.name, avatarUrl: info.picture })
                           setLoggedIn(true)
                         })
                         return
@@ -120,11 +128,13 @@ export default function App({ Component, pageProps }: AppProps) {
                       else if ((tokenResult as any).token) t = (tokenResult as any).token
                       if (!t) return
                       const info = await getUserInfoFromToken(t)
-                      setUserProfile({ id: info.id || info.sub || 'me', name: info.name, avatarUrl: info.picture })
+                      setUserProfile({ id: info.email || info.id || info.sub || 'me', name: info.name, avatarUrl: info.picture })
                       setLoggedIn(true)
                     })
                   } else {
-                    // Non-extension environment: just mark logged in
+                    // Non-extension environment: just mark logged in (Dev mode)
+                     // Mock profile for dev
+                    setUserProfile({ id: 'dev-user@example.com', name: 'Dev User', avatarUrl: '' })
                     setLoggedIn(true)
                   }
                 } catch (err) {
@@ -166,6 +176,7 @@ export default function App({ Component, pageProps }: AppProps) {
                 <FontAwesomeIcon icon={faCopy} className="text-gray-200 text-sm" />
               </button>
               {copied && <div className="text-xs text-green-400 ml-2">copied</div>}
+              {!isConnected && <div className="text-xs text-red-500 ml-2">Disconnected</div>}
             </div>
           </div>
 
@@ -193,9 +204,16 @@ export default function App({ Component, pageProps }: AppProps) {
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className="flex">
-            <div className={`${msg.startsWith('You:') ? 'bg-green-600 self-end' : 'bg-gray-700 self-start'} text-white p-2 rounded-lg max-w-xs`}>
-              {msg}
-            </div>
+             {msg.isSystem ? (
+                <div className="w-full text-center text-gray-400 text-sm my-2">
+                    {msg.data}
+                </div>
+             ) : (
+                <div className={`${msg.userHandle === userProfile?.id ? 'bg-green-600 self-end ml-auto' : 'bg-gray-700 self-start'} text-white p-2 rounded-lg max-w-xs break-words`}>
+                    <div className="text-xs text-gray-300 mb-1">{msg.userHandle === userProfile?.id ? 'You' : msg.userHandle}</div>
+                    {msg.data}
+                </div>
+             )}
           </div>
         ))}
       </div>

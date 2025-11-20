@@ -3,8 +3,7 @@ package requests
 import (
 	"encoding/json"
 	"errors"
-	"strings"
-
+	
 	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
@@ -67,6 +66,12 @@ func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, 
 		return r.responseType(), "", r.RoomID, errors.New("user doesn't exist in the room")
 	}
 
-	chat_message := []string{r.UserHandle, r.Message}
-	return r.responseType(), strings.Join(chat_message, " - "), r.RoomID, nil
+	// Return data as JSON so response handler can parse it easily
+	responseData := map[string]string{
+		"userHandle": r.UserHandle,
+		"message":    r.Message,
+	}
+	jsonBytes, _ := json.Marshal(responseData)
+
+	return r.responseType(), string(jsonBytes), r.RoomID, nil
 }
