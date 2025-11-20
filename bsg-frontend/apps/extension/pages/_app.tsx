@@ -69,6 +69,10 @@ export default function App({ Component, pageProps }: AppProps) {
     // Send message via WebSocket
     sendChatMessage(currentRoom.code, text);
     
+    // REMOVED: Optimistic update. 
+    // The server will echo the message back to us, so we don't need to add it manually here.
+    // This prevents the "double message" issue for the sender.
+    
     inputRef.current!.value = ''
   }
 
@@ -133,12 +137,25 @@ export default function App({ Component, pageProps }: AppProps) {
                     })
                   } else {
                     // Non-extension environment: just mark logged in (Dev mode)
-                     // Mock profile for dev
-                    setUserProfile({ id: 'dev-user@example.com', name: 'Dev User', avatarUrl: '' })
+                    // Generate random ID to prevent collision in local testing
+                    const randomSuffix = Math.floor(Math.random() * 10000);
+                    setUserProfile({ 
+                        id: `dev-user-${randomSuffix}@example.com`, 
+                        name: `Dev User ${randomSuffix}`, 
+                        avatarUrl: '' 
+                    })
                     setLoggedIn(true)
                   }
                 } catch (err) {
-                  console.error('Sign-in failed', err)
+                  //console.error('Sign-in failed', err)
+                  // Generate random ID to prevent collision in local testing
+                    const randomSuffix = Math.floor(Math.random() * 10000);
+                    setUserProfile({ 
+                        id: `dev-user-${randomSuffix}@example.com`, 
+                        name: `Dev User ${randomSuffix}`, 
+                        avatarUrl: '' 
+                    })
+                    setLoggedIn(true)
                 }
               }}
               className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"

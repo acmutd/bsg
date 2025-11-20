@@ -28,8 +28,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         ws.onmessage = (event) => {
             try {
                 const response = JSON.parse(event.data);
-                console.log('Received WS message:', response);
-
+                
                 if (response.status === 'ok') {
                     const { message, responseType } = response;
                     
@@ -67,9 +66,12 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     }, [userEmail]);
 
     const joinRoom = useCallback((roomID: string) => {
+        // Clear messages when joining a new room so we don't see chat history from previous rooms
+        setMessages([]);
+
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
-                name: userEmail, // Important: Service Name matches User Handle for broadcasting
+                name: userEmail,
                 "request-type": "join-room",
                 data: JSON.stringify({
                     userHandle: userEmail,
