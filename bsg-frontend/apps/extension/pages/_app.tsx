@@ -20,6 +20,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const [currentRoom, setCurrentRoom] = useState<{ code: string, options?: any } | null>(null)
   const [copied, setCopied] = useState(false)
   const [userProfile, setUserProfile] = useState<Participant | null>(null)
+  const [chatInput, setChatInput] = useState('')
 
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -63,7 +64,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }
 
   function sendMessage() {
-    const text = inputRef.current?.value.trim()
+    const text = chatInput.trim()
     if (!text || !currentRoom) return
     
     // Send message via WebSocket
@@ -73,7 +74,7 @@ export default function App({ Component, pageProps }: AppProps) {
     // The server will echo the message back to us, so we don't need to add it manually here.
     // This prevents the "double message" issue for the sender.
     
-    inputRef.current!.value = ''
+    setChatInput('')
   }
 
   useEffect(() => {
@@ -158,7 +159,8 @@ export default function App({ Component, pageProps }: AppProps) {
                     setLoggedIn(true)
                 }
               }}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white transition-colors"
+              style={{ background: 'hsl(var(--primary))' }}
             >
               <FontAwesomeIcon icon={faGoogle} />
               <span>Sign in with Google</span>
@@ -182,80 +184,108 @@ export default function App({ Component, pageProps }: AppProps) {
   const participants: Participant[] = currentRoom.options?.participants || []
 
   return (
-    <div className="flex flex-col h-screen bg-[#262626]">
-      <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <div className="text-xs text-gray-300 mb-1">Room Code:</div>
-            <div className="bg-gray-700 text-white p-2 rounded-lg font-mono text-lg tracking-widest flex items-center space-x-2">
-              <div className="text-2xl font-semibold">{currentRoom.code}</div>
-              <button onClick={() => copyRoomCode(currentRoom.code)} aria-label="Copy room code" className="p-1 rounded hover:bg-gray-600">
-                <FontAwesomeIcon icon={faCopy} className="text-gray-200 text-sm" />
-              </button>
-              {copied && <div className="text-xs text-green-400 ml-2">copied</div>}
-              {!isConnected && <div className="text-xs text-red-500 ml-2">Disconnected</div>}
+    <div className={`${poppins.className} flex items-center justify-center bg-gradient-to-b from-[#141416] to-[#101012] p-0 min-h-screen`}>
+      {/* Shell: top/bottom borders, full width */}
+      <div
+        id="bsg-shell"
+        className="w-full bg-gradient-to-b from-[#1f1f22] to-[#161617] overflow-hidden flex flex-col"
+        style={{
+          height: '100vh',
+          boxSizing: 'border-box',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <div className="text-xs text-gray-300 mb-1">Room Code:</div>
+              <div className="bg-gray-700 text-white p-2 rounded-lg font-mono text-lg tracking-widest flex items-center space-x-2">
+                <div className="text-2xl font-semibold">{currentRoom.code}</div>
+                <button onClick={() => copyRoomCode(currentRoom.code)} aria-label="Copy room code" className="p-1 rounded hover:bg-gray-600">
+                  <FontAwesomeIcon icon={faCopy} className="text-gray-200 text-sm" />
+                </button>
+                {copied && <div className="text-xs text-green-400 ml-2">copied</div>}
+                {!isConnected && <div className="text-xs text-red-500 ml-2">Disconnected</div>}
+              </div>
+            </div>
+
+            {/* Participant avatars (lobby) */}
+            <div className="flex items-center gap-2 ml-4">
+              {participants.map((p) => (
+                <img key={p.id} src={p.avatarUrl} alt={p.name || p.id} title={p.name || p.id}
+                  className="w-8 h-8 rounded-full border border-gray-600 object-cover" />
+              ))}
             </div>
           </div>
 
-          {/* Participant avatars (lobby) */}
-          <div className="flex items-center gap-2 ml-4">
-            {participants.map((p) => (
-              <img key={p.id} src={p.avatarUrl} alt={p.name || p.id} title={p.name || p.id}
-                className="w-8 h-8 rounded-full border border-gray-600 object-cover" />
-            ))}
+          <div className="flex items-center gap-3">
+            {/* show current user's avatar */}
+            {userProfile && (
+              <img
+                src={userProfile?.avatarUrl}
+                alt={userProfile?.name}
+                className="w-8 h-8 rounded-full border-2"
+                style={{ borderColor: 'hsl(var(--primary))' }}
+              />
+            )}
+            <Button onClick={() => { setCurrentRoom(null); setLoggedIn(false) }} className="bg-gray-700 text-white rounded-md px-3 py-1 hover:bg-gray-600">
+              Exit
+            </Button>
           </div>
-        </div>
+        </header>
 
-        <div className="flex items-center gap-3">
-          {/* show current user's avatar */}
-          {userProfile && (
-            <img src={userProfile.avatarUrl} alt={userProfile.name} title={userProfile.name}
-              className="w-8 h-8 rounded-full border-2 border-green-500 object-cover" />
-          )}
-          <Button onClick={() => { setCurrentRoom(null); setLoggedIn(false) }} className="bg-gray-700 text-white rounded-md px-3 py-1 hover:bg-gray-600">
-            Exit
-          </Button>
-        </div>
-      </header>
-
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, i) => (
-          <div key={i} className="flex">
-             {msg.isSystem ? (
-                <div className="w-full text-center text-gray-400 text-sm my-2">
-                    {msg.data}
-                </div>
-             ) : (
-                <div className={`${msg.userHandle === userProfile?.id ? 'bg-green-600 self-end ml-auto' : 'bg-gray-700 self-start'} text-white p-2 rounded-lg max-w-xs break-words`}>
-                    <div className="text-xs text-gray-300 mb-1">{msg.userHandle === userProfile?.id ? 'You' : msg.userHandle}</div>
-                    {msg.data}
-                </div>
-             )}
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-[#1e1e1f] border-t border-gray-700 px-4 py-3 flex items-center space-x-2">
-        <button className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-600">
-          <FontAwesomeIcon icon={faSmile} className="text-gray-300 text-lg" />
-        </button>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Type a message..."
-          className="flex-1 bg-[#2a2a2a] text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              sendMessage()
-            }
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          style={{
+            minHeight: 0
           }}
-        />
-        <Button
-          onClick={sendMessage}
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
         >
-          <FontAwesomeIcon icon={faPaperPlane} className="text-white" style={{ transform: 'translateX(-1px)' }} />
-        </Button>
+          {messages.map((msg, i) => (
+            <div key={i} className="flex">
+              {msg.isSystem ? (
+                <div className="w-full text-center text-gray-400 text-sm my-2">
+                  {msg.data}
+                </div>
+              ) : msg.userHandle === userProfile?.id ? (
+                <div className="text-white p-2 rounded-lg max-w-xs break-words self-end ml-auto" style={{ background: 'hsl(var(--primary))' }}>
+                  <div className="text-xs text-gray-300 mb-1">You</div>
+                  {msg.data}
+                </div>
+              ) : (
+                <div className="bg-gray-700 self-start text-white p-2 rounded-lg max-w-xs break-words">
+                  <div className="text-xs text-gray-300 mb-1">{msg.userHandle}</div>
+                  {msg.data}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+         {/* sticky input bar inside the shell */}
+        <div className="border-t border-gray-700/40 bg-[#0f1112] p-3 flex-shrink-0" style={{ zIndex: 30 }}>
+           <div style={{ width: '100%', maxWidth: 920 }} className="mx-auto flex items-center gap-2">
+            <input
+              id="chat-input"
+              placeholder="Type a message..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') sendMessage() }}
+              className="flex-1 px-3 py-2 rounded-lg bg-[hsl(var(--inputBackground))] border border-gray-700 text-white focus:outline-none"
+              aria-label="Message"
+            />
+            <Button
+              onClick={sendMessage}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white transition-colors"
+              style={{ background: 'hsl(var(--primary))' }}
+            >
+              <FontAwesomeIcon icon={faPaperPlane} className="text-white" style={{ transform: 'translateX(-1px)' }} />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
