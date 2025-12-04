@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { Poppins } from 'next/font/google'
 import { Button } from '@bsg/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@bsg/ui/dialog"
+// not used
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogDescription,
+//   DialogFooter,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@bsg/ui/dialog"
 import { Label } from "@bsg/ui/label"
 import { Slider } from "@bsg/ui/slider"
 import { ScrollArea } from "@bsg/ui/scroll-area"
