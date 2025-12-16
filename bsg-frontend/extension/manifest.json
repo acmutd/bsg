@@ -4,8 +4,12 @@
   "version": "1.0.0",
   "permissions": [
     "tabs",
-    "identity"
+    "identity",
+    "storage"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "oauth2": {
     "client_id": "497587004129-53bvvo3kf0naps52sst90f03fe168dc4.apps.googleusercontent.com",
     "scopes": [
@@ -19,13 +23,14 @@
     "https://*.leetcode.com/*",
     "https://*.googleapis.com/*",
     "https://*.firebaseapp.com/*",
-    "https://accounts.google.com/*"
+    "https://accounts.google.com/*",
+    "http://localhost:3000/*"
   ],
   "action": {
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com; object-src 'self';"
+    "extension_pages": "script-src 'self'; script-src-elem 'self' ; connect-src 'self' https://accounts.google.com http://localhost:3000; object-src 'self';"
   },
   "web_accessible_resources": [
     {

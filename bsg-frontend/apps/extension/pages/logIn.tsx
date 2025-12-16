@@ -4,147 +4,126 @@ import LogInForm from "@bsg/components/logInForm/logInForm";
 import {Button} from "@bsg/ui/button";
 import Logo from "@bsg/components/Logo";
 import { useEffect, useState } from 'react';
-import { User, onAuthStateChanged }  from 'firebase/auth';
 import { useNewTab } from '../hooks/useNewTab';
-import { SignInWithChromeIdentity, SignOutFromChrome } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
-import { auth } from '../firebase/config';
 
+// Define the user type
+interface User {
+    id: string;
+    name: string;
+    email: string;
+    photo?: string;
+}
 
 export default function LogIn() {
-    const { openInNewTab } = useNewTab();
-    const [isInTab, setIsInTab] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(false);
+    const[loggingIn, isLoggingIn] = useState(false);
+    const[user, SetUser] = useState<User | null>(null);
+    const[loading, setLoading] = useState(true);
 
-
+    // Check if user is already logged in on component mount
     useEffect(() => {
-        // Check if we're running in a tab context vs extension popup
-        if (typeof chrome !== 'undefined' && chrome.runtime) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0] && tabs[0].url && tabs[0].url.includes(chrome.runtime.id)) {
-                    setIsInTab(true);
-                }
-            });
+        // Check if chrome API is available (only in extension context)
+        if (typeof chrome === 'undefined' || !chrome.storage) {
+            setLoading(false);
+            return;
         }
 
-        // Listen for auth state changes
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setLoading(false);
-
-            if (currentUser) {
-                console.log('User is signed in:', currentUser.email);
+        chrome.storage.local.get(['user'], (result) => {
+            if (result.user) {
+                // User found in storage check with the event listener
+                chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+                    if (response && response.success) {
+                        SetUser(response.user);
+                    } else {
+                        // Session expired, clear storage
+                        chrome.storage.local.remove('user');
+                    }
+                    setLoading(false);
+                });
             } else {
-                console.log('User is signed out');
-            }
-        });
-
-        // Cleanup listener on component unmount
-        return () => unsubscribe();
-    }, []);
-
-    const handleGoogleLogin = async () => {
-        if (isInTab) {
-            // We're in a tab - use Chrome Identity API with Firebase
-            try {
-                setLoading(true);
-                const user = await SignInWithChromeIdentity();
-                console.log('User signed in:', user);
-
-                // Notify content script that auth state has changed
-                try {
-                    chrome.tabs.query({}, (tabs) => {
-                        tabs.forEach(tab => {
-                            if (tab.url && tab.url.includes('leetcode.com') && tab.id) {
-                                chrome.tabs.sendMessage(tab.id, {
-                                    type: 'AUTH_STATE_CHANGED',
-                                    user: {
-                                        email: user.email,
-                                        displayName: user.displayName,
-                                        photoURL: user.photoURL
-                                    }
-                                });
-                            }
-                        });
-                    });
-                } catch (error) {
-                    console.error('Failed to notify content script:', error);
-                }
-
-                // Close this tab after successful auth - the auth state listener will update the popup
-                setTimeout(() => window.close(), 1000);
-            } catch (error) {
-                console.error('Sign in error:', error);
                 setLoading(false);
             }
-        } else {
-            // We're in popup - open a new tab with a page that handles Google auth
-            openInNewTab(chrome.runtime.getURL('logIn.html'));
+        });
+    }, []); // Run once on mount
+
+    useEffect(() => {
+        if (!loggingIn) return; // Only run when loggingIn is true
+
+        // Check if chrome API is available
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+            isLoggingIn(false);
+            return;
         }
+
+        // Open the OAuth window
+        const authWindow = window.open('http://localhost:3000/auth/google');
+
+        // Poll for authentication every second using background worker
+        const checkAuth = setInterval(() => {
+            // Send message to background worker to check auth
+            chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+                if (response && response.success) {
+                    SetUser(response.user); // Save user to state
+                    authWindow?.close(); // Close the OAuth window
+                    clearInterval(checkAuth); // Stop polling
+                    isLoggingIn(false); // Reset logging in state
+                }
+                // Silently continue polling if not authenticated yet
+            });
+        }, 1000); // Check every 1 second
+
+        // Cleanup: stop polling after 2 minutes or when component unmounts
+        const timeout = setTimeout(() => {
+            clearInterval(checkAuth);
+            authWindow?.close();
+            isLoggingIn(false);
+        }, 120000); // 2 minutes timeout
+
+        // Cleanup function
+        return () => {
+            clearInterval(checkAuth);
+            clearTimeout(timeout);
+        };
+    }, [loggingIn]); // Re-run when loggingIn changes
+
+    const handleLogout = () => {
+        // Check if chrome API is available
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+            SetUser(null);
+            return;
+        }
+
+        // Clear user from state and storage
+        chrome.runtime.sendMessage({ type: 'LOGOUT' }, () => {
+            SetUser(null);
+        });
     };
 
-    const handleSignOut = async () => {
-        try {
-            setLoading(true);
-            await SignOutFromChrome();
-            console.log('User signed out');
+    // Show loading state
+    if (loading) {
+        return (
+            <div className={'flex items-center justify-center min-h-screen'}>
+                <p>Loading...</p>
+            </div>
+        );
+    }
 
-            // Notify content script that user signed out
-            try {
-                chrome.tabs.query({}, (tabs) => {
-                    tabs.forEach(tab => {
-                        if (tab.url && tab.url.includes('leetcode.com') && tab.id) {
-                            chrome.tabs.sendMessage(tab.id, {
-                                type: 'AUTH_STATE_CHANGED',
-                                user: null
-                            });
-                        }
-                    });
-                });
-            } catch (error) {
-                console.error('Failed to notify content script:', error);
-            }
-        } catch (error) {
-            console.error('Sign out error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Show user info if logged in
+    if (user) {
+        return (
+            <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
+                {user.photo && <img src={user.photo} alt={user.name} className="w-24 h-24 rounded-full" />}
+                <h1>Welcome, {user.name}!</h1>
+                <p>Email: {user.email}</p>
+                <Button onClick={handleLogout}>Logout</Button>
+            </div>
+        );
+    }
 
     return (
-        <div className={'m-32 justify-center'}>
-            <Logo></Logo>
-            <div className={'flex justify-center items-center flex-col gap-4'}>
-                {user ? (
-                    // User is signed in - show user info and sign out option
-                    <div className="text-center space-y-4">
-                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-green-800 font-medium">Welcome!</p>
-                            <p className="text-green-700">{user.displayName || user.email}</p>
-                            {user.photoURL && (
-                                <img
-                                    src={user.photoURL}
-                                    alt="Profile"
-                                    className="w-12 h-12 rounded-full mx-auto mt-2"
-                                />
-                            )}
-                        </div>
-                        <Button
-                            onClick={handleSignOut}
-                            disabled={loading}
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                        >
-                            {loading ? "Signing out..." : "Sign Out"}
-                        </Button>
-                    </div>
-                ) : (
-                    // User is not signed in - show sign in button
-                    <Button onClick={handleGoogleLogin} disabled={loading}>
-                        {loading ? "Signing in..." : (isInTab ? "Complete Google Sign In" : "Sign in with Google")}
-                    </Button>
-                )}
-            </div>
+        <div className={'flex items-center justify-center min-h-screen'}>
+            <Button onClick={() => isLoggingIn(true)} disabled={loggingIn}>
+                {loggingIn ? 'Signing in...' : 'Sign In With Google'}
+            </Button>
         </div>
     );
 }
