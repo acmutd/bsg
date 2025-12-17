@@ -55,7 +55,7 @@ func main() {
 	if err := db.AutoMigrate(&models.Leaderboard{}); err != nil {
     	fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
 	}
-	
+
 	// Initialize Kafka-related components
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
@@ -95,12 +95,16 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 
+	lbService := services.InitializeLeaderboardService(db)
+	lbController := controllers.InitializeLeaderboardController(&lbService)
+
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
+	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }

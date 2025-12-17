@@ -131,7 +131,35 @@ func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(ra
 			Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error()),
 		}
 	}
-	return nil
+
+	if payload.Verdict == constants.SUBMISSION_STATUS_ACCEPTED {
+        var problem models.Problem
+        egressQueueService.db.First(&problem, submission.ProblemID)
+
+        var lb models.Leaderboard
+        egressQueueService.db.FirstOrCreate(&lb, models.Leaderboard{UserID: submission.SubmissionOwnerID})
+
+        // updates score based on problems solved
+		// scoring based on ProblemService.DetermineScoreForProblem
+        scoreToAdd := uint(0)
+        switch problem.Difficulty {
+        case constants.DIFFICULTY_EASY:
+            lb.EasySolved++
+            scoreToAdd = 3
+        case constants.DIFFICULTY_MEDIUM:
+            lb.MediumSolved++
+            scoreToAdd = 4
+        case constants.DIFFICULTY_HARD:
+            lb.HardSolved++
+            scoreToAdd = 5
+        }
+        lb.TotalScore += scoreToAdd
+
+        if err := egressQueueService.db.Save(&lb).Error; err != nil {
+            return err
+        }
+    }
+    return nil
 }
 
 func (egressQueueService *SubmissionEgressQueueService) ListenForSubmissionData() {
