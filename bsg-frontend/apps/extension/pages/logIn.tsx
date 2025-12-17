@@ -18,9 +18,11 @@ export default function LogIn() {
     const[loggingIn, isLoggingIn] = useState(false);
     const[user, SetUser] = useState<User | null>(null);
     const[loading, setLoading] = useState(true);
+    const[authProvider, setAuthProvider] = useState<'google' | 'github' | null>(null);
 
     // Check if user is already logged in on component mount
     useEffect(() => {
+
         // Check if chrome API is available (only in extension context)
         if (typeof chrome === 'undefined' || !chrome.storage) {
             setLoading(false);
@@ -33,20 +35,18 @@ export default function LogIn() {
                 chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
                     if (response && response.success) {
                         SetUser(response.user);
-                    } else {
-                        // Session expired, clear storage
-                        chrome.storage.local.remove('user');
-                    }
-                    setLoading(false);
+                    } 
+
+                   setLoading(false);
                 });
             } else {
                 setLoading(false);
             }
         });
-    }, []); // Run once on mount
+    }, []);
 
     useEffect(() => {
-        if (!loggingIn) return; // Only run when loggingIn is true
+        if (!loggingIn || !authProvider) return;
 
         // Check if chrome API is available
         if (typeof chrome === 'undefined' || !chrome.runtime) {
@@ -55,7 +55,7 @@ export default function LogIn() {
         }
 
         // Open the OAuth window
-        const authWindow = window.open('http://localhost:3000/auth/google');
+        const authWindow = window.open(`http://localhost:3000/auth/${authProvider}`) 
 
         // Poll for authentication every second using background worker
         const checkAuth = setInterval(() => {
@@ -83,7 +83,7 @@ export default function LogIn() {
             clearInterval(checkAuth);
             clearTimeout(timeout);
         };
-    }, [loggingIn]); // Re-run when loggingIn changes
+    }, [loggingIn, authProvider]); // Re-run when loggingIn and authProvider changes
 
     const handleLogout = () => {
         // Check if chrome API is available
@@ -120,10 +120,17 @@ export default function LogIn() {
     }
 
     return (
-        <div className={'flex items-center justify-center min-h-screen'}>
-            <Button onClick={() => isLoggingIn(true)} disabled={loggingIn}>
-                {loggingIn ? 'Signing in...' : 'Sign In With Google'}
-            </Button>
-        </div>
+  
+            <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
+                <Button onClick={() => {setAuthProvider('google'); isLoggingIn(true)}}>
+                    {loggingIn ? 'Signing in...' : 'Sign In With Google'}
+                </Button>
+
+                <Button onClick={() => {setAuthProvider('github');isLoggingIn(true)}}>
+                    {loggingIn ? 'Signing in...' : 'Sign In With Discord'}
+                </Button>
+
+            </div>
+
     );
 }
