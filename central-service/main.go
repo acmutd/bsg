@@ -51,6 +51,11 @@ func main() {
 	if err := db.AutoMigrate(&models.RoundSubmission{}); err != nil {
 		fmt.Printf("Error migrating RoundSubmission schema: %v\n", err)
 	}
+
+	if err := db.AutoMigrate(&models.Leaderboard{}); err != nil {
+    	fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
+	}
+	
 	// Initialize Kafka-related components
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
