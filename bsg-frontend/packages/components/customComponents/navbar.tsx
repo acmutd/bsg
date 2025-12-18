@@ -51,11 +51,19 @@ const Navbar = () => {
     >
       <div className="flex items-center justify-between px-10 py-2">
         {/* Logo */}
-        <Link href="/">
-          <div className="hover:opacity-80 transition-opacity scale-80">
-            <Logo />
-          </div>
-        </Link>
+        <div
+          onClick={() => {
+            if (window.location.pathname === "/") {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            } else {
+              window.location.href = "/";
+            }
+          }}
+          className="cursor-pointer hover:opacity-80 transition-opacity scale-80"
+        >
+          <Logo />
+        </div>
+
 
         {/* Navigation Links */}
         <NavigationMenu className="flex gap-8">

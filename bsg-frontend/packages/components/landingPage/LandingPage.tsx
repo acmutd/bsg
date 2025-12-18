@@ -13,9 +13,13 @@ const LandingPage = () => {
         />
 
         <div className="relative z-10 text-center space-y-7">
-          <h1 className="text-3xl md:text-7xl font-extrabold text-white leading-snug md:leading-[1.2]  ">
+          {/* <h1 className="text-3xl md:text-7xl font-extrabold text-white leading-snug md:leading-[1.2]  ">
+            Conquer LeetCode Together.
+          </h1> */}
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white leading-snug md:leading-[1.2]">
             Conquer LeetCode Together.
           </h1>
+
 
           <div className="space-y-1">
             <p className="font-extralight text-lg text-white/70 leading-snug">
