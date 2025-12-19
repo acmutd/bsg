@@ -82,7 +82,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 			Message:    "roomID could not be parsed",
 		}
 	}
-	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", uuid).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -123,7 +123,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			log.Printf("Error sending join-room message: %v", err)
 			return nil, BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -150,7 +150,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			log.Printf("Error sending leave-room message: %v", err)
 			return BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -362,7 +362,7 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 	}
 	round := room.Rounds[len(room.Rounds)-1]
 	roundSubmissionParamters := RoundSubmissionParameters{
-		RoundID: round.ID,
+		RoundID:   round.ID,
 		ProblemID: problemID,
 	}
 	result, err := service.roundService.CreateRoundSubmission(roundSubmissionParamters, userID)

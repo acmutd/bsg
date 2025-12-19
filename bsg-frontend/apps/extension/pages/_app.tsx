@@ -5,13 +5,15 @@ import '@bsg/ui-styles/global.css';
 import {Poppins} from 'next/font/google'
 import { Button } from '@bsg/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPaperPlane, faSmile, faCopy } from '@fortawesome/free-solid-svg-icons'
+import { faPaperPlane, faCopy } from '@fortawesome/free-solid-svg-icons'
 import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
 import { SignInWithChromeIdentity, getUserInfoFromToken } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth'
 import { useChatSocket } from '../hooks/useChatSocket'
+import { getFirebaseAuth } from '../firebase/config' // ADD THIS LINE
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
+const auth = getFirebaseAuth() // ADD THIS LINE
 
 type Participant = { id: string; name?: string; avatarUrl?: string }
 
@@ -21,12 +23,100 @@ export default function App({ Component, pageProps }: AppProps) {
   const [copied, setCopied] = useState(false)
   const [userProfile, setUserProfile] = useState<Participant | null>(null)
   const [chatInput, setChatInput] = useState('')
+  const [roundStarted, setRoundStarted] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Initialize WebSocket Hook
   const { messages, isConnected, joinRoom, sendChatMessage } = useChatSocket(userProfile?.id);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (!roundStarted || timeRemaining === null || timeRemaining <= 0) return;
+    
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev === null || prev <= 1) {
+          setRoundStarted(false);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [roundStarted, timeRemaining]);
+
+  const handleStartRound = async () => {
+  if (!currentRoom) return;
+  
+  console.log('🎮 Starting round...');
+  
+  try {
+    const token = await auth?.currentUser?.getIdToken();
+    if (!token) {
+      console.error('No auth token available');
+      return;
+    }
+    
+    // First, fetch the room to get the round details with problems
+    console.log('Fetching room details...');
+    const roomResponse = await fetch(`http://localhost:5050/api/rooms/${currentRoom.code}`, {
+      headers: {
+        'Authorization': token
+      }
+    });
+    
+    if (!roomResponse.ok) {
+      throw new Error('Failed to fetch room');
+    }
+    
+    const roomData = await roomResponse.json();
+    console.log('Room data:', roomData);
+    
+    const round = roomData.data?.rounds?.[0];
+    if (!round) {
+      throw new Error('No round found in room');
+    }
+    
+    // Extract problem IDs from the round
+    const problemList = round.problems?.map((p: any) => p.ID || p.id) || [];
+    console.log('Problem list for round:', problemList);
+    
+    if (problemList.length === 0) {
+      throw new Error('Round has no problems! Create a new room with problems.');
+    }
+    
+    // Now start the round with the problem list
+    console.log('Starting round for room:', currentRoom.code);
+    const response = await fetch(`http://localhost:5050/api/rooms/${currentRoom.code}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({
+        problemList: problemList
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to start round:', response.status, errorText);
+      throw new Error('Failed to start round');
+    }
+    
+    const data = await response.json();
+    console.log('✅ Round started:', data);
+    setRoundStarted(true);
+    setTimeRemaining(currentRoom.options?.duration * 60 || 1800);
+  } catch (err) {
+    console.error('Failed to start round:', err);
+    alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
+  }
+};
 
   // copy room code to clipboard (works in extension and locally)
   function copyRoomCode(roomCode: string) {
@@ -66,14 +156,7 @@ export default function App({ Component, pageProps }: AppProps) {
   function sendMessage() {
     const text = chatInput.trim()
     if (!text || !currentRoom) return
-    
-    // Send message via WebSocket
     sendChatMessage(currentRoom.code, text);
-    
-    // REMOVED: Optimistic update. 
-    // The server will echo the message back to us, so we don't need to add it manually here.
-    // This prevents the "double message" issue for the sender.
-    
     setChatInput('')
   }
 
@@ -90,11 +173,11 @@ export default function App({ Component, pageProps }: AppProps) {
   }
 
   const handleCreate = (roomCode: string, options: any) => {
-    setCurrentRoom({ code: roomCode, options: { ...options } })
-    // Currently just joins the room code generated. 
-    // Future: Send 'create-room' request if backend distinguishes it.
-    joinRoom(roomCode);
-  }
+  console.log('Creating room with code:', roomCode); // Debug
+  console.log('Room options:', options); // Debug
+  setCurrentRoom({ code: roomCode, options: { ...options } })
+  joinRoom(roomCode);
+}
 
   // --- RENDER LOGIC ---
   if (!loggedIn) {
@@ -108,13 +191,10 @@ export default function App({ Component, pageProps }: AppProps) {
             <Button
               onClick={async () => {
                 try {
-                  // Sign in via chrome identity + firebase
                   await SignInWithChromeIdentity()
-                  // Then request token non-interactively and fetch user info
                   if (typeof chrome !== 'undefined' && chrome.identity) {
                     chrome.identity.getAuthToken({ interactive: false }, async (tokenResult) => {
                       if (chrome.runtime.lastError) {
-                        // fallback to interactive token if needed
                         chrome.identity.getAuthToken({ interactive: true }, async (tResult) => {
                           let t: string | undefined
                           if (!tResult) return
@@ -137,8 +217,6 @@ export default function App({ Component, pageProps }: AppProps) {
                       setLoggedIn(true)
                     })
                   } else {
-                    // Non-extension environment: just mark logged in (Dev mode)
-                    // Generate random ID to prevent collision in local testing
                     const randomSuffix = Math.floor(Math.random() * 10000);
                     setUserProfile({ 
                         id: `dev-user-${randomSuffix}@example.com`, 
@@ -148,15 +226,13 @@ export default function App({ Component, pageProps }: AppProps) {
                     setLoggedIn(true)
                   }
                 } catch (err) {
-                  //console.error('Sign-in failed', err)
-                  // Generate random ID to prevent collision in local testing
-                    const randomSuffix = Math.floor(Math.random() * 10000);
-                    setUserProfile({ 
-                        id: `dev-user-${randomSuffix}@example.com`, 
-                        name: `Dev User ${randomSuffix}`, 
-                        avatarUrl: '' 
-                    })
-                    setLoggedIn(true)
+                  const randomSuffix = Math.floor(Math.random() * 10000);
+                  setUserProfile({ 
+                      id: `dev-user-${randomSuffix}@example.com`, 
+                      name: `Dev User ${randomSuffix}`, 
+                      avatarUrl: '' 
+                  })
+                  setLoggedIn(true)
                 }
               }}
               className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white transition-colors"
@@ -177,6 +253,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <RoomChoice
         onJoin={handleJoin}
         onCreate={handleCreate}
+        useBackend={true}
       />
     )
   }
@@ -185,7 +262,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <div className={`${poppins.className} flex items-center justify-center bg-gradient-to-b from-[#141416] to-[#101012] p-0 min-h-screen`}>
-      {/* Shell: top/bottom borders, full width */}
       <div
         id="bsg-shell"
         className="w-full bg-gradient-to-b from-[#1f1f22] to-[#161617] overflow-hidden flex flex-col"
@@ -212,7 +288,6 @@ export default function App({ Component, pageProps }: AppProps) {
               </div>
             </div>
 
-            {/* Participant avatars (lobby) */}
             <div className="flex items-center gap-2 ml-4">
               {participants.map((p) => (
                 <img key={p.id} src={p.avatarUrl} alt={p.name || p.id} title={p.name || p.id}
@@ -222,7 +297,22 @@ export default function App({ Component, pageProps }: AppProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* show current user's avatar */}
+            {/* START ROUND BUTTON - ONLY SHOW IF NOT STARTED */}
+            {!roundStarted && currentRoom.options && (
+              <Button onClick={handleStartRound} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2">
+                Start Round
+              </Button>
+            )}
+            
+            {/* TIMER - SHOW WHEN ROUND IS STARTED */}
+            {roundStarted && timeRemaining !== null && (
+              <div className="bg-gray-800 px-4 py-2 rounded-lg">
+                <div className="text-white font-mono text-xl">
+                  {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                </div>
+              </div>
+            )}
+            
             {userProfile && (
               <img
                 src={userProfile?.avatarUrl}
@@ -265,9 +355,8 @@ export default function App({ Component, pageProps }: AppProps) {
           ))}
         </div>
 
-         {/* sticky input bar inside the shell */}
         <div className="border-t border-gray-700/40 bg-[#0f1112] p-3 flex-shrink-0" style={{ zIndex: 30 }}>
-           <div style={{ width: '100%', maxWidth: 920 }} className="mx-auto flex items-center gap-2">
+          <div style={{ width: '100%', maxWidth: 920 }} className="mx-auto flex items-center gap-2">
             <input
               id="chat-input"
               placeholder="Type a message..."

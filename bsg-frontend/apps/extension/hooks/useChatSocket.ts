@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const RTC_SERVICE_URL = 'ws://localhost:8080/ws';
+const RTC_SERVICE_URL = 'ws://localhost:5001/ws'; // Changed from 8080 to 5001
 
 export type Message = {
     userHandle: string;
@@ -27,8 +27,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
 
         ws.onmessage = (event) => {
             try {
-                const response = JSON.parse(event.data);
-                
+                const response = JSON.parse(event.data);                
                 if (response.status === 'ok') {
                     const { message, responseType } = response;
                     
@@ -40,9 +39,37 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
-                         setMessages(prev => [...prev, {
+                        setMessages(prev => [...prev, {
                             userHandle: 'System',
                             data: message.data,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'user-joined') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${message.userHandle} joined the room`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'user-left') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${message.userHandle} left the room`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'round-started') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `Round started! Duration: ${message.duration} minutes`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'submission-created') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${message.userHandle} submitted a solution!`,
                             roomID: message.roomID,
                             isSystem: true
                         }]);
@@ -53,6 +80,10 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
             } catch (e) {
                 console.error('Failed to parse WS message', e);
             }
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
         };
 
         ws.onclose = () => {
@@ -66,7 +97,6 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     }, [userEmail]);
 
     const joinRoom = useCallback((roomID: string) => {
-        // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
@@ -78,6 +108,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                     roomID: roomID
                 })
             };
+            console.log('Sending join-room:', payload); // Debug log
             socketRef.current.send(JSON.stringify(payload));
         }
     }, [userEmail]);

@@ -4,7 +4,7 @@ import (
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	//"gorm.io/gorm/clause"
 )
 
 type ProblemService struct {
@@ -74,38 +74,45 @@ func (service *ProblemService) FindProblems(count uint, offset uint) ([]models.P
 }
 
 func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, error) {
-	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
-	err := service.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.OrderBy{
-			Expression: clause.Expr{
-				SQL: "RANDOM()",
-			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_EASY).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
-			return err
+	var problems []models.Problem
+
+	var easy []models.Problem
+	if params.NumEasyProblems > 0 {
+		if err := service.db.
+			Where("difficulty = ?", constants.DIFFICULTY_EASY).
+			Order("RANDOM()").
+			Limit(params.NumEasyProblems).
+			Find(&easy).Error; err != nil {
+			return nil, err
 		}
-		if err := tx.Clauses(clause.OrderBy{
-			Expression: clause.Expr{
-				SQL: "RANDOM()",
-			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
-			return err
-		}
-		if err := tx.Clauses(clause.OrderBy{
-			Expression: clause.Expr{
-				SQL: "RANDOM()",
-			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_HARD).Limit(params.NumHardProblems).Order(clause.Expr{
-			SQL: "RANDOM()",
-		}).Find(&hardProblems).Error; err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
-	problems = append(easyProblems, mediumProblems...)
-	problems = append(problems, hardProblems...)
+
+	var medium []models.Problem
+	if params.NumMediumProblems > 0 {
+		if err := service.db.
+			Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).
+			Order("RANDOM()").
+			Limit(params.NumMediumProblems).
+			Find(&medium).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	var hard []models.Problem
+	if params.NumHardProblems > 0 {
+		if err := service.db.
+			Where("difficulty = ?", constants.DIFFICULTY_HARD).
+			Order("RANDOM()").
+			Limit(params.NumHardProblems).
+			Find(&hard).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	problems = append(problems, easy...)
+	problems = append(problems, medium...)
+	problems = append(problems, hard...)
+
 	return problems, nil
 }
 

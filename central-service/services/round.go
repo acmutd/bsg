@@ -33,8 +33,8 @@ type RoundCreationParameters struct {
 }
 
 type RoundSubmissionParameters struct {
-	RoundID		   uint `json:"roundID"`
-	ProblemID	   uint `json:"problemID"`
+	RoundID   uint `json:"roundID"`
+	ProblemID uint `json:"problemID"`
 	// Code      string `json:"code"`
 	// Language  string `json:"language"`
 	// Maybe the score could be related to proportion of test cases passed
@@ -64,37 +64,54 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 		LastUpdatedTime: time.Now(),
 		Status:          constants.ROUND_CREATED,
 	}
-	result := service.db.Create(&newRound)
-	if result.Error != nil {
-		log.Printf("Error creating new round: %v\n", result.Error)
-		return nil, result.Error
-	}
 	// TODO: Add logic for problem generation
-	problemSet, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
-		NumEasyProblems:   params.NumEasyProblems,
-		NumMediumProblems: params.NumMediumProblems,
-		NumHardProblems:   params.NumHardProblems,
+	problems, err := service.problemAccessor.GetProblemAccessor().
+		GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+			NumEasyProblems:   params.NumEasyProblems,
+			NumMediumProblems: params.NumMediumProblems,
+			NumHardProblems:   params.NumHardProblems,
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = service.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&newRound).Error; err != nil {
+			log.Printf("Error creating new round: %v\n", err)
+			return err
+		}
+
+		if err := tx.Model(&newRound).Association("ProblemSet").Replace(problems); err != nil {
+			return err
+		}
+		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
-	err = service.db.Model(&newRound).Association("ProblemSet").Append(problemSet)
-	if err != nil {
-		return nil, err
-	}
-	redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
-	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
-	if err != nil {
-		log.Printf("Error setting value in redis instance: %v\n", err)
-		return nil, err
-	}
-	newRound.ProblemSet = []models.Problem{}
+	log.Printf("Attached %d problems to round %d", len(problems), newRound.ID)
 	return &newRound, nil
+	/*
+		if err != nil {
+			return nil, err
+		}
+		redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
+		_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
+		if err != nil {
+			log.Printf("Error setting value in redis instance: %v\n", err)
+			return nil, err
+		}*/
 }
 
 func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) {
 	var round models.Round
-	result := service.db.Where("ID = ?", roundID).Limit(1).Find(&round)
+	result := service.db.
+		Preload("ProblemSet").
+		Where("id = ?", roundID).
+		First(&round)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -153,7 +170,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			log.Printf("Error sending round-start message: %v", err)
 			return nil, BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -234,7 +251,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 							log.Printf("Error sending round-end message: %v", err)
 							return BSGError{
 								StatusCode: 500,
-								Message: "Internal Server Error",
+								Message:    "Internal Server Error",
 							}
 						}
 					}
