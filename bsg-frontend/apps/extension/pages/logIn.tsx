@@ -96,6 +96,8 @@ export default function LogIn() {
         chrome.runtime.sendMessage({ type: 'LOGOUT' }, () => {
             SetUser(null);
         });
+
+        
     };
 
     // Show loading state
@@ -109,14 +111,30 @@ export default function LogIn() {
 
     // Show user info if logged in
     if (user) {
+        
+        if(authProvider === 'github'){
+          return (
+             <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
+                {user.photo && <img src={user.photo} alt={user.name} className="w-24 h-24 rounded-full" />}
+                <h1>Welcome, {user.name}!</h1>
+                <Button onClick={handleLogout}>Logout</Button>
+            </div>
+          ) 
+
+        }
+        
+
+        if(authProvider === 'google'){
+
         return (
             <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
                 {user.photo && <img src={user.photo} alt={user.name} className="w-24 h-24 rounded-full" />}
                 <h1>Welcome, {user.name}!</h1>
-                <p>Email: {user.email}</p>
                 <Button onClick={handleLogout}>Logout</Button>
             </div>
         );
+        }
+
     }
 
     return (
@@ -127,7 +145,7 @@ export default function LogIn() {
                 </Button>
 
                 <Button onClick={() => {setAuthProvider('github');isLoggingIn(true)}}>
-                    {loggingIn ? 'Signing in...' : 'Sign In With Discord'}
+                    {loggingIn ? 'Signing in...' : 'Sign In With GitHub'}
                 </Button>
 
             </div>
