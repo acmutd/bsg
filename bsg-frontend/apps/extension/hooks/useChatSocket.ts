@@ -27,10 +27,10 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
 
         ws.onmessage = (event) => {
             try {
-                const response = JSON.parse(event.data);                
+                const response = JSON.parse(event.data);
                 if (response.status === 'ok') {
                     const { message, responseType } = response;
-                    
+
                     if (responseType === 'chat-message') {
                         setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
@@ -39,9 +39,17 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
+                        // Check if this is a round-start message (contains comma-separated problem IDs)
+                        let displayMessage = message.data;
+                        if (message.data && message.data.includes(',') && /^\d+(,\d+)*$/.test(message.data)) {
+                            // This is a problem list from round-start
+                            const problemIds = message.data.split(',');
+                            displayMessage = `Round started!\nProblems: ${problemIds.join(', ')}`;
+                        }
+
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
-                            data: message.data,
+                            data: displayMessage,
                             roomID: message.roomID,
                             isSystem: true
                         }]);
@@ -60,9 +68,13 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             isSystem: true
                         }]);
                     } else if (responseType === 'round-started') {
+                        const problemList = message.problemList || [];
+                        const problemText = problemList.length > 0
+                            ? `\nProblems: ${problemList.join(', ')}`
+                            : '';
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
-                            data: `Round started! Duration: ${message.duration} minutes`,
+                            data: `Round started! Duration: ${message.duration} minutes${problemText}`,
                             roomID: message.roomID,
                             isSystem: true
                         }]);
@@ -128,10 +140,15 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         }
     }, [userEmail]);
 
+    const addMessage = useCallback((message: Message) => {
+        setMessages(prev => [...prev, message]);
+    }, []);
+
     return {
         messages,
         isConnected,
         joinRoom,
-        sendChatMessage
+        sendChatMessage,
+        addMessage
     };
 };

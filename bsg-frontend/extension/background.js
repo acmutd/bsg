@@ -22,16 +22,44 @@ async function ensureOffscreen() {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (!msg || msg.type !== 'COPY_TO_CLIPBOARD') return;
-  const text = msg.text || '';
+  if (!msg) return;
 
-  (async () => {
-    const ok = await doCopy(text);
-    sendResponse({ ok });
-  })();
+  // --- Clipboard Logic ---
+  if (msg.type === 'COPY_TO_CLIPBOARD') {
+    const text = msg.text || '';
+    (async () => {
+      const ok = await doCopy(text);
+      sendResponse({ ok });
+    })();
+    return true; // Async response
+  }
 
-  // return true to indicate we'll call sendResponse asynchronously
-  return true;
+  // --- State Management Logic ---
+  // In MV3, Service Workers are ephemeral. We must rely on storage.
+
+  if (msg.type === 'GET_STATE') {
+    chrome.storage.local.get(['session'], (result) => {
+      console.log('GET_STATE returning:', result.session);
+      sendResponse(result.session || {});
+    });
+    return true; // Async response
+  }
+
+  if (msg.type === 'SET_STATE') {
+    console.log('SET_STATE received:', msg.payload);
+    chrome.storage.local.get(['session'], (result) => {
+      const currentSession = result.session || {};
+      const newSession = { ...currentSession, ...msg.payload };
+      chrome.storage.local.set({ session: newSession }, () => {
+        console.log('Session saved:', newSession);
+        sendResponse({ success: true });
+      });
+    });
+    return true; // Async response
+  }
+
+  // Handle other messages or return false
+  return false;
 });
 
 async function doCopy(text) {

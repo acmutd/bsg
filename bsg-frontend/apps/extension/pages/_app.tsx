@@ -2,7 +2,7 @@ import '../../../packages/ui-styles/global.css'
 import { useState, useRef, useEffect } from 'react'
 import type { AppProps } from 'next/app'
 import '@bsg/ui-styles/global.css';
-import {Poppins} from 'next/font/google'
+import { Poppins } from 'next/font/google'
 import { Button } from '@bsg/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane, faCopy } from '@fortawesome/free-solid-svg-icons'
@@ -30,12 +30,12 @@ export default function App({ Component, pageProps }: AppProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Initialize WebSocket Hook
-  const { messages, isConnected, joinRoom, sendChatMessage } = useChatSocket(userProfile?.id);
+  const { messages, isConnected, joinRoom, sendChatMessage, addMessage } = useChatSocket(userProfile?.id);
 
   // Timer countdown effect
   useEffect(() => {
     if (!roundStarted || timeRemaining === null || timeRemaining <= 0) return;
-    
+
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev === null || prev <= 1) {
@@ -45,78 +45,150 @@ export default function App({ Component, pageProps }: AppProps) {
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [roundStarted, timeRemaining]);
 
   const handleStartRound = async () => {
-  if (!currentRoom) return;
-  
-  console.log('🎮 Starting round...');
-  
-  try {
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) {
-      console.error('No auth token available');
-      return;
-    }
-    
-    // First, fetch the room to get the round details with problems
-    console.log('Fetching room details...');
-    const roomResponse = await fetch(`http://localhost:5050/api/rooms/${currentRoom.code}`, {
-      headers: {
-        'Authorization': token
+    if (!currentRoom) return;
+
+    console.log('🎮 Starting round...');
+
+    try {
+      const token = await auth?.currentUser?.getIdToken();
+      if (!token) {
+        console.error('No auth token available');
+        return;
       }
-    });
-    
-    if (!roomResponse.ok) {
-      throw new Error('Failed to fetch room');
+
+      // First, fetch the room to get the round details with problems
+      console.log('Fetching room details...');
+      const roomResponse = await fetch(`http://localhost:5050/api/rooms/${currentRoom.code}`, {
+        headers: {
+          'Authorization': token
+        }
+      });
+
+      if (!roomResponse.ok) {
+        throw new Error('Failed to fetch room');
+      }
+
+      const roomData = await roomResponse.json();
+      console.log('Room data:', roomData);
+
+      const round = roomData.data?.rounds?.[0];
+      if (!round) {
+        throw new Error('No round found in room');
+      }
+
+      // Extract problem IDs from the round
+      const problemList = round.problems?.map((p: any) => p.ID || p.id) || [];
+      const firstProblemSlug = round.problems?.[0]?.slug;
+
+      console.log('Problem list for round:', problemList);
+
+      if (problemList.length === 0) {
+        throw new Error('Round has no problems! Create a new room with problems.');
+      }
+
+      // Now start the round with the problem list
+      console.log('Starting round for room:', currentRoom.code);
+      const response = await fetch(`http://localhost:5050/api/rooms/${currentRoom.code}/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          problemList: problemList
+        })
+      });
+
+      let shouldNavigate = false;
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to start round:', response.status, errorText);
+
+        let isAlreadyStarted = false;
+        try {
+          const errJson = JSON.parse(errorText);
+          if (response.status === 400 && errJson.message && errJson.message.includes('started')) {
+            isAlreadyStarted = true;
+          }
+        } catch (e) {
+          // ignore parse error
+        }
+
+        if (isAlreadyStarted) {
+          console.log('Round already started, joining existing round...');
+          setRoundStarted(true);
+          setTimeRemaining(currentRoom.options?.duration * 60 || 1800);
+          shouldNavigate = true;
+
+          // Manually add problem list to chat since backend won't broadcast it
+          const problemIds = problemList.map(String);
+          addMessage({
+            userHandle: 'System',
+            data: `Round started!\nProblems: ${problemIds.join(', ')}`,
+            roomID: currentRoom.code,
+            isSystem: true
+          });
+        } else {
+          throw new Error('Failed to start round: ' + errorText);
+        }
+      } else {
+        const data = await response.json();
+        console.log('✅ Round started:', data);
+        setRoundStarted(true);
+        setTimeRemaining(currentRoom.options?.duration * 60 || 1800);
+        shouldNavigate = true;
+
+        // Manually add problem list to chat (backend might not broadcast in time)
+        const problemIds = problemList.map(String);
+        addMessage({
+          userHandle: 'System',
+          data: `Round started!\nProblems: ${problemIds.join(', ')}`,
+          roomID: currentRoom.code,
+          isSystem: true
+        });
+      }
+
+      // Navigate to the first problem
+      if (shouldNavigate && firstProblemSlug) {
+        // CRITICAL: Save state to background BEFORE navigating
+        // This prevents the state from being lost when the page reloads
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          await new Promise<void>((resolve) => {
+            chrome.runtime.sendMessage({
+              type: 'SET_STATE',
+              payload: {
+                roundStarted: true,
+                timeRemaining: currentRoom.options?.duration * 60 || 1800,
+                problemList: problemList.map(String)
+              }
+            }, () => {
+              console.log('State saved before navigation');
+              resolve();
+            });
+          });
+        }
+
+        const problemUrl = `https://leetcode.com/problems/${firstProblemSlug}/`;
+        console.log('Navigating to:', problemUrl);
+        if (typeof chrome !== 'undefined' && chrome.tabs) {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0 && tabs[0].id) {
+              chrome.tabs.update(tabs[0].id, { url: problemUrl });
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to start round:', err);
+      alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
-    
-    const roomData = await roomResponse.json();
-    console.log('Room data:', roomData);
-    
-    const round = roomData.data?.rounds?.[0];
-    if (!round) {
-      throw new Error('No round found in room');
-    }
-    
-    // Extract problem IDs from the round
-    const problemList = round.problems?.map((p: any) => p.ID || p.id) || [];
-    console.log('Problem list for round:', problemList);
-    
-    if (problemList.length === 0) {
-      throw new Error('Round has no problems! Create a new room with problems.');
-    }
-    
-    // Now start the round with the problem list
-    console.log('Starting round for room:', currentRoom.code);
-    const response = await fetch(`http://localhost:5050/api/rooms/${currentRoom.code}/start`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token
-      },
-      body: JSON.stringify({
-        problemList: problemList
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Failed to start round:', response.status, errorText);
-      throw new Error('Failed to start round');
-    }
-    
-    const data = await response.json();
-    console.log('✅ Round started:', data);
-    setRoundStarted(true);
-    setTimeRemaining(currentRoom.options?.duration * 60 || 1800);
-  } catch (err) {
-    console.error('Failed to start round:', err);
-    alert('Error: ' + (err instanceof Error ? err.message : 'Unknown error'));
-  }
-};
+  };
 
   // copy room code to clipboard (works in extension and locally)
   function copyRoomCode(roomCode: string) {
@@ -147,7 +219,7 @@ export default function App({ Component, pageProps }: AppProps) {
     ta.style.left = '-9999px'
     document.body.appendChild(ta)
     ta.select()
-    try { document.execCommand('copy') } catch {}
+    try { document.execCommand('copy') } catch { }
     ta.remove()
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -166,18 +238,94 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [messages])
 
-  // join/create handlers
+  // Join/Create handlers
   const handleJoin = (roomCode: string) => {
-    setCurrentRoom({ code: roomCode, options: {} })
+    const room = { code: roomCode, options: {} };
+    setCurrentRoom(room)
     joinRoom(roomCode);
+    // Sync to background
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'SET_STATE', payload: { currentRoom: room } });
+    }
   }
 
   const handleCreate = (roomCode: string, options: any) => {
-  console.log('Creating room with code:', roomCode); // Debug
-  console.log('Room options:', options); // Debug
-  setCurrentRoom({ code: roomCode, options: { ...options } })
-  joinRoom(roomCode);
-}
+    console.log('Creating room with code:', roomCode);
+    console.log('Room options:', options);
+    const room = { code: roomCode, options: { ...options } };
+    setCurrentRoom(room)
+    joinRoom(roomCode);
+    // Sync to background
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'SET_STATE', payload: { currentRoom: room } });
+    }
+  }
+
+  // --- PERSISTENCE / SYNC LOGIC ---
+
+  // Helper to sync to background
+  const syncToBackground = (payload: any) => {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'SET_STATE', payload });
+    }
+  };
+
+  // Load state from background on mount
+  useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'GET_STATE' }, (state) => {
+        if (chrome.runtime.lastError) return;
+
+        if (state) {
+          if (state.currentRoom) {
+            console.log('Restoring room from background:', state.currentRoom);
+            setCurrentRoom(state.currentRoom);
+            joinRoom(state.currentRoom.code);
+          }
+          if (state.roundStarted !== undefined) setRoundStarted(state.roundStarted);
+          if (state.timeRemaining !== undefined && state.timeRemaining !== null) setTimeRemaining(state.timeRemaining);
+          if (state.userProfile) {
+            setUserProfile(state.userProfile);
+            setLoggedIn(true);
+          }
+          // Restore problem list message if it exists
+          if (state.problemList && state.problemList.length > 0 && state.currentRoom) {
+            addMessage({
+              userHandle: 'System',
+              data: `Round started!\nProblems: ${state.problemList.join(', ')}`,
+              roomID: state.currentRoom.code,
+              isSystem: true
+            });
+          }
+        }
+      });
+    }
+  }, []);
+
+  // Sync user profile when it changes (doesn't conflict with navigation)
+  useEffect(() => {
+    if (userProfile) {
+      syncToBackground({ userProfile });
+    }
+  }, [userProfile]);
+
+  // Handle Exit - Clear state
+  const handleExit = () => {
+    // Clear local state
+    setCurrentRoom(null);
+    setLoggedIn(false);
+    setRoundStarted(false);
+    setTimeRemaining(null);
+    setUserProfile(null);
+
+    // Clear background state
+    syncToBackground({
+      currentRoom: null,
+      roundStarted: false,
+      timeRemaining: null,
+      userProfile: null
+    });
+  };
 
   // --- RENDER LOGIC ---
   if (!loggedIn) {
@@ -218,19 +366,19 @@ export default function App({ Component, pageProps }: AppProps) {
                     })
                   } else {
                     const randomSuffix = Math.floor(Math.random() * 10000);
-                    setUserProfile({ 
-                        id: `dev-user-${randomSuffix}@example.com`, 
-                        name: `Dev User ${randomSuffix}`, 
-                        avatarUrl: '' 
+                    setUserProfile({
+                      id: `dev-user-${randomSuffix}@example.com`,
+                      name: `Dev User ${randomSuffix}`,
+                      avatarUrl: ''
                     })
                     setLoggedIn(true)
                   }
                 } catch (err) {
                   const randomSuffix = Math.floor(Math.random() * 10000);
-                  setUserProfile({ 
-                      id: `dev-user-${randomSuffix}@example.com`, 
-                      name: `Dev User ${randomSuffix}`, 
-                      avatarUrl: '' 
+                  setUserProfile({
+                    id: `dev-user-${randomSuffix}@example.com`,
+                    name: `Dev User ${randomSuffix}`,
+                    avatarUrl: ''
                   })
                   setLoggedIn(true)
                 }
@@ -297,13 +445,8 @@ export default function App({ Component, pageProps }: AppProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* START ROUND BUTTON - ONLY SHOW IF NOT STARTED */}
-            {!roundStarted && currentRoom.options && (
-              <Button onClick={handleStartRound} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2">
-                Start Round
-              </Button>
-            )}
-            
+
+
             {/* TIMER - SHOW WHEN ROUND IS STARTED */}
             {roundStarted && timeRemaining !== null && (
               <div className="bg-gray-800 px-4 py-2 rounded-lg">
@@ -312,7 +455,7 @@ export default function App({ Component, pageProps }: AppProps) {
                 </div>
               </div>
             )}
-            
+
             {userProfile && (
               <img
                 src={userProfile?.avatarUrl}
@@ -321,11 +464,33 @@ export default function App({ Component, pageProps }: AppProps) {
                 style={{ borderColor: 'hsl(var(--primary))' }}
               />
             )}
-            <Button onClick={() => { setCurrentRoom(null); setLoggedIn(false) }} className="bg-gray-700 text-white rounded-md px-3 py-1 hover:bg-gray-600">
+            <Button onClick={handleExit} className="bg-gray-700 text-white rounded-md px-3 py-1 hover:bg-gray-600">
               Exit
             </Button>
           </div>
         </header>
+
+        {/* START ROUND BUTTON - CENTRIC DISPLAY BELOW HEADER */}
+        {/* START ROUND BUTTON - CENTRIC DISPLAY BELOW HEADER */}
+        {currentRoom.options && (
+          <div className="w-full flex justify-center py-3 bg-[#1e1e1f]/50 border-b border-gray-700/50 backdrop-blur-sm">
+            {!roundStarted ? (
+              <Button
+                onClick={handleStartRound}
+                className="bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] text-white px-8 py-2 font-semibold shadow-lg hover:shadow-[hsl(90,72%,39%)]/20 transition-all duration-200"
+              >
+                Start Round
+              </Button>
+            ) : (
+              <Button
+                disabled
+                className="bg-gray-600 text-gray-300 px-8 py-2 font-semibold cursor-not-allowed opacity-80"
+              >
+                Round Started
+              </Button>
+            )}
+          </div>
+        )}
 
         <div
           ref={containerRef}

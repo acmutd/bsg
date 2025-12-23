@@ -32,7 +32,7 @@ func main() {
 	}
 
 	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
-		fmt.Printf("Error migrating schema: %v\n", err)
+		log.Fatalf("Error migrating schema: %v\n", err)
 	}
 
 	rdb := redis.NewClient(&redis.Options{
