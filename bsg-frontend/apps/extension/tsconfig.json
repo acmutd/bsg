@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": [
-      "chrome"
+      "chrome",
+      "node"
     ],
     "lib": [
       "dom",
