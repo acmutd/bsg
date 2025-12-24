@@ -1,241 +1,245 @@
 "use client";
+
 import Link from "next/link";
 
+/**
+ * ===== GREY SECTION LAYOUT KNOBS =====
+ * These are the ONLY places you should tweak spacing.
+ */
+const GREY = {
+  sectionPx: "px-4 sm:px-6 lg:px-20",
 
-const LandingPage = () => {
+  sectionPy: "py-10 sm:py-14 lg:py-16",
+
+  cardWidth: "w-full max-w-[1400px]",
+
+  cardPadding: "px-5 sm:px-8 lg:px-12 py-7 sm:py-9 lg:py-12",
+
+  cardGap: "gap-6 sm:gap-8 xl:gap-10",
+
+  textSpacing: "space-y-4 sm:space-y-5",
+
+  mockupMaxW: "max-w-[900px] xl:max-w-[760px]",
+
+  mockupAspect: "aspect-[16/9] sm:aspect-[16/10] xl:aspect-[20/13]",
+
+  mockupAlign: "justify-center",
+
+  textCol: "w-full xl:w-[42%] 2xl:w-[40%]",
+  mockupCol: "w-full xl:w-[58%] 2xl:w-[60%]",
+} as const;
+
+export default function LandingPage() {
   return (
-    <div className="w-full flex flex-col items-start justify-start ">
-      {/* Hero Section*/}
-      <main className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 w-full text-white py-24 px-6 md:px-24 flex justify-center">
-        <div
-          className="fixed inset-0 -z-10 bg-no-repeat bg-top bg-cover"
-          style={{ backgroundImage: "url('/long-background.png')" }}
-        />
+    <div className="w-full flex flex-col">
+      {/* ================= HERO ================= */}
+      <main className="relative min-h-screen flex flex-col items-center justify-center text-white px-4 sm:px-6 lg:px-12">
+<div
+  className="
+    fixed inset-0 -z-10
+    bg-cover bg-top
+    transition-[transform,background-position] duration-500 ease-out
+    xl:scale-[1.08] xl:origin-top-right
+    xl:bg-[position:60%_0%]
+  "
+  style={{ backgroundImage: "url('/long-background.png')" }}
+/>
 
-        <div className="relative z-10 text-center space-y-7">
-          {/* <h1 className="text-3xl md:text-7xl font-extrabold text-white leading-snug md:leading-[1.2]  ">
-            Conquer LeetCode Together.
-          </h1> */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white leading-snug md:leading-[1.2]">
+
+        <div className="max-w-5xl text-center space-y-6 sm:space-y-8">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight whitespace-nowrap">
             Conquer LeetCode Together.
           </h1>
 
+          <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl font-extralight text-white/70 leading-relaxed px-4">
+            Solve LeetCode problems with friends in private rooms. Chat live,
+            collaborate, and level up your coding skills together.
+          </p>
 
-          <div className="space-y-1">
-            <p className="font-extralight text-lg text-white/70 leading-snug">
-              Solve LeetCode problems with friends in private rooms.
-            </p>
-            <p className="font-extralight text-lg text-white/70 leading-snug">
-              Chat live, collaborate, and level up your coding skills together.
-            </p>
+          <div className="pt-2 sm:pt-4">
+            <Link
+              href="https://chromewebstore.google.com/detail/your-extension-id-here"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-6 sm:px-8 py-3 sm:py-4 rounded-full bg-[#63AB1C] text-white text-base sm:text-lg font-semibold hover:scale-105 transition-all duration-200"
+            >
+              Join Now
+            </Link>
           </div>
-
-          <Link
-            href="/auth/signUp"
-            // className="inline-block bg-customGreen text-white text-lg font-semibold px-8 py-4 rounded-full hover:bg-customGreen-dark transition"
-          style={{ backgroundColor: "rgba(99, 171, 28)" }} // Initial transparent background
-          className="inline-block text-white text-lg font-semibold px-8 py-4 rounded-full transition hover:bg-[#63AB1C]" 
-          >
-            Join Now
-          </Link>
         </div>
       </main>
 
-
-
-{/* Three-column section */}
-<section id="three-columns" className="w-full text-white py-20 px-6 md:px-32">
-  
-    <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-12 md:gap-24">
-
-      {/* Left column */}
-      <div className="md:w-1/2">
-        <h2 className="text-2xl md:text-3xl font-semibold mb-3 leading-snug tracking-tight">
-          Meet your collaborative <br /> coding extension
-        </h2>
-        <p className="text-white/60 text-sm md:text-base leading-relaxed max-w-md">
-          <span className="whitespace-nowrap">
-            An extension to solve LeetCode problems with friends in private 
-          </span>
-          <br className="hidden sm:block" />
-          <span className="whitespace-nowrap">
-            rooms with real-time chat and topic filters built in.
-          </span>
-        </p>
-      </div>
-
-      {/* Middle column — CREATE ROOMS */}
-      <div className="md:w-1/4 flex flex-col items-start">
-        
-        {/* ICON AS BACKGROUND IMAGE */}
-        <div
-          className="w-9 h-9 mb-3 bg-contain bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/create-rooms.svg')" }}
-        />
-
-        <h3 className="text-sm md:text-base font-semibold mb-2">Create Rooms</h3>
-        <p className="text-white/60 text-xs md:text-sm leading-relaxed max-w-[220px]">
-          <span className="whitespace-nowrap">
-            Set topics, difficulty, 
-          </span>
-          <br className="hidden sm:block" />
-          <span className="whitespace-nowrap">
-            and room name built for your team.
-          </span>
-      
-        </p>
-      </div>
-
-      {/* Right column — COLLABORATIVE CHAT */}
-      <div className="md:w-1/4 flex flex-col items-start">
-
-        {/* ICON AS BACKGROUND IMAGE */}
-        <div
-          className="w-10 h-10 mb-3 bg-contain bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/chat.svg')" }}
-        />
-
-        <h3 className="text-sm md:text-base font-semibold mb-2">Collaborative Chat</h3>
-        <p className="text-white/60 text-xs md:text-sm leading-relaxed max-w-[220px]">
-          Chat with your group as you code instantly.
-        </p>
-      </div>
-
-    </div>
-</section>
-
-
-{/* Challenge Friends. Master the Problem Section */}
-<section className="w-screen flex justify-center py-0 px-0 bg-transparent overflow-x-hidden">
-  <div className="collab-grey-box flex flex-col md:flex-row items-center gap-16">
-    {/* Left text block */}
-    <div className="text-white max-w-md">
-      <h3 className="text-2xl md:text-2xl font-bold mb-6 leading-snug">
-        <span className="whitespace-nowrap">Challenge friends.</span>
-        <br className="hidden sm:block" />
-        <span className="whitespace-nowrap">Master the problem.</span>
-      </h3>
-
-      <p className="text-white/70 leading-relaxed text-[11px] md:text-sm">
-        <span className="whitespace-nowrap ">Spin up a custom room in seconds —</span>
-        <br className="hidden sm:block" />
-        <span className="whitespace-nowrap">pick a difficulty, choose your topics, and invite others</span>
-        <br className="hidden sm:block" />
-        <span className="whitespace-nowrap">to join. It’s a shared space to think out loud,</span>
-        <br className="hidden sm:block" />
-    
-        <span className="whitespace-nowrap">solve smarter, and turn practice into progress.</span>
-      </p>
-    </div>
-        {/* Browser window */}
-        <div className="w-full md:w-[1100px] md:h-[500px] bg-[#111] rounded-lg overflow-hidden border border-white/10">
-          {/* URL Bar */}
-          <div className="flex items-center justify-between px-4 py-2 bg-[#2a2a2a]">
-            <div className="flex gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500"></span>
-              <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-              <span className="w-3 h-3 rounded-full bg-green-500"></span>
-            </div>
-            <div className="text-white/70 text-sm">https://www.leetcode.com/</div>
-            <div className="w-4"></div>
+      {/* ================= THREE COLUMNS ================= */}
+      <section
+        id="three-columns"
+        className="w-full py-16 sm:py-20 lg:py-24 px-4 sm:px-8 lg:px-16 xl:px-32 text-white"
+      >
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:justify-between lg:items-end gap-8 sm:gap-10 lg:gap-16 xl:gap-24">
+          <div className="lg:w-1/2">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold mb-4 leading-tight tracking-tight">
+              Meet your collaborative <br className="hidden sm:block" />
+              coding extension
+            </h2>
+            <p className="text-white/60 text-sm sm:text-base lg:text-lg leading-relaxed max-w-2xl">
+              An extension to solve LeetCode problems with friends in private
+              rooms with real-time chat and topic filters built in.
+            </p>
           </div>
-          {/* Black Section */}
-          <div className="bg-[#0b0b0b] h-[400px]"></div>
-        </div>
-      </div>
-    </section>
 
-
-{/* Stay in Synch. Solve Together Seciton */}
-<section className="w-screen flex justify-center py-24 px-0 bg-transparent overflow-x-hidden">
-  <div className="collab-grey-box flex flex-col md:flex-row items-center gap-16">
-    {/* Left text block */}
-    <div className="text-white max-w-md">
-      <h3 className="text-2xl md:text-2xl font-bold mb-6 leading-snug">
-        <span className="whitespace-nowrap">Stay in Sync.</span>
-        <br className="hidden sm:block" />
-        <span className="whitespace-nowrap">Solve together.</span>
-      </h3>
-
-      <p className="text-white/70 leading-relaxed text-[11px] md:text-sm">
-        <span className="whitespace-nowrap ">Stay in sync with your teammates through built —</span>
-        <br className="hidden sm:block" />
-        <span className="whitespace-nowrap">in chat. Share quick ideas, swap hints, or</span>
-        <br className="hidden sm:block" />
-        <span className="whitespace-nowrap">celebrate breakthroughs — all without </span>
-        <br className="hidden sm:block" />
-    
-        <span className="whitespace-nowrap">breaking focus or leaving your session.</span>
-      </p>
-    </div>
-        {/* Browser window */}
-        <div className="w-full md:w-[1100px] md:h-[500px] bg-[#111] rounded-lg overflow-hidden border border-white/10">
-          {/* URL Bar */}
-          <div className="flex items-center justify-between px-4 py-2 bg-[#2a2a2a]">
-            <div className="flex gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500"></span>
-              <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-              <span className="w-3 h-3 rounded-full bg-green-500"></span>
-            </div>
-            <div className="text-white/70 text-sm">https://www.leetcode.com/</div>
-            <div className="w-4"></div>
+          <div className="lg:w-1/2 flex flex-col sm:flex-row gap-8 sm:gap-10 lg:gap-12">
+            <Feature
+              title="Create Rooms"
+              desc="Set topics, difficulty, and room name built for your team."
+              icon="/create-rooms.svg"
+            />
+            <Feature
+              title="Collaborative Chat"
+              desc="Chat with your group as you code instantly."
+              icon="/chat.svg"
+            />
           </div>
-          {/* Black Section */}
-          <div className="bg-[#0b0b0b] h-[400px]"></div>
         </div>
-      </div>
-    </section>
+      </section>
 
+      {/* ================= GREY BOX SECTIONS ================= */}
+      <GreySection
+        title="Challenge friends."
+        subtitle="Master the problem."
+        text="Spin up a custom room in seconds — pick a difficulty, choose your topics, and invite others to join. It's a shared space to think out loud, solve smarter, and turn practice into progress."
+      />
 
-{/* Coming Soon Section */}
-<section
-  id="coming-soon"
-  className="w-full flex flex-col items-center justify-centerpt-32 pb-8 px-6 md:px-12 text-white relative overflow-hidden"
->
-  {/* Title */}
-  <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-center">
-    <div className="w-full md:w-[1100px] mx-auto text-center">
-      <h2>Coming Soon</h2>
-    </div>
-  </h2>
+      <GreySection
+        title="Stay in Sync."
+        subtitle="Solve together."
+        text="Stay in sync with your teammates through built-in chat. Share quick ideas, swap hints, or celebrate breakthroughs — all without breaking focus or leaving your session."
+      />
 
-  <p className="text-white/70 text-sm md:text-base mb-12 text-center whitespace-nowrap">
-    One web application platform. Every feature you need to level up. Something
-    powerful is on the way.
-  </p>
+      {/* ================= COMING SOON ================= */}
+      <section
+        className="w-full flex flex-col items-center justify-center pt-16 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 md:px-8 lg:px-12 text-white"
+        id="coming-soon"
+      >
+        <div className="w-full max-w-5xl mx-auto text-center mb-8 sm:mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-3 sm:mb-4">
+            Coming Soon
+          </h2>
+          <p className="text-white/70 text-sm sm:text-base md:text-lg px-4">
+            One web application platform. Every feature you need to level up. Something powerful is on the way.
+          </p>
+        </div>
 
-  {/* Browser Mockup Container */}
-  <div className="w-full max-w-5xl bg-[#111] rounded-xl overflow-hidden border border-white/10 shadow-xl">
-    {/* Browser Top Bar */}
-    <div className="flex items-center justify-between px-4 py-3 bg-[#2b2b2b] border-b border-white/10">
-      <div className="flex gap-2">
-        <span className="w-3 h-3 rounded-full bg-red-500"></span>
-        <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-        <span className="w-3 h-3 rounded-full bg-green-500"></span>
-      </div>
+        <div className="w-full max-w-6xl xl:max-w-5xl bg-[#111] rounded-xl overflow-hidden border border-white/10 shadow-xl">
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 bg-[#2a2a2a] border-b border-white/10">
+            <div className="flex gap-1.5 sm:gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500" />
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500" />
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500" />
+            </div>
+            <div className="w-4" />
+          </div>
 
-      <div className="w-4"></div>
-    </div>
+          {/* Browser ratio */}
+          <div className="bg-[#0a0a0a] aspect-video sm:aspect-[16/10] lg:aspect-video" />
+        </div>
+      </section>
 
-    {/* Black fullscreen preview area */}
-    <div className="bg-[#0a0a0a] h-[360px] md:h-[480px]"></div>
-  </div>
-</section>
-
-
-         
-<section className="w-full px-10 py-10 text-white">
-  {/* Full-width divider line */}
-  <div className="w-full border-t border-white/20"></div>
-  {/* Left-aligned BSG label */}
-  <p className="text-s tracking-wider text-white font-extrabold mt-3 ml-8">
-    BSG
-  </p>
-</section>
-
+      {/* ================= FOOTER ================= */}
+      <footer className="w-full px-6 sm:px-8 md:px-10 py-8 sm:py-10 text-white">
+        <div className="w-full border-t border-white/20" />
+        <p className="text-sm sm:text-base tracking-wider font-extrabold mt-3 ml-4 sm:ml-8">
+          BSG
+        </p>
+      </footer>
     </div>
   );
-};
+}
 
+/* ================= COMPONENTS ================= */
 
-export default LandingPage;
+function Feature({
+  title,
+  desc,
+  icon,
+}: {
+  title: string;
+  desc: string;
+  icon: string;
+}) {
+  return (
+    <div className="flex-1 flex flex-col items-start">
+      <div
+        className="w-9 h-9 sm:w-10 sm:h-10 mb-3 sm:mb-4 bg-contain bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${icon})` }}
+      />
+      <h3 className="text-base sm:text-lg font-semibold mb-2">{title}</h3>
+      <p className="text-white/60 text-sm sm:text-base leading-relaxed">
+        {desc}
+      </p>
+    </div>
+  );
+}
+
+function GreySection({
+  title,
+  subtitle,
+  text,
+}: {
+  title: string;
+  subtitle: string;
+  text: string;
+}) {
+  return (
+    <section className={`w-full flex justify-center bg-transparent ${GREY.sectionPx} ${GREY.sectionPy}`}>
+      <div
+        className={[
+          "lp-collab-grey-box",
+          GREY.cardWidth,
+          "mx-auto",
+
+          "flex flex-col xl:flex-row",
+
+          "items-start xl:items-center",
+
+          GREY.cardPadding,
+          GREY.cardGap,
+
+          "overflow-hidden",
+        ].join(" ")}
+      >
+        {/* TEXT BLOCK */}
+        <div className={["text-white", GREY.textCol, GREY.textSpacing].join(" ")}>
+          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight">
+            {title}
+            <br />
+            {subtitle}
+          </h3>
+
+          <p className="text-white/70 leading-relaxed text-sm sm:text-base">
+            {text}
+          </p>
+        </div>
+
+        {/* MOCKUP BLOCK */}
+        <div className={[GREY.mockupCol, "flex items-center", GREY.mockupAlign].join(" ")}>
+          <div className={["w-full", GREY.mockupMaxW].join(" ")}>
+            <div className="w-full bg-[#111] rounded-xl overflow-hidden border border-white/10 shadow-lg">
+              <div className="flex items-center justify-between px-3 lg:px-4 py-2 bg-[#2a2a2a]">
+                <div className="flex gap-1.5">
+                  <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-red-500" />
+                  <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-yellow-500" />
+                  <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-green-500" />
+                </div>
+                <div className="text-white/70 text-xs lg:text-sm truncate px-2">
+                  https://www.leetcode.com/
+                </div>
+                <div className="w-4" />
+              </div>
+
+              <div className={["bg-[#0b0b0b]", GREY.mockupAspect].join(" ")} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
