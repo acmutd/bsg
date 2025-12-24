@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
 import {
@@ -11,19 +10,19 @@ import {
 
 const Navbar = () => {
   const pathname = usePathname();
-  const isLandingPage = pathname === "/"; 
+  const isLandingPage = pathname === "/";
   const [isHidden, setIsHidden] = useState(false);
   const hoverZoneHeight = 80;
 
   useEffect(() => {
-    if (!isLandingPage) return; 
+    if (!isLandingPage) return;
     const handleScroll = () => setIsHidden(window.scrollY !== 0);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isLandingPage]);
 
   useEffect(() => {
-    if (!isLandingPage) return; 
+    if (!isLandingPage) return;
     const handleMouseMove = (e: MouseEvent) => {
       if (window.scrollY !== 0 && e.clientY < hoverZoneHeight) {
         setIsHidden(false);
@@ -37,6 +36,12 @@ const Navbar = () => {
     if (isLandingPage && window.scrollY !== 0) setIsHidden(true);
   };
 
+  // Keep original font — only shrink at very small widths
+  const navItemClass = `
+    ${navigationMenuTriggerStyle()}
+    max-[640px]:text-xs
+  `;
+
   return (
     <nav
       onMouseEnter={() => isLandingPage && setIsHidden(false)}
@@ -46,7 +51,11 @@ const Navbar = () => {
         border-b border-white/10
         bg-grey/40 backdrop-blur-xl
         transition-all duration-300
-        ${isLandingPage && isHidden ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"}
+        ${
+          isLandingPage && isHidden
+            ? "opacity-0 -translate-y-4"
+            : "opacity-100 translate-y-0"
+        }
       `}
     >
       <div className="flex items-center justify-between px-10 py-2">
@@ -59,24 +68,33 @@ const Navbar = () => {
               window.location.href = "/";
             }
           }}
-          className="cursor-pointer hover:opacity-80 transition-opacity scale-80"
+          className="
+            cursor-pointer
+            hover:opacity-80
+            transition-all
+            scale-100
+            max-[900px]:scale-90
+            max-[640px]:scale-80
+          "
         >
           <Logo />
         </div>
 
-
         {/* Navigation Links */}
-        <NavigationMenu className="flex gap-8">
-          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="#three-columns">
+        <NavigationMenu className="flex gap-8 max-[640px]:gap-4">
+          <NavigationMenuLink className={navItemClass} href="#three-columns">
             About
           </NavigationMenuLink>
-          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="#coming-soon">
+
+          <NavigationMenuLink className={navItemClass} href="#coming-soon">
             Upcoming
           </NavigationMenuLink>
-          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/contact">
+
+          <NavigationMenuLink className={navItemClass} href="/contact">
             Contact
           </NavigationMenuLink>
-          <NavigationMenuLink className={navigationMenuTriggerStyle()} href="/auth/signUp">
+
+          <NavigationMenuLink className={navItemClass} href="/auth/signUp">
             Sign Up
           </NavigationMenuLink>
         </NavigationMenu>
