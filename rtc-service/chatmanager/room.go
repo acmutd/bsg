@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/acmutd/bsg/rtc-service/logging"
+	"github.com/acmutd/bsg/rtc-service/response"
 )
 
 // List of all chat rooms connected to RTC service.
@@ -17,7 +18,10 @@ type Room struct {
 	// List of all users in the room.
 	Users UserList
 
-	// Used to avoid concurrent writes to the users list.
+	// History of messages in the room for persistence.
+	Messages []response.Response
+
+	// Used to avoid concurrent writes to the users list and message history.
 	sync.RWMutex
 }
 
@@ -67,4 +71,12 @@ func (r *Room) IsEmpty() bool {
 	defer r.Unlock()
 
 	return len(r.Users) == 0
+}
+
+// AddMessage adds a message to the room's history.
+func (r *Room) AddMessage(message response.Response) {
+	r.Lock()
+	defer r.Unlock()
+
+	r.Messages = append(r.Messages, message)
 }
