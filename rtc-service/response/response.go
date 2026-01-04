@@ -55,10 +55,22 @@ func NewErrorResponse(responseType ResponseType, message string, roomID string) 
 func NewOkResponse(responseType ResponseType, message string, roomID string) *Response {
 	userHandle := ""
 	data := message
+	
 	if responseType == CHAT_MESSAGE && message != "" {
-		message := strings.Split(message, " - ")
-		userHandle = message[0]
-		data = message[1]
+		// Try to unmarshal JSON first
+		var chatData map[string]string
+		err := json.Unmarshal([]byte(message), &chatData)
+		if err == nil {
+			userHandle = chatData["userHandle"]
+			data = chatData["message"]
+		} else {
+			// Fallback to old format for compatibility if needed
+			parts := strings.Split(message, " - ")
+			if len(parts) >= 2 {
+				userHandle = parts[0]
+				data = parts[1]
+			}
+		}
 	}
 
 	respMessage := responseMessage{

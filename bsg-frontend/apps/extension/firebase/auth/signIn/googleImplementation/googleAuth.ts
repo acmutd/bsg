@@ -1,20 +1,19 @@
-import { app } from "../../../config";
-import { getAuth,
-         signInWithRedirect,
-         signInWithPopup,
-         getRedirectResult,
-         User,
-        } from "firebase/auth";
+import { getFirebaseAuth } from "../../../config";
+import {
+  signInWithRedirect,
+  signInWithPopup,
+  getRedirectResult,
+  User,
+} from "firebase/auth";
 
 import { provider } from './googleSignIn';
-
-
-const auth = getAuth(app);
 
 
 export async function SignInWithGoogleRedirect(): Promise<void> {
 
     try{
+      const auth = getFirebaseAuth();
+      if (!auth) throw new Error('Firebase auth not available in this environment');
       await signInWithRedirect(auth, provider);
     }
     catch(error){
@@ -26,6 +25,8 @@ export async function SignInWithGoogleRedirect(): Promise<void> {
 
 export async function SignInWithGooglePopup(): Promise<User> {
   try {
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error('Firebase auth not available in this environment');
     const result = await signInWithPopup(auth, provider);
     return result.user;
   } catch (error) {
@@ -37,6 +38,9 @@ export async function SignInWithGooglePopup(): Promise<User> {
 export async function HandleAuthRedirectedResult(): Promise<User>{
 
   try{
+
+    const auth = getFirebaseAuth();
+    if (!auth) throw new Error('Firebase auth not available in this environment');
 
     const result = await getRedirectResult(auth, provider);
 
