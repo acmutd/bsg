@@ -2,10 +2,6 @@
 
 import Link from "next/link";
 
-/**
- * ===== GREY SECTION LAYOUT KNOBS =====
- * These are the ONLY places you should tweak spacing.
- */
 const GREY = {
   sectionPx: "px-4 sm:px-6 lg:px-20",
 
