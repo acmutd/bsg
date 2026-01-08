@@ -1,6 +1,6 @@
 // Middleware to log session ID for every request
 const logger = (req, res, next) => {
-    if (req.sessionID) {
+    if (req.isAuthenticated()) {
         console.log('Session ID:', req.sessionID);
     }
     next();

@@ -11,34 +11,35 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-    passport.authenticate('google', {failureRedirect: '/'}),
+    passport.authenticate('google', {failureRedirect: '/auth/google'}),
     (req, res) => {
         res.redirect('/auth/done');
-    }
+         
+     }
 
 );
 
 
-router.get('/done', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authentication Complete</title>
-        </head>
-        <body>
-            <div class="container">
-                <h1>✓ Authentication Successful!</h1>
-                <p>You can now go back to the LeetCode page.</p>
-                <script>
-                    setTimeout(() => {
-                        window.close();
-                    }, 10000);
-                </script>
-            </div>
-        </body>
-        </html>
-    `);
+router.get('/done',(req, res) => {
+    res.send(`You are successfully authenticated please go back to the leetcode page`);
+});
+
+
+router.get('/user', (req, res) => {
+    if(req.isAuthenticated() && req.user) {
+        console.log(req.user)
+        return res.json({
+            id: req.user.id,
+            name: req.user.name,
+            email: req.user.email,
+            photo: req.user.photo
+        });
+    }
+    else {
+        res.status(401).json({ error: 'Not authenticated'});
+    }
+
+
 });
 
 router.post('/logout', async (req, res) => {
@@ -105,18 +106,6 @@ router.post('/logout', async (req, res) => {
         });
     });
 });
-
-router.get('/user', (req, res) => {
-    if(req.isAuthenticated()) {
-        // Only send safe user data to frontend - NEVER send accessToken
-        const { accessToken, ...safeUserData } = req.user;
-        res.json(safeUserData);
-    }else {
-        res.status(401).json({message: 'Not authenticated'});
-    }
-});
-
-
 
 router.get('/github',
     passport.authenticate('github', {
