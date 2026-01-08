@@ -11,6 +11,8 @@ import RoomChoice from './room-choice'
 import { SignInWithChromeIdentity, getUserInfoFromToken } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth'
 import { useChatSocket } from '../hooks/useChatSocket'
 
+import LiveStatistics from '@bsg/components/liveStatistics/liveStatistics';
+
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
 type Participant = { id: string; name?: string; avatarUrl?: string }
@@ -179,9 +181,26 @@ export default function App({ Component, pageProps }: AppProps) {
     )
   }
 
-  const participants: Participant[] = currentRoom.options?.participants || []
+  // Load participants from room options or use dummy data
+  const participants: Participant[] = currentRoom.options?.participants || [
+    { id: '1', name: 'Alice', avatarUrl: 'https://i.pravatar.cc/100?img=1' },
+    { id: '2', name: 'Bob', avatarUrl: 'https://i.pravatar.cc/100?img=2' },
+    { id: '3', name: 'Charlie', avatarUrl: 'https://i.pravatar.cc/100?img=3' }
+  ]
+
+  const leaderboardData = [
+    { id: "1", username: "player1", score: 9293 },
+    { id: "2", username: "player2", score: 8700 },
+    { id: "3", username: "player3", score: 12893 },
+    { id: "4", username: "player4", score: 2387 },
+    { id: "5", username: "player5", score: 8237 },
+    { id: "6", username: "player6", score: 3921 },
+    { id: "7", username: "player7", score: 10292 }
+  ]
 
   return (
+    <>
+    <LiveStatistics leaderboardData={leaderboardData}/>
     <div className="flex flex-col h-screen bg-[#262626]">
       <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -258,5 +277,6 @@ export default function App({ Component, pageProps }: AppProps) {
         </Button>
       </div>
     </div>
+    </>
   )
 }
