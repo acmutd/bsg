@@ -1,0 +1,6 @@
+.*
+!.gitignore
+!.env.example
+.env.local
+.env
+out/

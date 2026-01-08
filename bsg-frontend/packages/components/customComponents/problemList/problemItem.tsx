@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import Difficulty from '@bsg/models/Difficulty';
 

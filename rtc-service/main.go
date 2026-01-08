@@ -28,12 +28,17 @@ var (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  readBufferSize,
 	WriteBufferSize: writeBufferSize,
+	// IMPORTANT: Allow all origins. Chrome extensions send "chrome-extension://..." 
+	// which differs from "localhost", causing the default check to fail.
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 var serviceManager = servicesmanager.NewServiceManager()
 
 func main() {
-	logging.Info("Starting RTC Service")
+	logging.Info("Starting RTC Service on " + port)
 
 	http.HandleFunc(path, wsHandler)
 	log.Fatal(http.ListenAndServe(port, nil))
@@ -45,7 +50,6 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logging.Error("Failed to upgrade connection: ", err)
-		conn.Close()
 		return
 	}
 

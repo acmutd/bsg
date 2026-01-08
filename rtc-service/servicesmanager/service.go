@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/logging"
 	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/acmutd/bsg/rtc-service/response"
@@ -108,13 +109,35 @@ func (s *Service) ReadMessages() {
 					logging.Error("Failed to handle message: ", err)
 					s.Egress <- *response.NewErrorResponse(respType, err.Error(), roomID)
 				} else {
-					// Send the response back to the client.
-					s.Egress <- *response.NewOkResponse(respType, resp, roomID)
+					respObj := *response.NewOkResponse(respType, resp, roomID)
 
-					// Send the requests to the front-end
+					// Broadcast Logic
+					// If it's a chat message or announcement, send to everyone in the room
+					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT {
+						room := chatmanager.RTCChatManager.GetRoom(roomID)
+						if room != nil {
+							// Send to all users in the room
+							for user := range room.Users {
+								// Find the service associated with the user handle
+								// Note: This assumes the Service Name matches the User Handle
+								userService := s.ServiceManager.FindService(user.Handle)
+								if userService != nil {
+									userService.Egress <- respObj
+								}
+							}
+						} else {
+							// Fallback if room not found (shouldn't happen if logic is correct)
+							s.Egress <- respObj
+						}
+					} else {
+						// Default: Send the response back to the sender only
+						s.Egress <- respObj
+					}
+
+					// Send the requests to the front-end (Central Service)
 					frontEnd := s.ServiceManager.FindService(FRONT_END_SERVICE)
 					if frontEnd != nil {
-						frontEnd.Egress <- *response.NewOkResponse(respType, resp, roomID)
+						frontEnd.Egress <- respObj
 					}
 				}
 			}

@@ -11,7 +11,8 @@ module.exports = {
         '@bsg/ui-styles',
     ],
 
-    images: {
-        unoptimized: true,
-    },
+    //no need for this line extension does not user next/image components
+    // images: {
+    //     unoptimized: true,
+    // },
 }

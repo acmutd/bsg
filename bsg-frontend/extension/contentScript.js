@@ -208,6 +208,18 @@
   wrapper.appendChild(handle);
   wrapper.appendChild(panelWrapper);
   console.log('panel injected with resize handle (handle placed between content and panel)');
+
+  // Listen for auth state changes from extension
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'AUTH_STATE_CHANGED') {
+      console.log('Auth state changed, refreshing iframe:', message.user);
+
+      // Refresh the iframe to reflect new auth state
+      iframe.src = iframe.src;
+
+      sendResponse({ success: true });
+    }
+  });
     });
   })();
   

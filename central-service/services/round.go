@@ -33,10 +33,13 @@ type RoundCreationParameters struct {
 }
 
 type RoundSubmissionParameters struct {
-	RoundID   uint   `json:"roundID"`
-	Code      string `json:"code"`
-	Language  string `json:"language"`
-	ProblemID uint   `json:"problemID"`
+	RoundID		   uint `json:"roundID"`
+	ProblemID	   uint `json:"problemID"`
+	// Code      string `json:"code"`
+	// Language  string `json:"language"`
+	// Maybe the score could be related to proportion of test cases passed
+	// TotalCorrect   uint `json:"totalCorrect"`
+	// TotalTestcases uint `json:"totalTestcases"`
 }
 
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService, rtcClient *RTCClient) RoundService {
@@ -378,7 +381,7 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 
 func (service *RoundService) CreateRoundSubmission(
 	submissionParams RoundSubmissionParameters,
-	submissionAuthor *models.User,
+	submissionAuthor string,
 ) (*models.RoundSubmission, error) {
 	// get round object
 	round, err := service.FindRoundByID(submissionParams.RoundID)
@@ -419,7 +422,7 @@ func (service *RoundService) CreateRoundSubmission(
 	}
 
 	// find participant object with matching round id and user auth id
-	participant, err := service.FindParticipantByRoundAndUserID(submissionParams.RoundID, submissionAuthor.AuthID)
+	participant, err := service.FindParticipantByRoundAndUserID(submissionParams.RoundID, submissionAuthor)
 	if err != nil {
 		return nil, err
 	}
@@ -441,8 +444,8 @@ func (service *RoundService) CreateRoundSubmission(
 	// create submission object
 	newSubmission := models.RoundSubmission{
 		Submission: models.Submission{
-			Code:                submissionParams.Code,
-			Language:            submissionParams.Language,
+			// Code:                submissionParams.Code,
+			// Language:            submissionParams.Language,
 			ProblemID:           problem.ID,
 			ExecutionTime:       0,
 			Verdict:             constants.SUBMISSION_STATUS_SUBMITTED,
