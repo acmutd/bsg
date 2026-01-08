@@ -1,154 +1,142 @@
-"use client";
-import CreateRoom from "@bsg/components/createRoom/createRoom";
-import LogInForm from "@bsg/components/logInForm/logInForm";
-import {Button} from "@bsg/ui/button";
+import { Button } from "@bsg/ui/button";
 import Logo from "@bsg/components/Logo";
 import { useEffect, useState } from 'react';
-import { useNewTab } from '../hooks/useNewTab';
+import {Poppins} from 'next/font/google';
 
-// Define the user type
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    photo?: string;
+
+type AuthProvider = 'google' | 'github';
+
+interface User  {
+        id: string,
+        name: string,
+        email: string,
+        photo: string
 }
 
-export default function LogIn() {
-    const[loggingIn, isLoggingIn] = useState(false);
-    const[user, SetUser] = useState<User | null>(null);
-    const[loading, setLoading] = useState(true);
-    const[authProvider, setAuthProvider] = useState<'google' | 'github' | null>(null);
+const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
-    // Check if user is already logged in on component mount
-    useEffect(() => {
 
-        // Check if chrome API is available (only in extension context)
-        if (typeof chrome === 'undefined' || !chrome.storage) {
-            setLoading(false);
-            return;
-        }
+export default function UserLogIn() {
 
-        chrome.storage.local.get(['user'], (result) => {
-            if (result.user) {
-                // User found in storage check with the event listener
-                chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
-                    if (response && response.success) {
-                        SetUser(response.user);
-                    } 
+    const[user, setUser] = useState(false);
+    const[isloggedIn, setLoggedIn] = useState(false);
+    const[userProfile, setUserProfile] = useState<User | null>(null);
+    const[authProvider, setAuthProvider] = useState<AuthProvider | undefined>(undefined)
 
-                   setLoading(false);
-                });
-            } else {
-                setLoading(false);
-            }
-        });
-    }, []);
 
-    useEffect(() => {
-        if (!loggingIn || !authProvider) return;
+    const Login = async (Provider: AuthProvider) => {
+        
+        try{
+            
+            //Open the OAuth Window
+            const popup = window.open(`http://localhost:3000/auth/${Provider}`)
 
-        // Check if chrome API is available
-        if (typeof chrome === 'undefined' || !chrome.runtime) {
-            isLoggingIn(false);
-            return;
-        }
+            //Keep polling to see if auth is done or not
+            const checkAuth = async () => {
+                    
+                    //wait for response from the server
+                    const response = await fetch(`http://localhost:3000/auth/user`, {
+                                                method: "GET",
+                                                credentials: "include"
+                    });
 
-        // Open the OAuth window
-        const authWindow = window.open(`http://localhost:3000/auth/${authProvider}`) 
+                    if(response.ok){
+                        const userObject = await response.json()
+                        setLoggedIn(true)
+                        setUserProfile(userObject)
+                        popup?.close()
 
-        // Poll for authentication every second using background worker
-        const checkAuth = setInterval(() => {
-            // Send message to background worker to check auth
-            chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
-                if (response && response.success) {
-                    SetUser(response.user); // Save user to state
-                    authWindow?.close(); // Close the OAuth window
-                    clearInterval(checkAuth); // Stop polling
-                    isLoggingIn(false); // Reset logging in state
+                        return userObject;
+
+                    }else if (popup && !popup.closed){
+                        //Not Authenticated yet
+                        setTimeout(checkAuth, 1000);
+
+                    }
                 }
-                // Silently continue polling if not authenticated yet
-            });
-        }, 1000); // Check every 1 second
 
-        // Cleanup: stop polling after 2 minutes or when component unmounts
-        const timeout = setTimeout(() => {
-            clearInterval(checkAuth);
-            authWindow?.close();
-            isLoggingIn(false);
-        }, 120000); // 2 minutes timeout
 
-        // Cleanup function
-        return () => {
-            clearInterval(checkAuth);
-            clearTimeout(timeout);
-        };
-    }, [loggingIn, authProvider]); // Re-run when loggingIn and authProvider changes
+                setTimeout(checkAuth, 5000);
 
-    const handleLogout = () => {
-        // Check if chrome API is available
-        if (typeof chrome === 'undefined' || !chrome.runtime) {
-            SetUser(null);
+
+            }
+
+
+         catch (err) {
+            window.open("_blank")
+            console.warn("Authentication failed")
+
+        }
+    }
+
+    const Logout = () => {
+
+        let logoutAction;
+        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined' ){
+            logoutAction = chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
+                if(response == true){
+                    setLoggedIn(false)
+                }
+            })
+        }
+        return logoutAction;
+    }
+
+
+      //check if the user is logged in using the service worker
+    useEffect(() => {
+
+        //check if chrome api is available
+        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined'){
+        
+
+        if(isloggedIn){
+      
+                chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
+                    if(response && response.success){
+                    setUserProfile(response.user)
+                    setUser(true)
+                    setLoggedIn(true)
+                    }
+
+                })
+
+        }
+            
+        else{
+
             return;
+            }
         }
-
-        // Clear user from state and storage
-        chrome.runtime.sendMessage({ type: 'LOGOUT' }, () => {
-            SetUser(null);
-        });
-
-        
-    };
-
-    // Show loading state
-    if (loading) {
-        return (
-            <div className={'flex items-center justify-center min-h-screen'}>
-                <p>Loading...</p>
-            </div>
-        );
-    }
-
-    // Show user info if logged in
-    if (user) {
-        
-        if(authProvider === 'github'){
-          return (
-             <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
-                {user.photo && <img src={user.photo} alt={user.name} className="w-24 h-24 rounded-full" />}
-                <h1>Welcome, {user.name}!</h1>
-                <Button onClick={handleLogout}>Logout</Button>
-            </div>
-          ) 
-
-        }
-        
-
-        if(authProvider === 'google'){
-
-        return (
-            <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
-                {user.photo && <img src={user.photo} alt={user.name} className="w-24 h-24 rounded-full" />}
-                <h1>Welcome, {user.name}!</h1>
-                <Button onClick={handleLogout}>Logout</Button>
-            </div>
-        );
-        }
-
-    }
+            
+    }, [isloggedIn]);
 
     return (
-  
-            <div className={'flex flex-col items-center justify-center min-h-screen gap-4'}>
-                <Button onClick={() => {setAuthProvider('google'); isLoggingIn(true)}}>
-                    {loggingIn ? 'Signing in...' : 'Sign In With Google'}
-                </Button>
 
-                <Button onClick={() => {setAuthProvider('github');isLoggingIn(true)}}>
-                    {loggingIn ? 'Signing in...' : 'Sign In With GitHub'}
-                </Button>
-
+        <div className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
+          <div className="bg-[#333333] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
+            <div className="flex justify-center mb-2">
+              <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
             </div>
+            <div className="flex flex-col justify-center items-center gap-y-4">
 
-    );
+                {isloggedIn ? (   
+                    
+                    <div className="flex flex-col items-center justify-center">
+                        <p>Hello {userProfile?.name}</p>
+                        <img src={userProfile?.photo} className='flex flex-col gap-y-16 rounded-full'></img>
+                        <Button onClick={Logout}>Logout</Button> 
+                    </div>
+                ):(
+                    <Button onClick={async () => { await Login('google')}}>
+                        <span>Sign in with Google</span>
+                    </Button>
+                )}
+            </div>
+          </div>
+        </div>
+
+    )
+
 }
+

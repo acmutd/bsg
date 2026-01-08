@@ -51,7 +51,7 @@ async function doCopy(text) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
-    if (!request || reques.type !== 'COPY_TO_CLIPBOARD') {
+    if (!request || request.type !== 'COPY_TO_CLIPBOARD') {
 
       const text = request.text || '';
 
@@ -69,16 +69,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Fetch user data from localhost server
         fetch('http://localhost:3000/auth/user', {
             credentials: 'include',
+            method: 'GET'
         })
         .then(response => {
             if (response.ok) {
+                //return into JSON format because the network call made it a string
                 return response.json();
-                
             }
             throw new Error('Not authenticated');
 
         })
         .then(userData => {
+          console.log("User name:", userData.name)
             // Store user in Chrome storage for persistence
             chrome.storage.local.set({ user: userData }, () => {
                 sendResponse({ success: true, user: userData });
@@ -97,7 +99,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'LOGOUT') {
         // Clear user from Chrome storage
         fetch('http://localhost:3000/auth/logout', {
-            method: 'POST',
+            method: 'GET',
             credentials: 'include'
         })
         .then(() => {
@@ -114,14 +116,3 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 });
-
-
-
-
-
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-
-});
-
-

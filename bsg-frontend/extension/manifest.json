@@ -21,8 +21,6 @@
   "host_permissions": [
     "https://leetcode.com/*",
     "https://*.leetcode.com/*",
-    "https://*.googleapis.com/*",
-    "https://*.firebaseapp.com/*",
     "https://accounts.google.com/*",
     "http://localhost:3000/*"
   ],
@@ -37,7 +35,8 @@
       "resources": [
         "defaultPopup.html",
         "next/*",
-        "logIn.html"
+        "logIn.html",
+        "room-user.html"
       ],
       "matches": [
         "<all_urls>"
