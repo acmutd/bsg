@@ -51,7 +51,7 @@ async function doCopy(text) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
-    if (!request || request.type !== 'COPY_TO_CLIPBOARD') {
+    if (request && request.type === 'COPY_TO_CLIPBOARD') {
 
       const text = request.text || '';
 
@@ -66,12 +66,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.type === 'CHECK_AUTH') {
+        console.log("Background: Received CHECK_AUTH message");
         // Fetch user data from localhost server
         fetch('http://localhost:3000/auth/user', {
             credentials: 'include',
             method: 'GET'
         })
         .then(response => {
+            console.log("Background: Response status:", response.status, "OK:", response.ok);
             if (response.ok) {
                 //return into JSON format because the network call made it a string
                 return response.json();
@@ -80,13 +82,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         })
         .then(userData => {
-          console.log("User name:", userData.name)
+          console.log("Background: User name:", userData.name)
+          console.log("Background: Full user data:", userData)
             // Store user in Chrome storage for persistence
             chrome.storage.local.set({ user: userData }, () => {
+                console.log("Background: Sending success response");
                 sendResponse({ success: true, user: userData });
             });
         })
         .catch(error => {
+            console.log("Background: Caught error:", error.message);
             // Clear user from storage if not authenticated
             chrome.storage.local.remove('user', () => {
                 sendResponse({ success: false, error: error.message });
@@ -99,7 +104,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'LOGOUT') {
         // Clear user from Chrome storage
         fetch('http://localhost:3000/auth/logout', {
-            method: 'GET',
+            method: 'POST',
             credentials: 'include'
         })
         .then(() => {

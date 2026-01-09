@@ -69,47 +69,48 @@ export default function UserLogIn() {
         }
     }
 
-    const Logout = () => {
 
-        let logoutAction;
+
+
+    const Logout = () => {
+        console.log("Got inside of the logout function ")
+
         if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined' ){
-            logoutAction = chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
-                if(response == true){
+            chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
+                if(response && response.success){
                     setLoggedIn(false)
                 }
             })
         }
-        return logoutAction;
     }
+
+
 
 
       //check if the user is logged in using the service worker
     useEffect(() => {
+        console.log("useEffect running on mount");
 
         //check if chrome api is available
         if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined'){
-        
+                console.log("Sending CHECK_AUTH message");
 
-        if(isloggedIn){
-      
                 chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
+                    console.log("Received response from background:", response);
                     if(response && response.success){
+                    console.log("Auth successful, setting user:", response.user);
                     setUserProfile(response.user)
                     setUser(true)
                     setLoggedIn(true)
+                    } else {
+                    console.log("Auth failed or no session");
                     }
 
                 })
 
         }
-            
-        else{
 
-            return;
-            }
-        }
-            
-    }, [isloggedIn]);
+        }, []);
 
     return (
 
