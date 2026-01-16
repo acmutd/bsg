@@ -114,49 +114,32 @@ export default function RedirectionToRoomScreen() {
     joinRoom(roomCode);
   }
   
-  if(!loggedIn){
-      return (
-        <div className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
-          <div className="bg-[#333333] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
-            <div className="flex justify-center mb-2">
-              <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
-            </div>
-            <div className="flex flex-col justify-center items-center gap-y-4">
-              
-              <Button
-              //  onClick= { async () => {
-              //       const userObject = await Login('google')
 
-              //       if(userObject && userObject !== null){
-              //           setLoggedIn(true)
-              //           SetUser(true)
-              //           setUserProfile(userObject)
-              //       }
-              //     }}
-              //   className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
->
-                <span>Sign in with Google</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )
 
-  }
+// // Show RoomChoice if logged in and not yet in a room
+//     if (loggedIn && !currentRoom) {
+//         return (
+//           <RoomChoice
+//             onJoin={handleJoin}
+//             onCreate={handleCreate}
+//           />
+//         )
+//       }
 
-// Show RoomChoice if not yet in a room
-      if (!currentRoom || loggedIn) {
+//     if(!currentRoom){
+//       return (
+//         <RoomChoice 
+//             onJoin={handleJoin}
+//             onCreate={handleCreate}
+//         />
+//       )
+//     }
+
+      if(currentRoom){
+        
+        const participants: User[] = currentRoom.options?.participants || []
+
         return (
-          <RoomChoice
-            onJoin={handleJoin}
-            onCreate={handleCreate}
-          />
-        )
-      }
-
-      const participants: User[] = currentRoom.options?.participants || []
-
-      return (
         <div className="flex flex-col h-screen bg-[#262626]">
           <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -234,6 +217,17 @@ export default function RedirectionToRoomScreen() {
           </div>
         </div>
       )
+      }
+
+
+        return (
+          <RoomChoice
+            onJoin={handleJoin}
+            onCreate={handleCreate}
+          />
+        )
+
+
 
     }
 

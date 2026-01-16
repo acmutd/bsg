@@ -2,6 +2,7 @@ import { Button } from "@bsg/ui/button";
 import Logo from "@bsg/components/Logo";
 import { useEffect, useState } from 'react';
 import {Poppins} from 'next/font/google';
+import { useRouter } from 'next/router';
 
 
 type AuthProvider = 'google' | 'github';
@@ -23,6 +24,7 @@ export default function UserLogIn() {
     const[userProfile, setUserProfile] = useState<User | null>(null);
     const[authProvider, setAuthProvider] = useState<AuthProvider | undefined>(undefined)
 
+    const router = useRouter()
 
     const Login = async (Provider: AuthProvider) => {
         
@@ -102,6 +104,7 @@ export default function UserLogIn() {
                     setUserProfile(response.user)
                     setUser(true)
                     setLoggedIn(true)
+                    router.push('/room-user')
                     } else {
                     console.log("Auth failed or no session");
                     }
@@ -110,7 +113,7 @@ export default function UserLogIn() {
 
         }
 
-        }, []);
+        }, [isloggedIn, router]); //router because ESlint error nothing to do with re-render 
 
     return (
 
@@ -122,12 +125,7 @@ export default function UserLogIn() {
             <div className="flex flex-col justify-center items-center gap-y-4">
 
                 {isloggedIn ? (   
-                    
-                    <div className="flex flex-col items-center justify-center">
-                        <p>Hello {userProfile?.name}</p>
-                        <img src={userProfile?.photo} className='flex flex-col gap-y-16 rounded-full'></img>
-                        <Button onClick={Logout}>Logout</Button> 
-                    </div>
+                    <p>Hello {userProfile?.name}</p>
                 ):(
                     <Button onClick={async () => { await Login('google')}}>
                         <span>Sign in with Google</span>
