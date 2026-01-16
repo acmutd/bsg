@@ -115,6 +115,17 @@ export default function RedirectionToRoomScreen() {
   }
   
 
+    useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+        if (response?.success) {
+          setUserProfile(response.user)
+          setLoggedIn(true)
+        }
+      })
+    }
+  }, [])
+
 
 // // Show RoomChoice if logged in and not yet in a room
 //     if (loggedIn && !currentRoom) {
