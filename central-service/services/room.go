@@ -27,7 +27,8 @@ func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundSe
 }
 
 type RoomDTO struct {
-	Name string `json:"roomName"`
+	Name    string `json:"roomName"`
+	TTLType string `json:"ttlType" validate:"required,oneof=activity fixed_1h fixed_2h fixed_4h fixed_24h"`
 }
 
 // Creates a room and persist
@@ -36,17 +37,55 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	if err := validateRoomName(room.Name); err != nil {
 		return nil, err
 	}
+
+	now := time.Now()
+	var expiresAt *time.Time = nil
+
+	// Calculate expiresAt for fixed TTL modes
+	if room.TTLType != "activity" {
+		ttlHours := parseTTLType(room.TTLType)
+		if ttlHours > 0 {
+			exp := now.Add(time.Duration(ttlHours) * time.Hour)
+			expiresAt = &exp
+		}
+	}
+
 	newRoom := models.Room{
-		ID:     uuid.New(),
-		Name:   room.Name,
-		Admin:  adminID,
-		Rounds: []models.Round{},
+		ID:             uuid.New(),
+		Name:           room.Name,
+		Admin:          adminID,
+		Rounds:         []models.Round{},
+		LastActivityAt: now,
+		ExpiresAt:      expiresAt,
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	return &newRoom, nil
+}
+
+// Helper function to parse TTL type string to hours
+func parseTTLType(ttlType string) int {
+	switch ttlType {
+	case "fixed_1h":
+		return 1
+	case "fixed_2h":
+		return 2
+	case "fixed_4h":
+		return 4
+	case "fixed_24h":
+		return 24
+	default:
+		return 0
+	}
+}
+
+// Records activity on a room - updates last activity timestamp
+func (service *RoomService) recordActivity(roomID string) error {
+	return service.db.Model(&models.Room{}).
+		Where("id = ?", roomID).
+		Update("last_activity_at", time.Now()).Error
 }
 
 // Deletes leaderboard and join time stamps from Redis
@@ -127,6 +166,12 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			}
 		}
 	}
+
+	// Record activity
+	if err := service.recordActivity(roomID); err != nil {
+		log.Printf("Warning: Failed to record activity: %v", err)
+	}
+
 	return room, nil
 }
 
@@ -338,6 +383,12 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, err
 	}
+
+	// Record activity
+	if err := service.recordActivity(roomID); err != nil {
+		log.Printf("Warning: Failed to record activity: %v", err)
+	}
+
 	roundStartTime, err := service.roundService.InitiateRoundStart(&round, activeUsers)
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
@@ -348,6 +399,41 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 
 func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 	return service.roundService.GetLeaderboardByRoomID(roomID)
+}
+
+// Deletes all expired rooms (activity-based and fixed TTL)
+func (service *RoomService) DeleteExpiredRooms() error {
+	now := time.Now()
+	var expiredRooms []models.Room
+
+	// Find rooms with fixed TTL that have expired
+	if err := service.db.Where("expires_at IS NOT NULL AND expires_at <= ?", now).Find(&expiredRooms).Error; err != nil {
+		log.Printf("Error finding fixed TTL expired rooms: %v\n", err)
+		return err
+	}
+
+	// Find rooms with activity-based TTL (no activity for 30+ minutes)
+	thirtyMinsAgo := now.Add(-30 * time.Minute)
+	if err := service.db.Where("expires_at IS NULL AND last_activity_at <= ?", thirtyMinsAgo).Find(&expiredRooms).Error; err != nil {
+		log.Printf("Error finding activity-based expired rooms: %v\n", err)
+		return err
+	}
+
+	for _, room := range expiredRooms {
+		ttlMode := "activity"
+		if room.ExpiresAt != nil {
+			ttlMode = "fixed"
+		}
+
+		if err := service.deleteRoom(room); err != nil {
+			log.Printf("Error deleting expired room %s: %v\n", room.ID, err)
+			continue
+		}
+
+		log.Printf("Deleted expired room %s (TTL mode: %s)\n", room.ID, ttlMode)
+	}
+
+	return nil
 }
 
 func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, userID string) (*models.RoundSubmission, error) {
@@ -365,6 +451,12 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 		RoundID: round.ID,
 		ProblemID: problemID,
 	}
+
+	// Record activity
+	if err := service.recordActivity(roomID); err != nil {
+		log.Printf("Warning: Failed to record activity: %v", err)
+	}
+
 	result, err := service.roundService.CreateRoundSubmission(roundSubmissionParamters, userID)
 	if err != nil {
 		log.Printf("Error initiating creating round submission start: %v\n", err)
