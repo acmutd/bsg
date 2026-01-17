@@ -7,7 +7,8 @@
   },
   "permissions": [
     "tabs",
-    "identity"
+    "identity",
+    "storage"
   ],
   "oauth2": {
     "client_id": "497587004129-53bvvo3kf0naps52sst90f03fe168dc4.apps.googleusercontent.com",
@@ -21,8 +22,8 @@
     "https://leetcode.com/*",
     "https://*.leetcode.com/*",
     "https://*.googleapis.com/*",
-    "https://*.firebaseapp.com/*",
-    "https://accounts.google.com/*"
+    "https://accounts.google.com/*",
+    "http://localhost:3000/*"
   ],
   "action": {
     "default_popup": "defaultPopup.html"

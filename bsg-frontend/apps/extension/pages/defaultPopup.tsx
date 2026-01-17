@@ -7,8 +7,7 @@ import {useState} from 'react';
 
 export default function DefaultPopup() {
     const {redirectToLeetCode, isOnLeetCode} = useDefaultPopup();
-    const [showLogin, setShowLogin] = useState(false);
-    
+ 
     
     return (
         <div className={'my-5 mx-7'}>
