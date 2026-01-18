@@ -1038,8 +1038,8 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 3).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("INSERT(.*)").WithArgs(
-		"hello world",
-		"cpp",
+		"",
+		"",
 		1,
 		constants.SUBMISSION_STATUS_SUBMITTED,
 		0,
@@ -1057,10 +1057,8 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectCommit()
 	submissionData, err := roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 1,
-	}, newUser)
+	}, newUser.AuthID)
 	if err != nil {
 		t.Fatalf("Error making submission: %v\n", err)
 	}
@@ -1268,10 +1266,8 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	)
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 1,
-	}, newUser)
+	}, newUser.AuthID)
 	if err == nil {
 		t.Fatal("Failed to flag submission after round ended")
 	}
@@ -1432,12 +1428,10 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 1, mockRoomUUID.String(), constants.ROUND_CREATED))
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 1,
-	}, newUser)
+	}, newUser.AuthID)
 	if err == nil {
-		t.Fatal("Failed to flag submission after round ended")
+		t.Fatal("Failed to flag submission before round started")
 	}
 	serviceErr, isValidType := err.(*BSGError)
 	if !isValidType {
@@ -1601,12 +1595,10 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}))
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 1,
-	}, newUser)
+	}, newUser.AuthID)
 	if err == nil {
-		t.Fatal("Failed to flag submission after round ended")
+		t.Fatal("Failed to flag submission for user who hasn't joined")
 	}
 	serviceErr, isValidType := err.(*BSGError)
 	if !isValidType {
@@ -1818,10 +1810,8 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	)
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 2,
-	}, newUser)
+	}, newUser.AuthID)
 	if err == nil {
 		t.Fatal("Failed to flag invalid submission")
 	}
@@ -2047,8 +2037,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 3).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("INSERT(.*)").WithArgs(
-		"hello world",
-		"cpp",
+		"",
+		"",
 		1,
 		constants.SUBMISSION_STATUS_SUBMITTED,
 		0,
@@ -2066,10 +2056,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectCommit()
 	newSubmission, err := roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 1,
-	}, newUser)
+	}, newUser.AuthID)
 	if err != nil {
 		t.Fatalf("Error creating submission: %v\n", err)
 	}
@@ -2122,8 +2110,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 0).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("INSERT(.*)").WithArgs(
-		"hello world",
-		"cpp",
+		"",
+		"",
 		1,
 		constants.SUBMISSION_STATUS_SUBMITTED,
 		0,
@@ -2141,10 +2129,8 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectCommit()
 	_, err = roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
-		Code:      "hello world",
-		Language:  "cpp",
 		ProblemID: 1,
-	}, newUser)
+	}, newUser.AuthID)
 	if err != nil {
 		t.Fatalf("Error creating submission: %v\n", err)
 	}

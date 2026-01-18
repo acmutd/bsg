@@ -33,8 +33,8 @@ type RoundCreationParameters struct {
 }
 
 type RoundSubmissionParameters struct {
-	RoundID		   uint `json:"roundID"`
-	ProblemID	   uint `json:"problemID"`
+	RoundID   uint `json:"roundID"`
+	ProblemID uint `json:"problemID"`
 	// Code      string `json:"code"`
 	// Language  string `json:"language"`
 	// Maybe the score could be related to proportion of test cases passed
@@ -153,7 +153,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			log.Printf("Error sending round-start message: %v", err)
 			return nil, BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -234,7 +234,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 							log.Printf("Error sending round-end message: %v", err)
 							return BSGError{
 								StatusCode: 500,
-								Message: "Internal Server Error",
+								Message:    "Internal Server Error",
 							}
 						}
 					}
@@ -355,6 +355,7 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 	round *models.Round,
 ) (uint, error) {
 	var numACSubmissions uint
+	// Ensure table names are plural and strings use single quotes
 	result := service.db.Raw(`
 		SELECT 
 			count(*)
@@ -364,11 +365,12 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 			ON submissions.submission_owner_id = round_submissions.id
 		WHERE 
 			submissions.verdict = ?
-			AND submission.problem_id = ?
+			AND submissions.problem_id = ?
 			AND round_submissions.round_id = ?
 			AND round_submissions.round_participant_id = ?
-			AND submissions.submission_owner_type = "round_submissions"
+			AND submissions.submission_owner_type = 'round_submissions'
 	`, constants.SUBMISSION_STATUS_ACCEPTED, problem.ID, round.ID, participant.ID).Scan(&numACSubmissions)
+
 	if result.Error != nil {
 		return 0, result.Error
 	}
@@ -390,17 +392,11 @@ func (service *RoundService) CreateRoundSubmission(
 	}
 
 	if round.Status == constants.ROUND_CREATED {
-		return nil, &BSGError{
-			Message:    "Round haven't started yet",
-			StatusCode: 400,
-		}
+		return nil, &BSGError{Message: "Round haven't started yet", StatusCode: 400}
 	}
 
 	if round.Status == constants.ROUND_END {
-		return nil, &BSGError{
-			Message:    "Round already ended",
-			StatusCode: 400,
-		}
+		return nil, &BSGError{Message: "Round already ended", StatusCode: 400}
 	}
 
 	// get problem object
@@ -415,10 +411,7 @@ func (service *RoundService) CreateRoundSubmission(
 		return nil, err
 	}
 	if !problemInRoundProblemset {
-		return nil, &BSGError{
-			Message:    "Invalid problem.",
-			StatusCode: 400,
-		}
+		return nil, &BSGError{Message: "Invalid problem.", StatusCode: 400}
 	}
 
 	// find participant object with matching round id and user auth id
@@ -427,15 +420,10 @@ func (service *RoundService) CreateRoundSubmission(
 		return nil, err
 	}
 
-	// check if user joined round
 	if participant == nil {
-		return nil, &BSGError{
-			Message:    "User haven't joined round...",
-			StatusCode: 400,
-		}
+		return nil, &BSGError{Message: "User haven't joined round...", StatusCode: 400}
 	}
 
-	// determine score
 	problemScore, err := service.DetermineScoreDeltaForUserBySubmission(problem, participant, round)
 	if err != nil {
 		return nil, err
