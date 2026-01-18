@@ -148,6 +148,22 @@ func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(ra
             scoreToAdd = egressQueueService.roundService.problemAccessor.GetProblemAccessor().DetermineScoreForProblem(&problem)
             lbUserID = uint(submission.SubmissionOwnerID)
         }
+
+		if lbUserID != 0 {
+			var existingAcceptedCount int64
+			err := egressQueueService.db.Table("submissions").
+				Select("submissions.id").
+				Joins("LEFT JOIN round_submissions rs ON submissions.submission_owner_id = rs.id AND submissions.submission_owner_type = 'round_submissions'").
+				Joins("LEFT JOIN round_participants rp ON rs.round_participant_id = rp.id").
+				Joins("LEFT JOIN users u ON (u.id = submissions.submission_owner_id AND submissions.submission_owner_type = 'user') OR (u.auth_id = rp.participant_auth_id)").
+				Where("submissions.problem_id = ? AND submissions.verdict = ? AND u.id = ? AND submissions.id <> ?", 
+					submission.ProblemID, constants.SUBMISSION_STATUS_ACCEPTED, lbUserID, submission.ID).
+				Count(&existingAcceptedCount).Error
+
+			if err == nil && existingAcceptedCount > 0 {
+				scoreToAdd = 0
+			}
+		}
     }
 
 	// update verdict in database
