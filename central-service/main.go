@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -89,6 +90,19 @@ func main() {
 
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
+
+	// Start TTL background worker to clean up expired rooms
+	ttlScheduler := tasks.New()
+	defer ttlScheduler.Stop()
+	ttlScheduler.Add(&tasks.Task{
+		Interval: 5 * time.Minute,
+		TaskFunc: func() error {
+			if err := roomService.DeleteExpiredRooms(); err != nil {
+				log.Printf("Error deleting expired rooms: %v\n", err)
+			}
+			return nil
+		},
+	})
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
