@@ -25,7 +25,6 @@ services:
     build: ./rtc-service
     ports:
       - 5001:8080
-      - 8080:8080
   worker-service:
     build: ./worker-service
     environment:

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/acmutd/bsg/central-service/constants"
 	kafka_utils "github.com/acmutd/bsg/central-service/kafka"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -80,14 +81,15 @@ func (ingressQueueService *SubmissionIngressQueueService) MessageDeliveryHandler
 }
 
 type SubmissionEgressQueueService struct {
-	consumer *kafka.Consumer
-	db *gorm.DB
+	consumer     *kafka.Consumer
+	db           *gorm.DB
+	roundService *RoundService // Added dependency
 }
 
-func NewSubmissionEgressQueueService(db *gorm.DB) SubmissionEgressQueueService {
+func NewSubmissionEgressQueueService(db *gorm.DB, roundService *RoundService) SubmissionEgressQueueService {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": os.Getenv("KAFKA_BROKER"),
-		"group.id": os.Getenv("KAFKA_CENTRAL_SERVICE_GID"),
+		"group.id":          os.Getenv("KAFKA_CENTRAL_SERVICE_GID"),
 		"auto.offset.reset": "smallest",
 	})
 	if err != nil {
@@ -98,37 +100,95 @@ func NewSubmissionEgressQueueService(db *gorm.DB) SubmissionEgressQueueService {
 		log.Fatalf("Error subscribing to egress topic: %v\n", err)
 	}
 	return SubmissionEgressQueueService{
-		consumer,
-		db,
+		consumer:     consumer,
+		db:           db,
+		roundService: roundService,
 	}
 }
 
-func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(rawSubmissionData []byte) error  {
+func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(rawSubmissionData []byte) error {
 	var payload kafka_utils.KafkaEgressDTO
 	if err := json.Unmarshal(rawSubmissionData, &payload); err != nil {
 		return err
 	}
-	// fetch submission object
+
 	var submission models.Submission
 	result := egressQueueService.db.Where("ID = ?", payload.SubmissionId).Limit(1).Find(&submission)
 	if result.Error != nil {
-		return &BSGError{
-			StatusCode: 500,
-			Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error()),
-		}
+		return &BSGError{StatusCode: 500, Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error())}
 	}
 	if result.RowsAffected == 0 {
-		return &BSGError{
-			StatusCode: 404,
-			Message: "Submission not found",
-		}
+		return &BSGError{StatusCode: 404, Message: "Submission not found"}
 	}
-	// update verdict
+
+	var scoreToAdd uint = 0
+    var problem models.Problem
+    var lbUserID uint = 0
+
+    if payload.Verdict == constants.SUBMISSION_STATUS_ACCEPTED {
+        egressQueueService.db.First(&problem, submission.ProblemID)
+
+        if submission.SubmissionOwnerType == "round_submissions" {
+            var roundSubmission models.RoundSubmission
+            err := egressQueueService.db.Preload("Round").Preload("RoundParticipant").First(&roundSubmission, submission.SubmissionOwnerID).Error
+            if err == nil {
+                scoreToAdd, _ = egressQueueService.roundService.DetermineScoreDeltaForUserBySubmission(
+                    &problem,
+                    &roundSubmission.RoundParticipant,
+                    &roundSubmission.Round,
+                )
+                
+                var user models.User
+                if err := egressQueueService.db.Where("auth_id = ?", roundSubmission.RoundParticipant.ParticipantAuthID).First(&user).Error; err == nil {
+                    lbUserID = user.ID
+                }
+            }
+        } else {
+            // honestly no clue when this would get hit
+            scoreToAdd = egressQueueService.roundService.problemAccessor.GetProblemAccessor().DetermineScoreForProblem(&problem)
+            lbUserID = uint(submission.SubmissionOwnerID)
+        }
+
+		if lbUserID != 0 {
+			var existingAcceptedCount int64
+			err := egressQueueService.db.Table("submissions").
+				Select("submissions.id").
+				Joins("LEFT JOIN round_submissions rs ON submissions.submission_owner_id = rs.id AND submissions.submission_owner_type = 'round_submissions'").
+				Joins("LEFT JOIN round_participants rp ON rs.round_participant_id = rp.id").
+				Joins("LEFT JOIN users u ON (u.id = submissions.submission_owner_id AND submissions.submission_owner_type = 'user') OR (u.auth_id = rp.participant_auth_id)").
+				Where("submissions.problem_id = ? AND submissions.verdict = ? AND u.id = ? AND submissions.id <> ?", 
+					submission.ProblemID, constants.SUBMISSION_STATUS_ACCEPTED, lbUserID, submission.ID).
+				Count(&existingAcceptedCount).Error
+
+			if err == nil && existingAcceptedCount > 0 {
+				scoreToAdd = 0
+			}
+		}
+    }
+
+	// update verdict in database
 	result = egressQueueService.db.Model(&submission).Update("verdict", payload.Verdict)
 	if result.Error != nil {
-		return &BSGError{
-			StatusCode: 500,
-			Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error()),
+		return &BSGError{StatusCode: 500, Message: fmt.Sprintf("Internal Server Error: %v", result.Error.Error())}
+	}
+
+	// update leaderboard if points awarded
+	if payload.Verdict == constants.SUBMISSION_STATUS_ACCEPTED && scoreToAdd > 0 {
+		var lb models.Leaderboard
+		egressQueueService.db.FirstOrCreate(&lb, models.Leaderboard{UserID: lbUserID})
+
+		switch problem.Difficulty {
+		case constants.DIFFICULTY_EASY:
+			lb.EasySolved++
+		case constants.DIFFICULTY_MEDIUM:
+			lb.MediumSolved++
+		case constants.DIFFICULTY_HARD:
+			lb.HardSolved++
+		}
+		lb.TotalScore += scoreToAdd
+
+		if err := egressQueueService.db.Save(&lb).Error; err != nil {
+			return err
 		}
 	}
 	return nil

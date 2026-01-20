@@ -51,6 +51,11 @@ func main() {
 	if err := db.AutoMigrate(&models.RoundSubmission{}); err != nil {
 		fmt.Printf("Error migrating RoundSubmission schema: %v\n", err)
 	}
+
+	if err := db.AutoMigrate(&models.Leaderboard{}); err != nil {
+    	fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
+	}
+
 	// Initialize Kafka-related components
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
@@ -61,34 +66,35 @@ func main() {
 		log.Fatalf("Error creating Kafka Egress topic: %v\n", err)
 	}
 	ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
-	egressQueue := services.NewSubmissionEgressQueueService(db)
 
-	// Create a co-routine to listen for messages and handle delivery coming from Kafka and update database
-	go egressQueue.ListenForSubmissionData()
-	go ingressQueue.MessageDeliveryHandler()
-
-	// Create new RTC client
 	rtcClient, err := services.InitializeRTCClient("central-service")
 	if err != nil {
 		log.Fatalf("Error creating RTC Client: %v\n", err)
 	}
 	defer rtcClient.Close()
 
-	e := echo.New()
-
+	// needed for round service
 	userService := services.InitializeUserService(db)
-	userController := controllers.InitializeUserController(&userService)
-
 	problemService := services.InitializeProblemService(db)
-	problemController := controllers.InitializeProblemController(&problemService)
-
 	problemAccessor := services.NewProblemAccessor(&problemService)
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
-	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue, rtcClient)
 
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue, rtcClient)
+	egressQueue := services.NewSubmissionEgressQueueService(db, &roundService)
+
+	// co routine to listen for submission data
+	go egressQueue.ListenForSubmissionData()
+	go ingressQueue.MessageDeliveryHandler()
+
+	e := echo.New()
+
+	userController := controllers.InitializeUserController(&userService)
+	problemController := controllers.InitializeProblemController(&problemService)
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
+	lbService := services.InitializeLeaderboardService(db)
+	lbController := controllers.InitializeLeaderboardController(&lbService)
 
 	e.Use(middleware.CORS())
 	e.Use(userController.ValidateUserRequest)
@@ -96,6 +102,7 @@ func main() {
 	userController.InitializeRoutes(e.Group("/api/users"))
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
+	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
 
 	e.Logger.Fatal(e.Start(":5000"))
 }
