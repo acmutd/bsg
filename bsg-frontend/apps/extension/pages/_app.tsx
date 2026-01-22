@@ -12,6 +12,12 @@ import { SignInWithChromeIdentity, getUserInfoFromToken } from '../firebase/auth
 import { useChatSocket } from '../hooks/useChatSocket'
 
 import LiveStatistics from '@bsg/components/liveStatistics/liveStatistics';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@bsg/ui/accordion"
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
@@ -188,19 +194,39 @@ export default function App({ Component, pageProps }: AppProps) {
     { id: '3', name: 'Charlie', avatarUrl: 'https://i.pravatar.cc/100?img=3' }
   ]
 
-  const leaderboardData = [
-    { id: "1", username: "player1", score: 9293 },
-    { id: "2", username: "player2", score: 8700 },
-    { id: "3", username: "player3", score: 12893 },
-    { id: "4", username: "player4", score: 2387 },
-    { id: "5", username: "player5", score: 8237 },
-    { id: "6", username: "player6", score: 3921 },
-    { id: "7", username: "player7", score: 10292 }
+  const participants2 = [
+    { id: "1", username: "player1", defaultColor: "red", currentProblemIndex: 3, score: 9293 },
+    { id: "2", username: "player2", defaultColor: "orange", currentProblemIndex: 3, score: 8700 },
+    { id: "3", username: "player3", defaultColor: "yellow", currentProblemIndex: null, score: 12893 },
+    { id: "4", username: "player4", defaultColor: "green", currentProblemIndex: 1, score: 2387 },
+    { id: "5", username: "player5", defaultColor: "blue", currentProblemIndex: 3, score: 8237 },
+    { id: "6", username: "player6", defaultColor: "purple", currentProblemIndex: 2, score: 3921 },
+    { id: "7", username: "player7", defaultColor: "sky", currentProblemIndex: null, score: 10292 }
+  ]
+
+  const problems = [
+    { id: 1, title: "Two Sum", difficulty: 0, tags: ["Array", "Hash Table"]},
+    { id: 2, title: "Add Two Numbers", difficulty: 1, tags: ["Linked List", "Math", "Recursion"]},
+    { id: 3, title: "Longest Substring Without Repeating Characters", difficulty: 1, tags: ["Hash Table", "String", "Sliding Window"]},
+    { id: 4, title: "Median of Two Sorted Arrays", difficulty: 2, tags: ["Array", "Binary Search", "Divide and Conquer"]}
   ]
 
   return (
     <>
-    <LiveStatistics leaderboardData={leaderboardData}/>
+    <Accordion type="single" collapsible>
+      <AccordionItem value="live-statistics">
+        <AccordionTrigger className="p-4 items-center hover:no-underline">
+          Live Statistics
+        </AccordionTrigger>
+        <AccordionContent>
+          <LiveStatistics 
+            className="pt-0"
+            problems={problems}
+            participants={participants2}
+          />
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
     <div className="flex flex-col h-screen bg-[#262626]">
       <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">

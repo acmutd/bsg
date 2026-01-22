@@ -11,54 +11,48 @@ import {
     TableCaption
 } from "@bsg/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@bsg/ui/avatar"
-
-export type LeaderboardEntry = {
-    id: string
-    username: string
-    score: number
-    avatarUrl?: string
-}
+import { Participant } from "@bsg/models/Participant"
 
 type LeaderboardProps = {
-    entries: LeaderboardEntry[]
+    participants: Participant[]
 }
 
-const Leaderboard = ({ entries }: LeaderboardProps) => {
+const Leaderboard = ({ participants }: LeaderboardProps) => {
 
-    const sortedEntries = [...entries].sort((a, b) => b.score - a.score)
+    const sortedEntries = [...participants].sort((a, b) => b.score - a.score)
 
     return (
-        <div className="rounded-lg overflow-hidden">
+        <div className="w-full rounded-lg overflow-hidden bg-muted/5">
             <h2 className="flex h-12 text-base font-semibold justify-center items-center">Leaderboard</h2>
             <ScrollArea className="h-36">
                 <Table>
                     <TableBody className="[&_tr:nth-child(odd)]:bg-muted/5 [&_tr:nth-child(odd):hover]:bg-muted/25 [&_tr:hover]:bg-muted/25">
-                        {sortedEntries.map((entry, index) => (
-                            <TableRow key={index} className="border-none">
+                        {sortedEntries.map((participant, i) => (
+                            <TableRow key={participant.id} className="border-none">
 
                                 {/* Rank */}
-                                {index <= 2 && <TableCell className="px-4 py-0 text-lg">
-                                    {index === 0 && "🥇"}
-                                    {index === 1 && "🥈"}
-                                    {index === 2 && "🥉"}
+                                {i <= 2 && <TableCell className="px-4 py-0 text-lg">
+                                    {i == 0 && "🥇"}
+                                    {i == 1 && "🥈"}
+                                    {i == 2 && "🥉"}
                                 </TableCell>}
-                                {index > 2 && <TableCell className="px-4 py-0 text-base">
-                                    {index + 1 + "th"}
+                                {i > 2 && <TableCell className="px-4 py-0 text-base">
+                                    {i + 1 + "th"}
                                 </TableCell>}
 
                                 {/* User */}
                                 <TableCell className="flex gap-2 p-3">
                                     <Avatar className="h-6 w-6">
-                                        <AvatarImage src={entry.avatarUrl} />
-                                        <AvatarFallback>
-                                            {entry.username[0]?.toUpperCase()}
+                                        <AvatarImage src={participant.avatarUrl} />
+                                        <AvatarFallback color={participant.defaultColor}>
+                                            {participant.username[0]?.toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
-                                    {entry.username}
+                                    {participant.username}
                                 </TableCell>
 
                                 {/* Score */}
-                                <TableCell className="p-3">{entry.score}</TableCell>
+                                <TableCell className="p-3">{participant.score}</TableCell>
 
                             </TableRow>
                         ))}

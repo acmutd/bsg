@@ -18,7 +18,6 @@
     "@types/chrome": "^0.0.317"
   },
   "dependencies": {
-    "@radix-ui/react-avatar": "^1.1.11",
     "firebase": "^11.9.1"
   }
 }
