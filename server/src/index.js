@@ -33,7 +33,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Logger middleware (must come AFTER session middleware)
-app.use(logger);
+// app.use(logger); only for development, lets not log every session id in production lmfao
 
 
 const authRoutes = require('./routes/auth');
@@ -42,6 +42,6 @@ app.use('/auth', authRoutes);
 
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
-    
+
 });
 
