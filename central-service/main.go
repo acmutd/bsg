@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -91,6 +92,10 @@ func main() {
 
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
+	fmt.Println("Room controller initialized")
+
+	submissionController := controllers.InitializeSubmissionController(&roomService)
+	fmt.Println("Submission controller initialized")
 
 	e.Use(middleware.CORS())
 	//e.Use(userController.ValidateUserRequest) //temp disabled for testing
@@ -106,8 +111,18 @@ func main() {
 	})
 
 	userController.InitializeRoutes(e.Group("/api/users"))
+	fmt.Println("User routes initialized")
 	problemController.InitializeRoutes(e.Group("/api/problems"))
+	fmt.Println("Problem routes initialized")
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
+	fmt.Println("Room routes initialized")
+	submissionController.InitializeRoutes(e.Group("/api/submissions"))
+	fmt.Println("Submission routes initialized")
+
+	// Add a simple health check
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
 
 	e.Logger.Fatal(e.Start(":5000"))
 }

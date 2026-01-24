@@ -58,6 +58,61 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // Async response
   }
 
+  // --- Submission Logic ---
+  if (msg.type === 'SUBMISSION_SUCCESS') {
+    const { problemSlug, verdict } = msg.payload;
+    console.log('Processing submission:', problemSlug, verdict);
+
+    chrome.storage.local.get(['session'], (result) => {
+      const session = result.session || {};
+      const currentRoom = session.currentRoom;
+      const userProfile = session.userProfile;
+      
+      if (!currentRoom) {
+        console.warn('No active room found');
+        return;
+      }
+
+      // Send submission announcement via RTC (same as chat messages)
+      const rtcMessage = {
+        name: userProfile?.id || 'anonymous',
+        "request-type": "new-submission",
+        data: JSON.stringify({
+          userHandle: userProfile?.email || 'anonymous',
+          roomID: currentRoom.code,
+          problemID: problemSlug,
+          verdict: verdict
+        })
+      };
+
+      // Send to RTC service
+      const rtcSocket = new WebSocket('ws://localhost:5001/ws');
+      rtcSocket.onopen = () => {
+        rtcSocket.send(JSON.stringify(rtcMessage));
+        console.log('Submission announcement sent to RTC');
+        rtcSocket.close();
+      };
+      rtcSocket.onerror = (error) => {
+        console.error('RTC WebSocket error:', error);
+      };
+      rtcSocket.onclose = (event) => {
+        if (event.code !== 1000) {
+          console.error('RTC WebSocket closed unexpectedly:', event.code, event.reason);
+        }
+      };
+      
+      // Show local notification
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icon128.png',
+        title: 'BSG - Problem Solved!',
+        message: `You solved ${problemSlug}!`
+      });
+    });
+
+    return true;
+  }
+
   // Handle other messages or return false
   return false;
 });

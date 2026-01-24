@@ -55,10 +55,10 @@ export default function App({ Component, pageProps }: AppProps) {
     console.log('🎮 Starting round...');
 
     try {
-      const token = await auth?.currentUser?.getIdToken();
+      let token = await auth?.currentUser?.getIdToken();
       if (!token) {
-        console.error('No auth token available');
-        return;
+        console.warn('⚠️ No auth token available, using dummy token for local testing');
+        token = 'dummy-token-123';
       }
 
       // First, fetch the room to get the round details with problems

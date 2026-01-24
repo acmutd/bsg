@@ -30,6 +30,17 @@ type RoomDTO struct {
 	Name string `json:"roomName"`
 }
 
+type SubmissionRequest struct {
+	RoomID      string `json:"roomID"`
+	ProblemSlug string `json:"problemSlug"`
+	Verdict     string `json:"verdict"`
+}
+
+type SubmissionResult struct {
+	NextProblem interface{} `json:"nextProblem"`
+	IsComplete  bool        `json:"isComplete"`
+}
+
 // Creates a room and persist
 // adminID is the the user that will be assigned room leader
 func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.Room, error) {
@@ -370,5 +381,40 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 		log.Printf("Error initiating creating round submission start: %v\n", err)
 		return nil, err
 	}
+	return result, nil
+}
+
+func (service *RoomService) ProcessSubmissionSuccess(roomID string, userID string, problemSlug string, verdict string) (*SubmissionResult, error) {
+	// Find the room
+	_, err := service.FindRoomByID(roomID)
+	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
+		return nil, err
+	}
+
+	// Get user handle (for now, use the email part of userID)
+	userHandle := userID
+
+	// Send RTC message for new submission
+	rtcMessage := requests.NewSubmissionRequest{
+		UserHandle: userHandle,
+		RoomID:     roomID,
+		ProblemID:  problemSlug, // Use slug as problemID for now
+		Verdict:    verdict,
+	}
+
+	// Send the RTC message
+	_, err = service.rtcClient.SendMessage("new-submission", rtcMessage)
+	if err != nil {
+		log.Printf("Error sending RTC message: %v\n", err)
+		// Don't return error - the submission was still processed
+	}
+
+	// For now, return a simple result
+	result := &SubmissionResult{
+		NextProblem: nil,
+		IsComplete:  false,
+	}
+
 	return result, nil
 }

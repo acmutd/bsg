@@ -215,6 +215,159 @@
     wrapper.appendChild(panelWrapper);
     console.log('panel injected with resize handle (handle placed between content and panel)');
 
+    // DOM Observer for LeetCode submissions
+    function observeLeetCodeSubmissions() {
+      console.log('BSG: Setting up DOM observer for LeetCode submissions');
+      
+      // Track if we've already processed the current success state
+      let isCurrentlySuccess = false;
+      
+      // Observer for submission results
+      const submissionObserver = new MutationObserver((mutations) => {
+        let hasRelevantChanges = false;
+        
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            // Check if new nodes were added that might contain submission results
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node;
+                if (element.matches && (
+                  element.matches('[data-e2e-locator="submission-result"]') ||
+                  element.matches('[class*="success"]') ||
+                  element.matches('[class*="accepted"]') ||
+                  element.querySelector('[data-e2e-locator="submission-result"]') ||
+                  element.querySelector('[class*="success"]') ||
+                  element.querySelector('[class*="accepted"]')
+                )) {
+                  hasRelevantChanges = true;
+                }
+              }
+            });
+          } else if (mutation.type === 'attributes') {
+            // Check if attributes changed on submission-related elements
+            const element = mutation.target;
+            if (element.matches && (
+              element.matches('[data-e2e-locator="submission-result"]') ||
+              element.matches('[class*="success"]') ||
+              element.matches('[class*="accepted"]')
+            )) {
+              hasRelevantChanges = true;
+            }
+          }
+        });
+        
+        // Only check if there are relevant changes
+        if (hasRelevantChanges) {
+          checkForSubmissionSuccess();
+        }
+      });
+
+      // Start observing the document body for changes
+      submissionObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'data-e2e-locator']
+      });
+
+      // Check less frequently and only when needed
+      setInterval(() => {
+        const currentSuccess = checkForSubmissionSuccess(false);
+        if (currentSuccess !== isCurrentlySuccess) {
+          isCurrentlySuccess = currentSuccess;
+          if (currentSuccess) {
+            checkForSubmissionSuccess(true);
+          }
+        }
+      }, 3000);
+      
+      // Initial check
+      setTimeout(() => checkForSubmissionSuccess(true), 1000);
+    }
+
+    function checkForSubmissionSuccess(sendMessage = true) {
+      // Look for success indicators in LeetCode UI
+      const successSelectors = [
+        '[data-e2e-locator="submission-result"]',
+        '.success__3Ai7',
+        '.accepted__1DbL',
+        '[class*="success"]',
+        '[class*="accepted"]',
+        '.text-success',
+        '.status-success',
+        '[data-e2e-locator="submission-status"]',
+        '.submission-status',
+        '[class*="Status"]'
+      ];
+
+      let foundSuccess = false;
+      let problemSlug = null;
+
+      // Extract problem slug from URL
+      const slugMatch = window.location.pathname.match(/\/problems\/([^\/]+)\//);
+      problemSlug = slugMatch ? slugMatch[1] : null;
+
+      // Check for success elements
+      for (const selector of successSelectors) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          const text = element.textContent || '';
+          if (text.includes('Accepted') || text.includes('Success') || text.includes('Correct')) {
+            foundSuccess = true;
+            if (sendMessage) {
+              console.log('BSG: Found success element:', selector, element, 'Text:', text);
+            }
+          }
+        });
+      }
+
+      // Also check for any element with "Accepted" text (broader search)
+      if (!foundSuccess) {
+        const allElements = document.querySelectorAll('*');
+        for (const element of allElements) {
+          const text = element.textContent || '';
+          if (text.includes('Accepted') && element.children.length === 0) {
+            // Prefer text nodes without children to avoid false positives
+            foundSuccess = true;
+            if (sendMessage) {
+              console.log('BSG: Found Accepted text in element:', element);
+            }
+            break;
+          }
+        }
+      }
+
+      if (foundSuccess && problemSlug && sendMessage) {
+        console.log('BSG: Submission success detected for problem:', problemSlug);
+        
+        // Prevent duplicate submissions
+        const lastSubmission = window.bsgLastSubmission;
+        const now = Date.now();
+        if (lastSubmission && lastSubmission.problemSlug === problemSlug && (now - lastSubmission.time) < 2000) {
+          console.log('BSG: Ignoring duplicate submission');
+          return foundSuccess;
+        }
+
+        window.bsgLastSubmission = { problemSlug, time: now };
+
+        // Send submission to background script
+        chrome.runtime.sendMessage({
+          type: 'SUBMISSION_SUCCESS',
+          payload: {
+            problemSlug: problemSlug,
+            verdict: 'Accepted',
+            submissionId: Date.now().toString()
+          }
+        });
+      }
+
+      return foundSuccess;
+    }
+
+    // Start the observer
+    observeLeetCodeSubmissions();
+
     // Listen for auth state changes from extension
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'AUTH_STATE_CHANGED') {
@@ -224,6 +377,26 @@
         iframe.src = iframe.src;
 
         sendResponse({ success: true });
+      }
+    });
+
+    // Inject overwriteFetch.js (keep as backup)
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('overwriteFetch.js');
+    (document.head || document.documentElement).appendChild(script);
+    script.onload = function () {
+      script.remove();
+    };
+
+    // Listen for messages from overwriteFetch.js (backup method)
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      if (event.data.type === 'BSG_SUBMISSION_SUCCESS') {
+        console.log('BSG: Relaying submission to background (backup method)', event.data.payload);
+        chrome.runtime.sendMessage({
+          type: 'SUBMISSION_SUCCESS',
+          payload: event.data.payload
+        });
       }
     });
   });
