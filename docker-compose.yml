@@ -21,6 +21,7 @@ services:
       KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
       KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
       KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
+      SERVER_SECRET: ${SERVER_SECRET}
   rtc-service:
     build: ./rtc-service
     ports:
@@ -86,6 +87,19 @@ services:
     volumes:
       - redisinsight-volume:/data
     restart: always
+
+  server:
+    build: ./server
+    ports:
+      - 3000:3000
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SERVER_SECRET=${SERVER_SECRET}
+      - CENTRAL_SERVICE_URL=http://central-service:5000
 
 volumes:
   db-volume:
