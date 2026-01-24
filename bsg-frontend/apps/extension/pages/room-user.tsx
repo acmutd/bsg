@@ -85,7 +85,10 @@ export default function RedirectionToRoomScreen() {
     if (!text || !currentRoom) return
 
     // Send message via WebSocket
-    sendChatMessage(currentRoom.code, text);
+    sendChatMessage(currentRoom.code, text, {
+      name: userProfile?.name || 'Unknown', 
+      photo: userProfile?.photo 
+    });
 
     // REMOVED: Optimistic update.
     // The server will echo the message back to us, so we don't need to add it manually here.
@@ -195,9 +198,17 @@ export default function RedirectionToRoomScreen() {
                         {msg.data}
                     </div>
                  ) : (
-                    <div className={`${msg.userHandle === userProfile?.id ? 'bg-green-600 self-end ml-auto' : 'bg-gray-700 self-start'} text-white p-2 rounded-lg max-w-xs break-words`}>
-                        <div className="text-xs text-gray-300 mb-1">{msg.userHandle === userProfile?.id ? 'You' : msg.userHandle}</div>
-                        {msg.data}
+                    <div className={`${msg.userHandle === userProfile?.id ? 'self-end ml-auto' : 'self-start'} flex items-end gap-2 max-w-xs`}>
+                        {msg.userHandle !== userProfile?.id && (
+                           <img src={msg.userPhoto} alt={msg.userName} className="w-6 h-6 rounded-full mb-1 border border-gray-600 object-cover" />
+                        )}
+                        <div className={`${msg.userHandle === userProfile?.id ? 'bg-green-600' : 'bg-gray-700'} text-white p-2 rounded-lg break-words`}>
+                            <div className="text-xs text-gray-300 mb-1">{msg.userHandle === userProfile?.id ? 'You' : (msg.userName || msg.userHandle)}</div>
+                            {msg.data}
+                        </div>
+                         {msg.userHandle === userProfile?.id && (
+                           <img src={userProfile?.photo} alt="You" className="w-6 h-6 rounded-full mb-1 border border-green-500 object-cover" />
+                        )}
                     </div>
                  )}
               </div>

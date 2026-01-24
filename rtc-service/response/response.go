@@ -33,6 +33,8 @@ type responseMessage struct {
 	RoomID     string `json:"roomID"` // Field is empty if the response is any other type.
 	Data       string `json:"data"`
 	UserHandle string `json:"userHandle"` // Field is empty if response isn't chat_message
+	UserName   string `json:"userName"`
+	UserPhoto  string `json:"userPhoto"`
 }
 
 // NewErrorResponse creates a new error response.
@@ -54,6 +56,8 @@ func NewErrorResponse(responseType ResponseType, message string, roomID string) 
 // NewOkResponse creates a new ok response.
 func NewOkResponse(responseType ResponseType, message string, roomID string) *Response {
 	userHandle := ""
+	userName := ""
+	userPhoto := ""
 	data := message
 	
 	if responseType == CHAT_MESSAGE && message != "" {
@@ -62,6 +66,8 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 		err := json.Unmarshal([]byte(message), &chatData)
 		if err == nil {
 			userHandle = chatData["userHandle"]
+			userName = chatData["userName"]
+			userPhoto = chatData["userPhoto"]
 			data = chatData["message"]
 		} else {
 			// Fallback to old format for compatibility if needed
@@ -76,6 +82,8 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 	respMessage := responseMessage{
 		Data:       data,
 		UserHandle: userHandle,
+		UserName:   userName,
+		UserPhoto:  userPhoto,
 	}
 
 	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
