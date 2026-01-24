@@ -22,11 +22,11 @@ const Leaderboard = ({ participants }: LeaderboardProps) => {
     const sortedEntries = [...participants].sort((a, b) => b.score - a.score)
 
     return (
-        <div className="w-full rounded-lg overflow-hidden bg-muted/5">
+        <div className="w-full rounded-lg overflow-hidden bg-neutral-750">
             <h2 className="flex h-12 text-base font-semibold justify-center items-center">Leaderboard</h2>
             <ScrollArea className="h-36">
                 <Table>
-                    <TableBody className="[&_tr:nth-child(odd)]:bg-muted/5 [&_tr:nth-child(odd):hover]:bg-muted/25 [&_tr:hover]:bg-muted/25">
+                    <TableBody className="[&_tr:nth-child(odd)]:bg-neutral-700 [&_tr:nth-child(odd):hover]:bg-neutral-600 [&_tr:hover]:bg-neutral-600">
                         {sortedEntries.map((participant, i) => (
                             <TableRow key={participant.id} className="border-none">
 

@@ -37,17 +37,17 @@ const LiveStatistics = ({ participants, problems, className }: LiveStatisticsPro
     return (
         <div className={cn("flex flex-col items-center p-4 gap-4", className)}>
 
-            {/* Timer */}
+            {/* Timer
             <div className="flex px-4 py-3 gap-2 rounded-xl bg-muted/5 items-center">
                 <div className="text-3xl tracking-wider leading-none">
                     60:00
                 </div>
                 <FontAwesomeIcon icon={faClock} className="h-5 w-5" />
-            </div>
+            </div> */}
 
             <div className="flex gap-1">
-                <button className="rounded px-1 bg-muted/10" onClick={decrementProblem}>{"<"}</button>
-                <button className="rounded px-1 bg-muted/10" onClick={incrementProblem}>{">"}</button>
+                <button className="rounded px-1 bg-neutral-750" onClick={decrementProblem}>{"<"}</button>
+                <button className="rounded px-1 bg-neutral-750" onClick={incrementProblem}>{">"}</button>
             </div>
 
             {/* Problem Selection & Progress Bar */}
@@ -71,11 +71,11 @@ const LiveStatistics = ({ participants, problems, className }: LiveStatisticsPro
                                         : "border-red-800"
                             ),
                             i == selectedProblem && " drop-shadow-[0_0_5px_rgba(255,255,255,0.75)]",
-                            " flex h-6 w-6 border-4 rounded-full bg-muted hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.75)] transition-[filter] duration-300"
+                            " flex h-6 w-6 border-4 rounded-full bg-neutral-200 hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.75)] transition-[filter] duration-300"
                         )}
                     />
                 ))}
-                <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-muted pointer-events-none" />
+                <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-neutral-200 pointer-events-none" />
             </div>
 
             <ProblemStatistics

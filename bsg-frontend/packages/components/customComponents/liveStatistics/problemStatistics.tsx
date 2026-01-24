@@ -24,7 +24,7 @@ type ProblemStatisticsProps = {
 
 const ProblemStatistics = ({ problem, solving, submitted }: ProblemStatisticsProps) => {
     return (
-        <div className="flex flex-col w-full p-4 gap-4 rounded-lg bg-muted/5">
+        <div className="flex flex-col w-full p-4 gap-4 rounded-lg bg-neutral-750">
 
             {/* Problem Info */}
             <div className="flex flex-col gap-2">
@@ -38,7 +38,7 @@ const ProblemStatistics = ({ problem, solving, submitted }: ProblemStatisticsPro
                 </div>
                 <div className="flex flex-wrap gap-1">
                     {problem.tags.map(tag => (
-                        <div key={tag} className="rounded-full px-2 py-1 bg-muted/10 text-xs whitespace-nowrap">
+                        <div key={tag} className="rounded-full px-2 py-1 bg-neutral-600 text-xs whitespace-nowrap">
                             {tag}
                         </div>
                     ))}
@@ -80,7 +80,7 @@ const ProblemStatistics = ({ problem, solving, submitted }: ProblemStatisticsPro
             </div>
 
             {/* Statistics Table */}
-            <ScrollArea className="border border-gray-700 rounded-lg">
+            <ScrollArea className="border border-neutral-700 rounded-lg">
                 <Table className="text-xs">
                     <TableHeader>
                         <TableRow className="border-none pointer-events-none">
@@ -94,7 +94,7 @@ const ProblemStatistics = ({ problem, solving, submitted }: ProblemStatisticsPro
                             </TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody className="[&_tr:nth-child(odd)]:bg-muted/5">
+                    <TableBody className="[&_tr:nth-child(odd)]:bg-neutral-700">
                         <TableRow className="border-none pointer-events-none whitespace-nowrap">
                             <TableCell className="p-3">You</TableCell>
                             <TableCell className="p-3">--:--</TableCell>

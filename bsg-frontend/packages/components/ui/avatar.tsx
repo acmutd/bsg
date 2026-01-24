@@ -34,7 +34,7 @@ function AvatarImage({
 }
 
 const colors: Record<string, string> = {
-  default: "bg-muted/50",
+  default: "bg-neutral-400",
   red: "bg-red-400",
   orange: "bg-orange-400",
   yellow: "bg-yellow-400",
@@ -53,7 +53,7 @@ function AvatarFallback({
       data-slot="avatar-fallback"
       className={cn(
         "flex h-full w-full items-center justify-center rounded-full",
-        colors[color] ?? "bg-muted/50",
+        colors[color] ?? colors["default"],
         className
       )}
       {...props}
