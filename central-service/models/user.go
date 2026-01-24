@@ -7,4 +7,5 @@ type User struct {
 	Handle    string `json:"handle"`
 	Email     string `json:"email"`
 	AuthID    string `json:"authID"`
+	PhotoURL  string `json:"photoURL"`
 }

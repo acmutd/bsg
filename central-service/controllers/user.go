@@ -3,8 +3,8 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"os"
 
-	"firebase.google.com/go/auth"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
 	"github.com/labstack/echo/v4"
@@ -21,12 +21,23 @@ func InitializeUserController(service *services.UserService) UserController {
 // Milddleware used to validate whether user request contains authorization token
 func (controller *UserController) ValidateUserRequest(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// check for server secret bypass
+		serverSecret := c.Request().Header.Get("X-Server-Secret")
+		if serverSecret != "" && serverSecret == os.Getenv("SERVER_SECRET") {
+			userAuthID := c.Request().Header.Get("X-User-Auth-ID")
+			if userAuthID == "" {
+				return echo.NewHTTPError(http.StatusBadRequest, "Missing X-User-Auth-ID header for trusted call")
+			}
+			c.Set("userAuthID", userAuthID)
+			return next(c)
+		}
+
 		authToken, err := controller.userService.GenerateAuthToken(c.Request())
 		if err != nil {
 			log.Printf("Error generating auth token: %v\n", err)
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 		}
-		c.Set("authToken", authToken)
+		c.Set("userAuthID", authToken.UID)
 		return next(c)
 	}
 }
@@ -37,7 +48,7 @@ func (controller *UserController) CreateNewUserEndpoint(c echo.Context) error {
 	if err := c.Bind(&userData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	newUser, err := controller.userService.CreateUser(userAuthID, &userData)
 	if err != nil {
 		log.Printf("Failed to create user object: %v\n", err)
@@ -54,7 +65,7 @@ func (controller *UserController) UpdateUserDataEndpoint(c echo.Context) error {
 	if err := c.Bind(&userData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	updatedUser, err := controller.userService.UpdateUserData(userAuthID, &userData)
 	if err != nil {
 		log.Printf("Failed to update user data: %v\n", err)
@@ -67,7 +78,7 @@ func (controller *UserController) UpdateUserDataEndpoint(c echo.Context) error {
 
 // An endpoint containing logic used to find user by auth id
 func (controller *UserController) FindUserByAuthIDEndpoint(c echo.Context) error {
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	searchedUser, err := controller.userService.FindUserByAuthID(userAuthID)
 	if err != nil {
 		log.Printf("Failed to find user data: %v\n", err)

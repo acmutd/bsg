@@ -12,23 +12,58 @@ passport.deserializeUser((user, done) => {
 })
 
 passport.use(new GoogleStrategy({
-    clientID:process.env.GOOGLE_CLIENT_ID,
+    clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: 'http://localhost:3000/auth/google/callback'
 },
-(accessToken, refreshToken, profile, done) => {
-    const user = {
-        id: profile.id,
-        name: profile.displayName,
-        email: profile.emails[0].value,
-        photo: profile.photos[0]?.value,
-        accessToken: accessToken,
-        provider: 'google'
-    }
+    (accessToken, refreshToken, profile, done) => {
+        const user = {
+            id: profile.id,
+            name: profile.displayName,
+            email: profile.emails[0].value,
+            photo: profile.photos[0]?.value,
+            accessToken: accessToken,
+            provider: 'google'
+        }
 
-    return done(null, user);
-}));
+        // sync with central service
+        // i have no idea if givenName or familyName is a thing but gemini added it 
+        // and gemini is a google product so surely it is a thing but i haven't seen it in any logs
+        const userData = {
+            firstName: profile.name?.givenName || profile.displayName.split(' ')[0],
+            lastName: profile.name?.familyName || profile.displayName.split(' ').slice(1).join(' '),
+            handle: profile.displayName,
+            email: user.email,
+            photoURL: user.photo
+        };
 
+        fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Server-Secret': process.env.SERVER_SECRET,
+                'X-User-Auth-ID': user.id
+            },
+            body: JSON.stringify(userData)
+        }).then(res => {
+            if (!res.ok) {
+                // if post fails, try put to update
+                return fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Server-Secret': process.env.SERVER_SECRET,
+                        'X-User-Auth-ID': user.id
+                    },
+                    body: JSON.stringify(userData)
+                });
+            }
+        }).catch(err => console.error("Failed to sync user to central-service:", err));
+
+        return done(null, user);
+    }));
+
+// if we add github auth we gotta update this to do what the above does
 passport.use(new GithubStrategy({
     clientID:process.env.GITHUB_CLIENT_ID,
     clientSecret:process.env.GITHUB_CLIENT_SECRET,
@@ -49,7 +84,7 @@ passport.use(new GithubStrategy({
     }
     return done(null, user);
 
-}));
+    }));
 
 
 
