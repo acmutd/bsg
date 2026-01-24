@@ -27,7 +27,7 @@ router.get('/done',(req, res) => {
 
 router.get('/user', (req, res) => {
     if(req.isAuthenticated() && req.user) {
-        console.log(req.user)
+        //console.log(req.user)
         return res.json({
             id: req.user.id,
             name: req.user.name,
@@ -117,7 +117,7 @@ router.get('/github/callback',
     passport.authenticate('github', {failureRedirect: '/'}),
     (req, res) => {
         res.redirect('/auth/done');
-        console.log(req.user);
+        //console.log(req.user);
     }
 
 );
