@@ -5,6 +5,7 @@ const express = require('express');
 const session = require('express-session');
 const app = express();
 const passport = require('passport');
+const redis = require('redis');
 require('./config/passport');
 
 const logger = require('./middleware/logger');
@@ -34,7 +35,6 @@ app.use(passport.session());
 
 // Logger middleware (must come AFTER session middleware)
 // app.use(logger); only for development, lets not log every session id in production lmfao
-
 
 const authRoutes = require('./routes/auth');
 app.use('/auth', authRoutes);
