@@ -1,17 +1,19 @@
 "use client";
-import CreateRoom from "@bsg/components/createRoom/createRoom";
-import LogInForm from "@bsg/components/logInForm/logInForm";
 import {Button} from "@bsg/ui/button";
 import Logo from "@bsg/components/Logo";
-import { useEffect, useState } from 'react';
-import { User, onAuthStateChanged }  from 'firebase/auth';
-import { useNewTab } from '../hooks/useNewTab';
-import { SignInWithChromeIdentity, SignOutFromChrome } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
-import { getFirebaseAuth } from '../firebase/config';
+import {useEffect, useState} from 'react';
+import {onAuthStateChanged, User} from 'firebase/auth';
+import {useNewTab} from '@/hooks/useNewTab';
+import {
+    SignInWithChromeIdentity,
+    SignOutFromChrome
+} from '@/firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
+import {getFirebaseAuth} from '@/firebase/config';
+import Image from "next/image";
 
 
 export default function LogIn() {
-    const { openInNewTab } = useNewTab();
+    const {openInNewTab} = useNewTab();
     const [isInTab, setIsInTab] = useState(false);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function LogIn() {
     useEffect(() => {
         // Check if we're running in a tab context vs extension popup
         if (typeof chrome !== 'undefined' && chrome.runtime) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
                 if (tabs[0] && tabs[0].url && tabs[0].url.includes(chrome.runtime.id)) {
                     setIsInTab(true);
                 }
@@ -125,7 +127,7 @@ export default function LogIn() {
                             <p className="text-green-800 font-medium">Welcome!</p>
                             <p className="text-green-700">{user.displayName || user.email}</p>
                             {user.photoURL && (
-                                <img
+                                <Image
                                     src={user.photoURL}
                                     alt="Profile"
                                     className="w-12 h-12 rounded-full mx-auto mt-2"

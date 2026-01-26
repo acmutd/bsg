@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
     reactStrictMode: true,
-    output: 'export',
+    output: 'standalone',
 
     transpilePackages: [
         '@bsg/components',
@@ -10,9 +10,4 @@ module.exports = {
         '@bsg/models',
         '@bsg/ui-styles',
     ],
-
-    //no need for this line extension does not user next/image components
-    // images: {
-    //     unoptimized: true,
-    // },
 }
