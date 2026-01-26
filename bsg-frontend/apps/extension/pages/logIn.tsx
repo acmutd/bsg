@@ -9,7 +9,7 @@ import {
     SignOutFromChrome
 } from '@/firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
 import {getFirebaseAuth} from '@/firebase/config';
-import Image from "next/image";
+import {Avatar, AvatarFallback, AvatarImage} from "@bsg/ui/avatar";
 
 
 export default function LogIn() {
@@ -127,11 +127,10 @@ export default function LogIn() {
                             <p className="text-green-800 font-medium">Welcome!</p>
                             <p className="text-green-700">{user.displayName || user.email}</p>
                             {user.photoURL && (
-                                <Image
-                                    src={user.photoURL}
-                                    alt="Profile"
-                                    className="w-12 h-12 rounded-full mx-auto mt-2"
-                                />
+                                <Avatar>
+                                    <AvatarImage src={user.photoURL} alt={"Profile"}/>
+                                    <AvatarFallback>{user.email?.charAt(0)}</AvatarFallback>
+                                </Avatar>
                             )}
                         </div>
                         <Button

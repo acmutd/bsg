@@ -22,7 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@bsg/ui/dropdown-menu"
-import Image from "next/image";
+import {Avatar, AvatarFallback, AvatarImage} from "@bsg/ui/avatar";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -311,13 +311,15 @@ export default function App() {
                                     <DropdownMenuLabel>Participants</DropdownMenuLabel>
                                     {participants.map((p) => (
                                         <DropdownMenuItem key={p.id}>
-                                            <Image
-                                                key={p.id}
-                                                src={p.avatarUrl || ''}
-                                                alt={p.name || p.id}
-                                                title={p.name || p.id}
-                                                className="w-8 h-8 rounded-full border border-gray-600 object-cover"
-                                            />
+                                            <Avatar>
+                                                <AvatarImage
+                                                    key={p.id}
+                                                    src={p.avatarUrl}
+                                                    alt={p.name || p.id}
+                                                    title={p.name || p.id}
+                                                />
+                                                <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
                                             {p.name}
                                         </DropdownMenuItem>
                                     ))}
