@@ -100,6 +100,7 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
       - SERVER_SECRET=${SERVER_SECRET}
       - CENTRAL_SERVICE_URL=http://central-service:5000
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
 
 volumes:
   db-volume:
