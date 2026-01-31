@@ -42,6 +42,9 @@ async function connectToRedis () {
         
 
             return store
+        } else {
+            console.error("Redis client connected but is not ready. Failing startup.");
+            throw new Error("Redis client is not ready after connect");
         }
         
     }catch(error){
