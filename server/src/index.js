@@ -47,7 +47,7 @@ async function connectToRedis () {
     }catch(error){
 
     //callback error message if not connected
-    Redisclient.on('error', (err) => console.log("Redis Client Error", err))
+    console.warn("Redis Client Connection Failed")
     throw error
 
     }
