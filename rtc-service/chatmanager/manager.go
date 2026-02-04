@@ -25,12 +25,12 @@ func (sm *ChatManager) CreateRoom(room *Room) {
 	defer sm.Unlock()
 
 	// This is to prevent duplicate rooms from being added.
-	if _, ok := sm.Rooms[room]; ok {
-		logging.Error("Room already exists: ", room.RoomID)
+	if _, ok := sm.Rooms[room.RoomID]; ok {
+		logging.Info("Room already exists: ", room.RoomID)
 		return
 	}
 
-	sm.Rooms[room] = true
+	sm.Rooms[room.RoomID] = room
 
 	logging.Info("Room added: ", room.RoomID)
 }
@@ -39,13 +39,7 @@ func (sm *ChatManager) GetRoom(roomID string) *Room {
 	sm.RLock()
 	defer sm.RUnlock()
 
-	for room := range sm.Rooms {
-		if room.RoomID == roomID {
-			return room
-		}
-	}
-
-	return nil
+	return sm.Rooms[roomID]
 }
 
 // Remove a room from the list of rooms.
@@ -60,11 +54,11 @@ func (sm *ChatManager) RemoveRoom(room *Room) {
 	}
 
 	// Only remove a room if they exist.
-	if _, ok := sm.Rooms[room]; ok {
-		delete(sm.Rooms, room)
-		logging.Info("Service removed: ", room.RoomID)
+	if _, ok := sm.Rooms[room.RoomID]; ok {
+		delete(sm.Rooms, room.RoomID)
+		logging.Info("Room removed: ", room.RoomID)
 		return
 	}
 
-	logging.Error("Service not found: ", room.RoomID)
+	logging.Error("Room not found: ", room.RoomID)
 }

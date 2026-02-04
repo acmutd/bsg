@@ -1,4 +1,5 @@
 let offscreenCreated = false;
+let lastProcessedSubmission = { slug: '', time: 0 };
 
 async function ensureOffscreen() {
   if (offscreenCreated) return true;
@@ -21,41 +22,61 @@ async function ensureOffscreen() {
   }
 }
 
+let sessionCache = null;
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return;
 
   // --- Clipboard Logic ---
   if (msg.type === 'COPY_TO_CLIPBOARD') {
     const text = msg.text || '';
-    (async () => {
-      const ok = await doCopy(text);
-      sendResponse({ ok });
-    })();
+    doCopy(text).then(ok => sendResponse({ ok }));
     return true; // Async response
+  }
+
+  // --- Auth Logic ---
+  if (msg.type === 'CHECK_AUTH') {
+    fetch('http://localhost:3000/auth/user', { credentials: 'include', method: 'GET' })
+      .then(r => r.ok ? r.json() : Promise.reject('Not authenticated'))
+      .then(userData => {
+        chrome.storage.local.set({ user: userData }, () => sendResponse({ success: true, user: userData }));
+      })
+      .catch(err => {
+        chrome.storage.local.remove('user', () => sendResponse({ success: false, error: err.message }));
+      });
+    return true;
+  }
+
+  if (msg.type === 'LOGOUT') {
+    fetch('http://localhost:3000/auth/logout', { method: 'POST', credentials: 'include' })
+      .finally(() => {
+        chrome.storage.local.remove('user', () => sendResponse({ success: true }));
+      });
+    return true;
   }
 
   // --- State Management Logic ---
-  // In MV3, Service Workers are ephemeral. We must rely on storage.
-
   if (msg.type === 'GET_STATE') {
-    chrome.storage.local.get(['session'], (result) => {
-      console.log('GET_STATE returning:', result.session);
-      sendResponse(result.session || {});
-    });
-    return true; // Async response
+    if (sessionCache) {
+      sendResponse(sessionCache);
+    } else {
+      chrome.storage.local.get(['session'], (result) => {
+        sessionCache = result.session || {};
+        sendResponse(sessionCache);
+      });
+      return true;
+    }
   }
 
   if (msg.type === 'SET_STATE') {
-    console.log('SET_STATE received:', msg.payload);
-    chrome.storage.local.get(['session'], (result) => {
-      const currentSession = result.session || {};
-      const newSession = { ...currentSession, ...msg.payload };
-      chrome.storage.local.set({ session: newSession }, () => {
-        console.log('Session saved:', newSession);
-        sendResponse({ success: true });
-      });
-    });
-    return true; // Async response
+    const updateState = (current) => {
+      const newSession = { ...current, ...msg.payload };
+      sessionCache = newSession;
+      chrome.storage.local.set({ session: newSession }, () => sendResponse({ success: true }));
+    };
+    if (sessionCache) updateState(sessionCache);
+    else chrome.storage.local.get(['session'], r => updateState(r.session || {}));
+    return true;
   }
 
   // --- Submission Logic ---
@@ -63,82 +84,89 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const { problemSlug, verdict } = msg.payload;
     console.log('Processing submission:', problemSlug, verdict);
 
-    chrome.storage.local.get(['session'], (result) => {
-      const session = result.session || {};
-      const currentRoom = session.currentRoom;
-      const userProfile = session.userProfile;
-      
-      if (!currentRoom) {
-        console.warn('No active room found');
+    const handleSubmission = (session) => {
+      const { currentRoom, idToken, problemSlugs, lastNavigatedFrom } = session;
+
+      // Deduplication
+      const now = Date.now();
+      if (lastProcessedSubmission.slug === problemSlug && (now - lastProcessedSubmission.time) < 10000) {
         return;
       }
+      lastProcessedSubmission = { slug: problemSlug, time: now };
 
-      // Send submission announcement via RTC (same as chat messages)
-      const rtcMessage = {
-        name: userProfile?.id || 'anonymous',
-        "request-type": "new-submission",
-        data: JSON.stringify({
-          userHandle: userProfile?.email || 'anonymous',
-          roomID: currentRoom.code,
-          problemID: problemSlug,
-          verdict: verdict
-        })
-      };
+      if (!currentRoom) return;
 
-      // Send to RTC service
-      const rtcSocket = new WebSocket('ws://localhost:5001/ws');
-      rtcSocket.onopen = () => {
-        rtcSocket.send(JSON.stringify(rtcMessage));
-        console.log('Submission announcement sent to RTC');
-        rtcSocket.close();
-      };
-      rtcSocket.onerror = (error) => {
-        console.error('RTC WebSocket error:', error);
-      };
-      rtcSocket.onclose = (event) => {
-        if (event.code !== 1000) {
-          console.error('RTC WebSocket closed unexpectedly:', event.code, event.reason);
-        }
-      };
-      
+      // NOTIFY BACKEND (Central Service)
+      if (idToken) {
+        fetch(`http://localhost:5050/api/submissions/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': idToken
+          },
+          body: JSON.stringify({
+            roomID: currentRoom.code,
+            problemSlug: problemSlug,
+            verdict: verdict
+          })
+        }).then(r => r.ok ? r.json() : Promise.reject('Backend reporting failed'))
+          .then(data => console.log('Backend solve recorded:', data))
+          .catch(err => console.error('Error reporting solve to backend:', err));
+      }
+
       // Show local notification
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: 'icon128.png',
+        iconUrl: 'icon.png',
         title: 'BSG - Problem Solved!',
         message: `You solved ${problemSlug}!`
       });
+
+      // --- AUTO-NAVIGATION ---
+      if (verdict === 'Accepted' && problemSlugs && problemSlugs.length > 0) {
+        const currentIndex = problemSlugs.indexOf(problemSlug);
+        if (currentIndex !== -1 && currentIndex < problemSlugs.length - 1 && lastNavigatedFrom !== problemSlug) {
+          const nextSlug = problemSlugs[currentIndex + 1];
+          const nextUrl = `https://leetcode.com/problems/${nextSlug}/`;
+
+          const updatedSession = { ...session, lastNavigatedFrom: problemSlug };
+          sessionCache = updatedSession;
+          chrome.storage.local.set({ session: updatedSession });
+
+          setTimeout(() => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+              if (tabs.length > 0 && tabs[0].id) chrome.tabs.update(tabs[0].id, { url: nextUrl });
+            });
+          }, 5000);
+        }
+      }
+    };
+
+    if (sessionCache) handleSubmission(sessionCache);
+    else chrome.storage.local.get(['session'], r => {
+      sessionCache = r.session || {};
+      handleSubmission(sessionCache);
     });
 
     return true;
   }
 
-  // Handle other messages or return false
   return false;
 });
 
 async function doCopy(text) {
-  // try to use the offscreen document if available
   const hasOffscreen = await ensureOffscreen().catch(() => false);
   if (hasOffscreen) {
     try {
       const res = await chrome.runtime.sendMessage({ type: 'OFFSCREEN_COPY', text });
       return res && res.ok;
-    } catch (e) {
-      console.error('sendMessage to offscreen failed', e);
-    }
+    } catch (e) { }
   }
-
-  // try the clipboard API in the service worker context
   try {
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+    if (navigator?.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch (e) {
-    console.warn('navigator.clipboard.writeText in service worker failed', e);
-  }
-
-  // give up
+  } catch (e) { }
   return false;
 }

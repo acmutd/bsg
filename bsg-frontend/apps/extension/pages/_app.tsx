@@ -8,14 +8,19 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane, faCopy } from '@fortawesome/free-solid-svg-icons'
 import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
-import { SignInWithChromeIdentity, getUserInfoFromToken } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth'
 import { useChatSocket } from '../hooks/useChatSocket'
 import { getFirebaseAuth } from '../firebase/config' // ADD THIS LINE
+import { SignInWithChromeIdentity, getUserInfoFromToken } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth'
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 const auth = getFirebaseAuth() // ADD THIS LINE
 
-type Participant = { id: string; name?: string; avatarUrl?: string }
+interface Participant {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+
 
 export default function App({ Component, pageProps }: AppProps) {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -81,11 +86,13 @@ export default function App({ Component, pageProps }: AppProps) {
         throw new Error('No round found in room');
       }
 
-      // Extract problem IDs from the round
-      const problemList = round.problems?.map((p: any) => p.ID || p.id) || [];
-      const firstProblemSlug = round.problems?.[0]?.slug;
+      // Extract problem IDs and slugs from the round
+      const problemList = round.problems?.map((p: any) => String(p.ID || p.id)) || [];
+      const problemSlugs = round.problems?.map((p: any) => p.slug).filter(Boolean) || [];
+      const firstProblemSlug = problemSlugs[0];
 
       console.log('Problem list for round:', problemList);
+      console.log('Problem slugs for round:', problemSlugs);
 
       if (problemList.length === 0) {
         throw new Error('Round has no problems! Create a new room with problems.');
@@ -165,10 +172,14 @@ export default function App({ Component, pageProps }: AppProps) {
               payload: {
                 roundStarted: true,
                 timeRemaining: currentRoom.options?.duration * 60 || 1800,
-                problemList: problemList.map(String)
+                problemList: problemList,
+                problemSlugs: problemSlugs,
+                currentRoom: currentRoom,
+                userProfile: userProfile,
+                idToken: token
               }
             }, () => {
-              console.log('State saved before navigation');
+              console.log('State saved before navigation (with token)');
               resolve();
             });
           });
@@ -238,27 +249,64 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [messages])
 
+  // Sync room details from backend
+  const updateRoomState = async (roomCode: string) => {
+    try {
+      let token = await auth?.currentUser?.getIdToken();
+      if (!token) token = 'dummy-token-123';
+
+      const res = await fetch(`http://localhost:5050/api/rooms/${roomCode}`, {
+        headers: { 'Authorization': token }
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const roomData = data.data;
+      const room = {
+        code: roomCode,
+        options: {
+          duration: roomData.rounds?.[0]?.duration || 30,
+          participants: roomData.participants || []
+        }
+      };
+
+      const round = roomData.rounds?.[0];
+      const payload: any = { currentRoom: room, userProfile };
+
+      if (round && round.status === 'STARTED') {
+        const problemList = round.problems?.map((p: any) => String(p.ID || p.id)) || [];
+        const problemSlugs = round.problems?.map((p: any) => p.slug).filter(Boolean) || [];
+
+        setRoundStarted(true);
+        setTimeRemaining(room.options.duration * 60);
+
+        payload.roundStarted = true;
+        payload.problemList = problemList;
+        payload.problemSlugs = problemSlugs;
+      }
+
+      setCurrentRoom(room);
+      syncToBackground(payload);
+    } catch (err) {
+      console.error('Failed to sync room state:', err);
+    }
+  };
+
   // Join/Create handlers
-  const handleJoin = (roomCode: string) => {
+  const handleJoin = async (roomCode: string) => {
     const room = { code: roomCode, options: {} };
     setCurrentRoom(room)
     joinRoom(roomCode);
-    // Sync to background
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ type: 'SET_STATE', payload: { currentRoom: room } });
-    }
+    updateRoomState(roomCode);
   }
 
-  const handleCreate = (roomCode: string, options: any) => {
+  const handleCreate = async (roomCode: string, options: any) => {
     console.log('Creating room with code:', roomCode);
-    console.log('Room options:', options);
     const room = { code: roomCode, options: { ...options } };
     setCurrentRoom(room)
     joinRoom(roomCode);
-    // Sync to background
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ type: 'SET_STATE', payload: { currentRoom: room } });
-    }
+    syncToBackground({ currentRoom: room, userProfile });
   }
 
   // --- PERSISTENCE / SYNC LOGIC ---
@@ -422,58 +470,48 @@ export default function App({ Component, pageProps }: AppProps) {
           flexDirection: 'column',
         }}
       >
-        <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <div className="text-xs text-gray-300 mb-1">Room Code:</div>
-              <div className="bg-gray-700 text-white p-2 rounded-lg font-mono text-lg tracking-widest flex items-center space-x-2">
-                <div className="text-2xl font-semibold">{currentRoom.code}</div>
-                <button onClick={() => copyRoomCode(currentRoom.code)} aria-label="Copy room code" className="p-1 rounded hover:bg-gray-600">
-                  <FontAwesomeIcon icon={faCopy} className="text-gray-200 text-sm" />
-                </button>
-                {copied && <div className="text-xs text-green-400 ml-2">copied</div>}
-                {!isConnected && <div className="text-xs text-red-500 ml-2">Disconnected</div>}
-              </div>
-            </div>
+        <header className="bg-[#1e1e1f] border-b border-gray-700 px-4 py-4 flex items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Larger Exit button with red hover effect, matching Start Round font style */}
+            <Button
+              onClick={handleExit}
+              className="bg-gray-700/80 text-white rounded-lg px-4 py-2 hover:bg-red-600 hover:shadow-[0_0_15px_rgba(220,38,38,0.4)] text-sm font-semibold transition-all duration-200 border border-gray-600/50"
+            >
+              Exit
+            </Button>
 
-            <div className="flex items-center gap-2 ml-4">
-              {participants.map((p) => (
-                <img key={p.id} src={p.avatarUrl} alt={p.name || p.id} title={p.name || p.id}
-                  className="w-8 h-8 rounded-full border border-gray-600 object-cover" />
-              ))}
+            <div className="flex flex-col min-w-0">
+              <div className="text-[11px] text-gray-400 mb-1 font-semibold uppercase tracking-wider">Room Code:</div>
+              <div className="bg-[#2a2a2b] text-white px-4 py-2 rounded-xl font-mono border border-gray-600/30 flex items-center gap-3 shadow-inner">
+                <div className="text-2xl font-bold tracking-[0.2em] text-[#f5f5f5]">{currentRoom.code}</div>
+                <button
+                  onClick={() => copyRoomCode(currentRoom.code)}
+                  aria-label="Copy room code"
+                  className="p-1.5 rounded-md hover:bg-gray-600/50 text-gray-400 hover:text-white transition-all"
+                >
+                  <FontAwesomeIcon icon={faCopy} className="text-sm" />
+                </button>
+                {copied && <div className="text-[10px] text-green-400 font-sans font-bold uppercase tracking-tighter bg-green-400/10 px-1.5 py-0.5 rounded">Copied</div>}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-
-
-            {/* TIMER - SHOW WHEN ROUND IS STARTED */}
-            {roundStarted && timeRemaining !== null && (
-              <div className="bg-gray-800 px-4 py-2 rounded-lg">
-                <div className="text-white font-mono text-xl">
-                  {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
-                </div>
-              </div>
-            )}
-
+          <div className="flex items-center gap-3 flex-shrink-0">
             {userProfile && (
               <img
                 src={userProfile?.avatarUrl}
                 alt={userProfile?.name}
-                className="w-8 h-8 rounded-full border-2"
+                className="w-10 h-10 rounded-full border-2 shadow-lg"
                 style={{ borderColor: 'hsl(var(--primary))' }}
               />
             )}
-            <Button onClick={handleExit} className="bg-gray-700 text-white rounded-md px-3 py-1 hover:bg-gray-600">
-              Exit
-            </Button>
           </div>
         </header>
 
         {/* START ROUND BUTTON - CENTRIC DISPLAY BELOW HEADER */}
         {/* START ROUND BUTTON - CENTRIC DISPLAY BELOW HEADER */}
         {currentRoom.options && (
-          <div className="w-full flex justify-center py-3 bg-[#1e1e1f]/50 border-b border-gray-700/50 backdrop-blur-sm">
+          <div className="w-full flex justify-center items-center gap-4 py-3 bg-[#1e1e1f]/50 border-b border-gray-700/50 backdrop-blur-sm">
             {!roundStarted ? (
               <Button
                 onClick={handleStartRound}
@@ -482,12 +520,22 @@ export default function App({ Component, pageProps }: AppProps) {
                 Start Round
               </Button>
             ) : (
-              <Button
-                disabled
-                className="bg-gray-600 text-gray-300 px-8 py-2 font-semibold cursor-not-allowed opacity-80"
-              >
-                Round Started
-              </Button>
+              <>
+                <Button
+                  disabled
+                  className="bg-gray-700 text-gray-300 px-6 py-2 font-semibold cursor-not-allowed opacity-80 border border-gray-600/30"
+                >
+                  Round Started
+                </Button>
+                {timeRemaining !== null && (
+                  <div className="flex flex-col items-center px-4 py-1 bg-[#2a2a2b] rounded-lg border border-gray-600/30 shadow-inner">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Time Left</span>
+                    <span className="text-white font-mono text-xl font-bold leading-tight">
+                      {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -543,4 +591,5 @@ export default function App({ Component, pageProps }: AppProps) {
       </div>
     </div>
   )
+
 }

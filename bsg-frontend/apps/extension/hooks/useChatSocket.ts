@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-const RTC_SERVICE_URL = 'ws://localhost:5001/ws'; // Changed from 8080 to 5001
+const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
 
 export type Message = {
     userHandle: string;
+    userName?: string;
+    userPhoto?: string;
     data: string;
     roomID: string;
     isSystem?: boolean;
@@ -28,13 +30,16 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         ws.onmessage = (event) => {
             try {
                 const response = JSON.parse(event.data);
+
                 if (response.status === 'ok') {
                     const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
                         setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
-                            data: message.data,
+                            userName: message.userName,
+                            userPhoto: message.userPhoto,
+                            data: message.message || message.data,
                             roomID: message.roomID,
                             isSystem: false
                         }]);
@@ -109,8 +114,6 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     }, [userEmail]);
 
     const joinRoom = useCallback((roomID: string) => {
-        setMessages([]);
-
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
                 name: userEmail,
@@ -125,13 +128,15 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         }
     }, [userEmail]);
 
-    const sendChatMessage = useCallback((roomID: string, message: string) => {
+    const sendChatMessage = useCallback((roomID: string, message: string, user?: { name: string, photo?: string }) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
                 name: userEmail,
                 "request-type": "chat-message",
                 data: JSON.stringify({
                     userHandle: userEmail,
+                    userName: user?.name,
+                    userPhoto: user?.photo,
                     roomID: roomID,
                     message: message
                 })

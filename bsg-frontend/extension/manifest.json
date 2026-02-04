@@ -23,21 +23,23 @@
     "https://leetcode.com/*",
     "https://*.leetcode.com/*",
     "https://*.googleapis.com/*",
-    "https://*.firebaseapp.com/*",
-    "https://accounts.google.com/*"
+    "https://accounts.google.com/*",
+    "http://localhost:3000/*",
+    "http://localhost:5050/*"
   ],
   "action": {
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' ws://localhost:8080 ws://localhost:5001 http://localhost:5050 https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com; object-src 'self';"
+    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' ws://localhost:8080 ws://localhost:5001 http://localhost:5050 https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com http://localhost:3000; object-src 'self';"
   },
   "web_accessible_resources": [
     {
       "resources": [
         "defaultPopup.html",
         "next/*",
-        "logIn.html"
+        "logIn.html",
+        "overwriteFetch.js"
       ],
       "matches": [
         "<all_urls>"

@@ -3,13 +3,13 @@ package services
 import (
 	"context"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -48,7 +48,7 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID:     uuid.New(),
+		ID:     service.generateRoomCode(),
 		Name:   room.Name,
 		Admin:  adminID,
 		Rounds: []models.Round{},
@@ -60,10 +60,19 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	return &newRoom, nil
 }
 
+func (service *RoomService) generateRoomCode() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 // Deletes leaderboard and join time stamps from Redis
 // Deletes room from Postgres
 func (service *RoomService) deleteRoom(room models.Room) error {
-	roomID := room.ID.String()
+	roomID := room.ID
 	// TODO: notify RTC room is empty
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
@@ -86,14 +95,7 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
-	uuid, err := uuid.Parse(roomID)
-	if err != nil {
-		return nil, BSGError{
-			StatusCode: 400,
-			Message:    "roomID could not be parsed",
-		}
-	}
-	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", roomID).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -311,7 +313,7 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 			Message:    "Round limit exceeded",
 		}
 	}
-	round, err := service.roundService.CreateRound(params, &room.ID)
+	round, err := service.roundService.CreateRound(params, room.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -392,8 +394,12 @@ func (service *RoomService) ProcessSubmissionSuccess(roomID string, userID strin
 		return nil, err
 	}
 
-	// Get user handle (for now, use the email part of userID)
+	// Get user handle (try to find handle in DB)
 	userHandle := userID
+	var user models.User
+	if dbErr := service.db.Where("auth_id = ?", userID).First(&user).Error; dbErr == nil && user.Handle != "" {
+		userHandle = user.Handle
+	}
 
 	// Send RTC message for new submission
 	rtcMessage := requests.NewSubmissionRequest{

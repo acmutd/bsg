@@ -22,6 +22,7 @@ type UserModifiableData struct {
 	LastName  string `json:"lastName"`
 	Handle    string `json:"handle"`
 	Email     string `json:"email"`
+	PhotoURL  string `json:"photoURL"`
 }
 
 func InitializeUserService(db *gorm.DB) UserService {
@@ -52,6 +53,7 @@ func (service *UserService) CreateUser(authID string, userData *UserModifiableDa
 		Handle:    userData.Handle,
 		Email:     userData.Email,
 		AuthID:    authID,
+		PhotoURL:  userData.PhotoURL,
 	}
 	result := service.db.Create(&newUser)
 	if result.Error != nil {

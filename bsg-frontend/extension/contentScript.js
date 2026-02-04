@@ -218,14 +218,27 @@
     // DOM Observer for LeetCode submissions
     function observeLeetCodeSubmissions() {
       console.log('BSG: Setting up DOM observer for LeetCode submissions');
-      
+
       // Track if we've already processed the current success state
       let isCurrentlySuccess = false;
-      
+      let lastSubmitTime = 0;
+
+      // Listen for clicks on the Submit button
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target && (
+          target.matches('[data-e2e-locator="console-submit-button"]') ||
+          target.closest('[data-e2e-locator="console-submit-button"]')
+        )) {
+          console.log('BSG: Submit button clicked, arming observer');
+          lastSubmitTime = Date.now();
+        }
+      }, true);
+
       // Observer for submission results
       const submissionObserver = new MutationObserver((mutations) => {
         let hasRelevantChanges = false;
-        
+
         mutations.forEach((mutation) => {
           if (mutation.type === 'childList') {
             // Check if new nodes were added that might contain submission results
@@ -256,9 +269,10 @@
             }
           }
         });
-        
-        // Only check if there are relevant changes
-        if (hasRelevantChanges) {
+
+        // Only check if there are relevant changes AND we recently submitted
+        const recentlySubmitted = (Date.now() - lastSubmitTime) < 60000; // 60s window
+        if (hasRelevantChanges && recentlySubmitted) {
           checkForSubmissionSuccess();
         }
       });
@@ -271,19 +285,7 @@
         attributeFilter: ['class', 'data-e2e-locator']
       });
 
-      // Check less frequently and only when needed
-      setInterval(() => {
-        const currentSuccess = checkForSubmissionSuccess(false);
-        if (currentSuccess !== isCurrentlySuccess) {
-          isCurrentlySuccess = currentSuccess;
-          if (currentSuccess) {
-            checkForSubmissionSuccess(true);
-          }
-        }
-      }, 3000);
-      
-      // Initial check
-      setTimeout(() => checkForSubmissionSuccess(true), 1000);
+      // Removed: Periodic check that triggers on old solves
     }
 
     function checkForSubmissionSuccess(sendMessage = true) {
@@ -340,7 +342,7 @@
 
       if (foundSuccess && problemSlug && sendMessage) {
         console.log('BSG: Submission success detected for problem:', problemSlug);
-        
+
         // Prevent duplicate submissions
         const lastSubmission = window.bsgLastSubmission;
         const now = Date.now();

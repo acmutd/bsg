@@ -1,153 +1,141 @@
-"use client";
-import CreateRoom from "@bsg/components/createRoom/createRoom";
-import LogInForm from "@bsg/components/logInForm/logInForm";
-import {Button} from "@bsg/ui/button";
+import { Button } from "@bsg/ui/button";
 import Logo from "@bsg/components/Logo";
 import { useEffect, useState } from 'react';
-import { User, onAuthStateChanged }  from 'firebase/auth';
-import { useNewTab } from '../hooks/useNewTab';
-import { SignInWithChromeIdentity, SignOutFromChrome } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
-import { getFirebaseAuth } from '../firebase/config';
+import {Poppins} from 'next/font/google';
+import { useRouter } from 'next/router';
 
 
-export default function LogIn() {
-    const { openInNewTab } = useNewTab();
-    const [isInTab, setIsInTab] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(false);
+type AuthProvider = 'google' | 'github';
+
+interface User  {
+        id: string,
+        name: string,
+        email: string,
+        photo: string
+}
+
+const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
 
+export default function UserLogIn() {
+
+    const[user, setUser] = useState(false);
+    const[isloggedIn, setLoggedIn] = useState(false);
+    const[userProfile, setUserProfile] = useState<User | null>(null);
+    const[authProvider, setAuthProvider] = useState<AuthProvider | undefined>(undefined)
+
+    const router = useRouter()
+
+    const Login = async (Provider: AuthProvider) => {
+        
+        try{
+            
+            //Open the OAuth Window
+            const popup = window.open(`http://localhost:3000/auth/${Provider}`)
+
+            //Keep polling to see if auth is done or not
+            const checkAuth = async () => {
+                    
+                    //wait for response from the server
+                    const response = await fetch(`http://localhost:3000/auth/user`, {
+                                                method: "GET",
+                                                credentials: "include"
+                    });
+
+                    if(response.ok){
+                        const userObject = await response.json()
+                        setLoggedIn(true)
+                        setUserProfile(userObject)
+                        popup?.close()
+
+                        return userObject;
+
+                    }else if (popup && !popup.closed){
+                        //Not Authenticated yet
+                        setTimeout(checkAuth, 1000);
+
+                    }
+                }
+
+
+                setTimeout(checkAuth, 5000);
+
+
+            }
+
+
+         catch (err) {
+            window.open("_blank")
+            console.warn("Authentication failed")
+
+        }
+    }
+
+
+
+
+    const Logout = () => {
+        console.log("Got inside of the logout function ")
+
+        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined' ){
+            chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
+                if(response && response.success){
+                    setLoggedIn(false)
+                }
+            })
+        }
+    }
+
+
+
+
+      //check if the user is logged in using the service worker
     useEffect(() => {
-        // Check if we're running in a tab context vs extension popup
-        if (typeof chrome !== 'undefined' && chrome.runtime) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0] && tabs[0].url && tabs[0].url.includes(chrome.runtime.id)) {
-                    setIsInTab(true);
-                }
-            });
+        console.log("useEffect running on mount");
+
+        //check if chrome api is available
+        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined'){
+                console.log("Sending CHECK_AUTH message");
+
+                chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
+                    console.log("Received response from background:", response);
+                    if(response && response.success){
+                    console.log("Auth successful, setting user:", response.user);
+                    setUserProfile(response.user)
+                    setUser(true)
+                    setLoggedIn(true)
+                    router.push('/room-user')
+                    } else {
+                    console.log("Auth failed or no session");
+                    }
+
+                })
+
         }
 
-        // Listen for auth state changes (only in browser when auth available)
-        const auth = getFirebaseAuth();
-        if (!auth) return;
-
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setLoading(false);
-
-            if (currentUser) {
-                console.log('User is signed in:', currentUser.email);
-            } else {
-                console.log('User is signed out');
-            }
-        });
-
-        // Cleanup listener on component unmount
-        return () => unsubscribe();
-    }, []);
-
-    const handleGoogleLogin = async () => {
-        if (isInTab) {
-            // We're in a tab - use Chrome Identity API with Firebase
-            try {
-                setLoading(true);
-                const user = await SignInWithChromeIdentity();
-                console.log('User signed in:', user);
-
-                // Notify content script that auth state has changed
-                try {
-                    chrome.tabs.query({}, (tabs) => {
-                        tabs.forEach(tab => {
-                            if (tab.url && tab.url.includes('leetcode.com') && tab.id) {
-                                chrome.tabs.sendMessage(tab.id, {
-                                    type: 'AUTH_STATE_CHANGED',
-                                    user: {
-                                        email: user.email,
-                                        displayName: user.displayName,
-                                        photoURL: user.photoURL
-                                    }
-                                });
-                            }
-                        });
-                    });
-                } catch (error) {
-                    console.error('Failed to notify content script:', error);
-                }
-
-                // Close this tab after successful auth - the auth state listener will update the popup
-                setTimeout(() => window.close(), 1000);
-            } catch (error) {
-                console.error('Sign in error:', error);
-                setLoading(false);
-            }
-        } else {
-            // We're in popup - open a new tab with a page that handles Google auth
-            openInNewTab(chrome.runtime.getURL('logIn.html'));
-        }
-    };
-
-    const handleSignOut = async () => {
-        try {
-            setLoading(true);
-            await SignOutFromChrome();
-            console.log('User signed out');
-
-            // Notify content script that user signed out
-            try {
-                chrome.tabs.query({}, (tabs) => {
-                    tabs.forEach(tab => {
-                        if (tab.url && tab.url.includes('leetcode.com') && tab.id) {
-                            chrome.tabs.sendMessage(tab.id, {
-                                type: 'AUTH_STATE_CHANGED',
-                                user: null
-                            });
-                        }
-                    });
-                });
-            } catch (error) {
-                console.error('Failed to notify content script:', error);
-            }
-        } catch (error) {
-            console.error('Sign out error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        }, [isloggedIn, router]); //router because ESlint error nothing to do with re-render 
 
     return (
-        <div className={'m-32 justify-center'}>
-            <Logo></Logo>
-            <div className={'flex justify-center items-center flex-col gap-4'}>
-                {user ? (
-                    // User is signed in - show user info and sign out option
-                    <div className="text-center space-y-4">
-                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-green-800 font-medium">Welcome!</p>
-                            <p className="text-green-700">{user.displayName || user.email}</p>
-                            {user.photoURL && (
-                                <img
-                                    src={user.photoURL}
-                                    alt="Profile"
-                                    className="w-12 h-12 rounded-full mx-auto mt-2"
-                                />
-                            )}
-                        </div>
-                        <Button
-                            onClick={handleSignOut}
-                            disabled={loading}
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                        >
-                            {loading ? "Signing out..." : "Sign Out"}
-                        </Button>
-                    </div>
-                ) : (
-                    // User is not signed in - show sign in button
-                    <Button onClick={handleGoogleLogin} disabled={loading}>
-                        {loading ? "Signing in..." : (isInTab ? "Complete Google Sign In" : "Sign in with Google")}
+
+        <div className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
+          <div className="bg-[#333333] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
+            <div className="flex justify-center mb-2">
+              <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
+            </div>
+            <div className="flex flex-col justify-center items-center gap-y-4">
+
+                {isloggedIn ? (   
+                    <p>Hello {userProfile?.name}</p>
+                ):(
+                    <Button onClick={async () => { await Login('google')}}>
+                        <span>Sign in with Google</span>
                     </Button>
                 )}
             </div>
+          </div>
         </div>
-    );
+
+    )
+
 }
+

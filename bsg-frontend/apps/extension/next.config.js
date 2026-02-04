@@ -12,7 +12,7 @@ module.exports = {
     ],
 
     //no need for this line extension does not user next/image components
-    // images: {
-    //     unoptimized: true,
-    // },
+    images: {
+        unoptimized: true,
+    },
 }
