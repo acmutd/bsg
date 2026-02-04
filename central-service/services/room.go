@@ -3,13 +3,13 @@ package services
 import (
 	"context"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -30,6 +30,17 @@ type RoomDTO struct {
 	Name string `json:"roomName"`
 }
 
+type SubmissionRequest struct {
+	RoomID      string `json:"roomID"`
+	ProblemSlug string `json:"problemSlug"`
+	Verdict     string `json:"verdict"`
+}
+
+type SubmissionResult struct {
+	NextProblem interface{} `json:"nextProblem"`
+	IsComplete  bool        `json:"isComplete"`
+}
+
 // Creates a room and persist
 // adminID is the the user that will be assigned room leader
 func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.Room, error) {
@@ -37,7 +48,7 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID:     uuid.New(),
+		ID:     service.generateRoomCode(),
 		Name:   room.Name,
 		Admin:  adminID,
 		Rounds: []models.Round{},
@@ -49,10 +60,19 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	return &newRoom, nil
 }
 
+func (service *RoomService) generateRoomCode() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 // Deletes leaderboard and join time stamps from Redis
 // Deletes room from Postgres
 func (service *RoomService) deleteRoom(room models.Room) error {
-	roomID := room.ID.String()
+	roomID := room.ID
 	// TODO: notify RTC room is empty
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
@@ -75,14 +95,7 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
-	uuid, err := uuid.Parse(roomID)
-	if err != nil {
-		return nil, BSGError{
-			StatusCode: 400,
-			Message:    "roomID could not be parsed",
-		}
-	}
-	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", roomID).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -123,7 +136,7 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			log.Printf("Error sending join-room message: %v", err)
 			return nil, BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -150,7 +163,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			log.Printf("Error sending leave-room message: %v", err)
 			return BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -300,7 +313,7 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 			Message:    "Round limit exceeded",
 		}
 	}
-	round, err := service.roundService.CreateRound(params, &room.ID)
+	round, err := service.roundService.CreateRound(params, room.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +375,7 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 	}
 	round := room.Rounds[len(room.Rounds)-1]
 	roundSubmissionParamters := RoundSubmissionParameters{
-		RoundID: round.ID,
+		RoundID:   round.ID,
 		ProblemID: problemID,
 	}
 	result, err := service.roundService.CreateRoundSubmission(roundSubmissionParamters, userID)
@@ -370,5 +383,44 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 		log.Printf("Error initiating creating round submission start: %v\n", err)
 		return nil, err
 	}
+	return result, nil
+}
+
+func (service *RoomService) ProcessSubmissionSuccess(roomID string, userID string, problemSlug string, verdict string) (*SubmissionResult, error) {
+	// Find the room
+	_, err := service.FindRoomByID(roomID)
+	if err != nil {
+		log.Printf("Error finding room by ID: %v\n", err)
+		return nil, err
+	}
+
+	// Get user handle (try to find handle in DB)
+	userHandle := userID
+	var user models.User
+	if dbErr := service.db.Where("auth_id = ?", userID).First(&user).Error; dbErr == nil && user.Handle != "" {
+		userHandle = user.Handle
+	}
+
+	// Send RTC message for new submission
+	rtcMessage := requests.NewSubmissionRequest{
+		UserHandle: userHandle,
+		RoomID:     roomID,
+		ProblemID:  problemSlug, // Use slug as problemID for now
+		Verdict:    verdict,
+	}
+
+	// Send the RTC message
+	_, err = service.rtcClient.SendMessage("new-submission", rtcMessage)
+	if err != nil {
+		log.Printf("Error sending RTC message: %v\n", err)
+		// Don't return error - the submission was still processed
+	}
+
+	// For now, return a simple result
+	result := &SubmissionResult{
+		NextProblem: nil,
+		IsComplete:  false,
+	}
+
 	return result, nil
 }

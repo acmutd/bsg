@@ -4,7 +4,7 @@ import (
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	//"gorm.io/gorm/clause"
 )
 
 type ProblemService struct {
@@ -15,6 +15,7 @@ type DifficultyParameter struct {
 	NumEasyProblems   int
 	NumMediumProblems int
 	NumHardProblems   int
+	Topics            []string
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -26,6 +27,8 @@ func (service *ProblemService) CreateProblem(problemData *models.Problem) (*mode
 		Name:        problemData.Name,
 		Description: problemData.Description,
 		Hints:       problemData.Hints,
+		Slug:        problemData.Slug,
+		Difficulty:  problemData.Difficulty,
 	}
 	result := service.db.Create(&newProblem)
 	if result.Error != nil {
@@ -43,6 +46,18 @@ func (service *ProblemService) FindProblemByProblemID(problemId uint) (*models.P
 	}
 	if searchResult.RowsAffected == 0 {
 		return nil, nil
+	}
+	return &problem, nil
+}
+
+func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, error) {
+	var problem models.Problem
+	result := service.db.Where("slug = ?", slug).First(&problem)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, result.Error
 	}
 	return &problem, nil
 }
@@ -74,38 +89,50 @@ func (service *ProblemService) FindProblems(count uint, offset uint) ([]models.P
 }
 
 func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, error) {
-	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
-	err := service.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.OrderBy{
-			Expression: clause.Expr{
-				SQL: "RANDOM()",
-			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_EASY).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
-			return err
+	var problems []models.Problem
+
+	query := service.db
+	// Note: Currently models.Problem doesn't have a Topics relation or field that we can easily filter.
+	// Assume topics are part of some tagging system or we just filter by difficulty for now if topics aren't implemented in the model.
+	// TODO: Implement actual topic filtering once the model supports it.
+
+	var easy []models.Problem
+	if params.NumEasyProblems > 0 {
+		if err := query.
+			Where("difficulty = ?", constants.DIFFICULTY_EASY).
+			Order("RANDOM()").
+			Limit(params.NumEasyProblems).
+			Find(&easy).Error; err != nil {
+			return nil, err
 		}
-		if err := tx.Clauses(clause.OrderBy{
-			Expression: clause.Expr{
-				SQL: "RANDOM()",
-			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
-			return err
-		}
-		if err := tx.Clauses(clause.OrderBy{
-			Expression: clause.Expr{
-				SQL: "RANDOM()",
-			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_HARD).Limit(params.NumHardProblems).Order(clause.Expr{
-			SQL: "RANDOM()",
-		}).Find(&hardProblems).Error; err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
-	problems = append(easyProblems, mediumProblems...)
-	problems = append(problems, hardProblems...)
+
+	var medium []models.Problem
+	if params.NumMediumProblems > 0 {
+		if err := query.
+			Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).
+			Order("RANDOM()").
+			Limit(params.NumMediumProblems).
+			Find(&medium).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	var hard []models.Problem
+	if params.NumHardProblems > 0 {
+		if err := query.
+			Where("difficulty = ?", constants.DIFFICULTY_HARD).
+			Order("RANDOM()").
+			Limit(params.NumHardProblems).
+			Find(&hard).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	problems = append(problems, easy...)
+	problems = append(problems, medium...)
+	problems = append(problems, hard...)
+
 	return problems, nil
 }
 

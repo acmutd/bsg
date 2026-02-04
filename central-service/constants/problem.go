@@ -1,7 +1,7 @@
 package constants
 
 const (
-	DIFFICULTY_EASY string = "easy"
-	DIFFICULTY_MEDIUM string = "medium"
-	DIFFICULTY_HARD string = "hard"
+	DIFFICULTY_EASY   string = "Easy"
+	DIFFICULTY_MEDIUM string = "Medium"
+	DIFFICULTY_HARD   string = "Hard"
 )

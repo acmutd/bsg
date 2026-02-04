@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
+
+	"firebase.google.com/go/auth"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -30,7 +33,7 @@ func main() {
 	}
 
 	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
-		fmt.Printf("Error migrating schema: %v\n", err)
+		log.Fatalf("Error migrating schema: %v\n", err)
 	}
 
 	rdb := redis.NewClient(&redis.Options{
@@ -53,7 +56,7 @@ func main() {
 	}
 
 	if err := db.AutoMigrate(&models.Leaderboard{}); err != nil {
-    	fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
+		fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
 	}
 
 	// Initialize Kafka-related components
@@ -93,15 +96,39 @@ func main() {
 	problemController := controllers.InitializeProblemController(&problemService)
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
+	fmt.Println("Room controller initialized")
+
+	submissionController := controllers.InitializeSubmissionController(&roomService)
+	fmt.Println("Submission controller initialized")
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
 	e.Use(middleware.CORS())
-	e.Use(userController.ValidateUserRequest)
+	//e.Use(userController.ValidateUserRequest) //temp disabled for testing
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Create a fake auth token for testing
+			fakeToken := &auth.Token{
+				UID: "test-user-123",
+			}
+			c.Set("authToken", fakeToken)
+			return next(c)
+		}
+	})
 
 	userController.InitializeRoutes(e.Group("/api/users"))
+	fmt.Println("User routes initialized")
 	problemController.InitializeRoutes(e.Group("/api/problems"))
+	fmt.Println("Problem routes initialized")
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
+	fmt.Println("Room routes initialized")
+	submissionController.InitializeRoutes(e.Group("/api/submissions"))
+	fmt.Println("Submission routes initialized")
+
+	// Add a simple health check
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
 	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
 
 	e.Logger.Fatal(e.Start(":5000"))

@@ -11,7 +11,7 @@ import (
 const MaxHistorySize = 100
 
 // List of all chat rooms connected to RTC service.
-type RoomsList map[*Room]bool
+type RoomsList map[string]*Room
 
 // the actual room struct itself
 type Room struct {
@@ -32,15 +32,10 @@ func (r *Room) AddUser(user *User) {
 	r.Lock()
 	defer r.Unlock()
 
-	// Check user already exists
-	if _, ok := r.Users[user]; ok {
-		logging.Error("User already exists")
-		return
-	}
+	// Update or add user to the room by their handle
+	r.Users[user.Handle] = user
 
-	r.Users[user] = true
-
-	logging.Info("Added: ", user.Handle, " to room: ", r.RoomID)
+	logging.Info("Added/Updated: ", user.Handle, " in room: ", r.RoomID)
 }
 
 func (r *Room) RemoveUser(user *User) {
@@ -48,8 +43,8 @@ func (r *Room) RemoveUser(user *User) {
 	defer r.Unlock()
 
 	// Only remove a client if they exist.
-	if _, ok := r.Users[user]; ok {
-		delete(r.Users, user)
+	if _, ok := r.Users[user.Handle]; ok {
+		delete(r.Users, user.Handle)
 		logging.Info("User removed: ", user.Handle, " from room: ", r.RoomID)
 		return
 	}
@@ -61,12 +56,7 @@ func (r *Room) GetUser(userHandle string) *User {
 	r.RLock()
 	defer r.RUnlock()
 
-	for user := range r.Users {
-		if user.Handle == userHandle {
-			return user
-		}
-	}
-	return nil
+	return r.Users[userHandle]
 }
 
 func (r *Room) IsEmpty() bool {

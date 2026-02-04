@@ -88,6 +88,17 @@ func (s *Service) ReadMessages() {
 					// Broadcast and Persistence Logic
 					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
+						if room == nil {
+							// Create the room if it doesn't exist (Lazy creation for round-start/background messages)
+							logging.Info("Creating room on broadcast: ", roomID)
+							room = &chatmanager.Room{
+								RoomID: roomID,
+								Users:  make(chatmanager.UserList),
+							}
+							chatmanager.RTCChatManager.CreateRoom(room)
+						}
+
+						// Re-verify room exists after potential creation
 						if room != nil {
 							// 1. If this is a join-room request, replay history to the joining user.
 							if messageStruct.Type == "join-room" {
@@ -102,14 +113,12 @@ func (s *Service) ReadMessages() {
 							room.AddMessage(respObj)
 
 							// 3. Send to all users in the room.
-							for user := range room.Users {
-								userService := s.ServiceManager.FindService(user.Handle)
+							for handle := range room.Users {
+								userService := s.ServiceManager.FindService(handle)
 								if userService != nil {
 									userService.Egress <- respObj
 								}
 							}
-						} else {
-							s.Egress <- respObj
 						}
 					} else {
 						s.Egress <- respObj
