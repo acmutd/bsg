@@ -50,6 +50,16 @@
         "*://*.leetcode.com/problems/*"
       ],
       "js": [
+        "startScript.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://leetcode.com/problems/*",
+        "*://*.leetcode.com/problems/*"
+      ],
+      "js": [
         "contentScript.js"
       ],
       "run_at": "document_idle"
