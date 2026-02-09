@@ -163,9 +163,22 @@ export default function RoomChoice({ onJoin, onCreate, useBackend = false }: Roo
   }
 
   const getAuthToken = async () => {
-    if (!auth || !auth.currentUser) {
-      console.warn("⚠️ Firebase not initialized or user not logged in. Using dummy token for local development.");
-      return "dummy-token-123";
+    if (!auth) throw new Error("Firebase Auth not initialized");
+
+    // Wait for auth to initialize if it's currently null
+    if (!auth.currentUser) {
+      await new Promise((resolve) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          unsubscribe();
+          resolve(user);
+        });
+        // Timeout after 2 seconds to avoid hanging
+        setTimeout(resolve, 2000);
+      });
+    }
+
+    if (!auth.currentUser) {
+      throw new Error("User not authenticated with Firebase. Please sign in.");
     }
     const token = await auth.currentUser.getIdToken()
     console.log("Got auth token:", token.substring(0, 20) + "...") // Log first 20 chars
@@ -211,9 +224,9 @@ export default function RoomChoice({ onJoin, onCreate, useBackend = false }: Roo
       const createData = await createResponse.json()
       console.log('📦 Create response data:', createData);
 
-      // Use lowercase 'id' (that's what the backend returns)
-      const roomID = createData.data.id;
-      console.log('✅ Room created with ID:', roomID)
+      // Use the 5-character roomCode for UX
+      const roomID = createData.data.roomCode;
+      console.log('✅ Room created with Code:', roomID)
 
       if (!roomID) {
         console.error('❌ No room ID in response!');

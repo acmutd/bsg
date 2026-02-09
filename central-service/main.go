@@ -7,8 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"firebase.google.com/go/auth"
-
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/madflojo/tasks"
@@ -104,17 +102,7 @@ func main() {
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
 	e.Use(middleware.CORS())
-	//e.Use(userController.ValidateUserRequest) //temp disabled for testing
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// Create a fake auth token for testing
-			fakeToken := &auth.Token{
-				UID: "test-user-123",
-			}
-			c.Set("authToken", fakeToken)
-			return next(c)
-		}
-	})
+	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
 	fmt.Println("User routes initialized")

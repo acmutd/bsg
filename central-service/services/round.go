@@ -10,6 +10,7 @@ import (
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
+	"github.com/google/uuid"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -57,7 +58,7 @@ func (service *RoundService) SetDBConnection(db *gorm.DB) {
 	service.db = db
 }
 
-func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, error) {
+func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID uuid.UUID) (*models.Round, error) {
 	newRound := models.Round{
 		Duration:        params.Duration,
 		RoomID:          roomID,
@@ -164,7 +165,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			problemList = append(problemList, fmt.Sprint(problem.ID))
 		}
 		var roundStart = requests.RoundStartRequest{
-			RoomID:      round.RoomID,
+			RoomID:      round.RoomID.String(),
 			ProblemList: problemList,
 		}
 		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
@@ -246,7 +247,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 					// RTCClient is nil in test cases
 					if service.rtcClient != nil {
 						var roundEnd = requests.RoundEndRequest{
-							RoomID: round.RoomID,
+							RoomID: round.RoomID.String(),
 						}
 						if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
 							log.Printf("Error sending round-end message: %v", err)

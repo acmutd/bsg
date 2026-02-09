@@ -1,17 +1,18 @@
 import { Button } from "@bsg/ui/button";
 import Logo from "@bsg/components/Logo";
 import { useEffect, useState } from 'react';
-import {Poppins} from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import { useRouter } from 'next/router';
+import { SignInWithChromeIdentity } from '../firebase/auth/signIn/googleImplementation/chromeExtensionAuth';
 
 
 type AuthProvider = 'google' | 'github';
 
-interface User  {
-        id: string,
-        name: string,
-        email: string,
-        photo: string
+interface User {
+    id: string,
+    name: string,
+    email: string,
+    photo: string
 }
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
@@ -19,52 +20,61 @@ const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
 export default function UserLogIn() {
 
-    const[user, setUser] = useState(false);
-    const[isloggedIn, setLoggedIn] = useState(false);
-    const[userProfile, setUserProfile] = useState<User | null>(null);
-    const[authProvider, setAuthProvider] = useState<AuthProvider | undefined>(undefined)
+    const [user, setUser] = useState(false);
+    const [isloggedIn, setLoggedIn] = useState(false);
+    const [userProfile, setUserProfile] = useState<User | null>(null);
+    const [authProvider, setAuthProvider] = useState<AuthProvider | undefined>(undefined)
 
     const router = useRouter()
 
     const Login = async (Provider: AuthProvider) => {
-        
-        try{
-            
+
+        try {
+
             //Open the OAuth Window
             const popup = window.open(`http://localhost:3000/auth/${Provider}`)
 
             //Keep polling to see if auth is done or not
             const checkAuth = async () => {
-                    
-                    //wait for response from the server
-                    const response = await fetch(`http://localhost:3000/auth/user`, {
-                                                method: "GET",
-                                                credentials: "include"
-                    });
 
-                    if(response.ok){
-                        const userObject = await response.json()
-                        setLoggedIn(true)
-                        setUserProfile(userObject)
-                        popup?.close()
+                //wait for response from the server
+                const response = await fetch(`http://localhost:3000/auth/user`, {
+                    method: "GET",
+                    credentials: "include"
+                });
 
-                        return userObject;
+                if (response.ok) {
+                    const userObject = await response.json()
 
-                    }else if (popup && !popup.closed){
-                        //Not Authenticated yet
-                        setTimeout(checkAuth, 1000);
-
+                    // Sync with background immediately
+                    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+                        chrome.runtime.sendMessage({
+                            type: 'SET_STATE',
+                            payload: { userProfile: userObject }
+                        });
                     }
+
+                    setLoggedIn(true)
+                    setUserProfile(userObject)
+                    popup?.close()
+
+                    return userObject;
+
+                } else if (popup && !popup.closed) {
+                    //Not Authenticated yet
+                    setTimeout(checkAuth, 1000);
+
                 }
-
-
-                setTimeout(checkAuth, 5000);
-
-
             }
 
 
-         catch (err) {
+            setTimeout(checkAuth, 5000);
+
+
+        }
+
+
+        catch (err) {
             window.open("_blank")
             console.warn("Authentication failed")
 
@@ -77,9 +87,9 @@ export default function UserLogIn() {
     const Logout = () => {
         console.log("Got inside of the logout function ")
 
-        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined' ){
-            chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
-                if(response && response.success){
+        if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
+            chrome.runtime.sendMessage({ type: 'LOGOUT' }, (response) => {
+                if (response && response.success) {
                     setLoggedIn(false)
                 }
             })
@@ -89,50 +99,60 @@ export default function UserLogIn() {
 
 
 
-      //check if the user is logged in using the service worker
+    //check if the user is logged in using the service worker
     useEffect(() => {
         console.log("useEffect running on mount");
 
         //check if chrome api is available
-        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined'){
-                console.log("Sending CHECK_AUTH message");
+        if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
+            console.log("Sending CHECK_AUTH message");
 
-                chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
-                    console.log("Received response from background:", response);
-                    if(response && response.success){
+            chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+                console.log("Received response from background:", response);
+                if (response && response.success) {
                     console.log("Auth successful, setting user:", response.user);
                     setUserProfile(response.user)
                     setUser(true)
                     setLoggedIn(true)
-                    router.push('/room-user')
-                    } else {
-                    console.log("Auth failed or no session");
-                    }
 
-                })
+                    // SILENT BRIDGE: Also sign into Firebase in the background
+                    // This ensures auth.currentUser is populated for port 5050 tokens
+                    SignInWithChromeIdentity().then(() => {
+                        console.log("✅ Silent Firebase bridge successful");
+                        router.push('/room-user')
+                    }).catch((err) => {
+                        console.error("❌ Silent Firebase bridge failed:", err);
+                        // Still navigate, but warnings might appear in gameplay
+                        router.push('/room-user')
+                    });
+                } else {
+                    console.log("Auth failed or no session");
+                }
+
+            })
 
         }
 
-        }, [isloggedIn, router]); //router because ESlint error nothing to do with re-render 
+    }, [isloggedIn, router]); //router because ESlint error nothing to do with re-render 
 
     return (
 
         <div className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
-          <div className="bg-[#333333] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
-            <div className="flex justify-center mb-2">
-              <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
-            </div>
-            <div className="flex flex-col justify-center items-center gap-y-4">
+            <div className="bg-[#333333] border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
+                <div className="flex justify-center mb-2">
+                    <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
+                </div>
+                <div className="flex flex-col justify-center items-center gap-y-4">
 
-                {isloggedIn ? (   
-                    <p>Hello {userProfile?.name}</p>
-                ):(
-                    <Button onClick={async () => { await Login('google')}}>
-                        <span>Sign in with Google</span>
-                    </Button>
-                )}
+                    {isloggedIn ? (
+                        <p>Hello {userProfile?.name}</p>
+                    ) : (
+                        <Button onClick={async () => { await Login('google') }}>
+                            <span>Sign in with Google</span>
+                        </Button>
+                    )}
+                </div>
             </div>
-          </div>
         </div>
 
     )

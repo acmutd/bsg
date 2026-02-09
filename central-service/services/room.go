@@ -10,6 +10,7 @@ import (
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -48,10 +49,11 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID:     service.generateRoomCode(),
-		Name:   room.Name,
-		Admin:  adminID,
-		Rounds: []models.Round{},
+		ID:       uuid.New(),
+		RoomCode: service.generateRoomCode(),
+		Name:     room.Name,
+		Admin:    adminID,
+		Rounds:   []models.Round{},
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
@@ -72,7 +74,7 @@ func (service *RoomService) generateRoomCode() string {
 // Deletes leaderboard and join time stamps from Redis
 // Deletes room from Postgres
 func (service *RoomService) deleteRoom(room models.Room) error {
-	roomID := room.ID
+	roomID := room.ID.String()
 	// TODO: notify RTC room is empty
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
@@ -95,7 +97,14 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
-	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", roomID).Limit(1).Find(&room)
+	parsedID, err := uuid.Parse(roomID)
+	if err != nil {
+		return nil, BSGError{
+			StatusCode: 400,
+			Message:    "Invalid room UUID",
+		}
+	}
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", parsedID).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -108,13 +117,33 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	return &room, nil
 }
 
+func (service *RoomService) FindRoomByCode(roomCode string) (*models.Room, error) {
+	var room models.Room
+	result := service.db.Preload("Rounds.ProblemSet").Where("room_code = ?", roomCode).Limit(1).Find(&room)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, BSGError{
+			StatusCode: 404,
+			Message:    "Room code not found",
+		}
+	}
+	return &room, nil
+}
+
 // Allows a user to join a room
 // Adds user join timestamp and leaderboard entries into Redis
-func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room, error) {
-	room, err := service.FindRoomByID(roomID)
+func (service *RoomService) JoinRoom(roomIDOrCode string, userID string) (*models.Room, error) {
+	room, err := service.FindRoomByCode(roomIDOrCode)
 	if err != nil {
-		return nil, err
+		// Try finding by UUID if code fails
+		room, err = service.FindRoomByID(roomIDOrCode)
+		if err != nil {
+			return nil, err
+		}
 	}
+	roomID := room.ID.String()
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
@@ -145,11 +174,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 
 // Allows a user to leave a room
 // If the departing user is the room leader, a new leader will be assigned
-func (service *RoomService) LeaveRoom(roomID string, userID string) error {
-	room, err := service.FindRoomByID(roomID)
+func (service *RoomService) LeaveRoom(roomIDOrCode string, userID string) error {
+	room, err := service.FindRoomByCode(roomIDOrCode)
 	if err != nil {
-		return err
+		room, err = service.FindRoomByID(roomIDOrCode)
+		if err != nil {
+			return err
+		}
 	}
+	roomID := room.ID.String()
 	if err := service.removeJoinMember(roomID, userID); err != nil {
 		return err
 	}
@@ -297,8 +330,8 @@ func validateRoomName(name string) error {
 	return nil
 }
 
-func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, error) {
-	room, err := service.FindRoomByID(roomID)
+func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID uuid.UUID) (*models.Round, error) {
+	room, err := service.FindRoomByID(roomID.String())
 	if err != nil {
 		log.Printf("Error finding room by ID: %v\n", err)
 		return nil, err
@@ -333,10 +366,13 @@ func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, er
 }
 
 func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*time.Time, error) {
-	room, err := service.FindRoomByID(roomID)
+	room, err := service.FindRoomByCode(roomID)
 	if err != nil {
-		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
+		room, err = service.FindRoomByID(roomID)
+		if err != nil {
+			log.Printf("Error finding room: %v\n", err)
+			return nil, err
+		}
 	}
 	if room.Admin != userID { // check if user is room admin
 		return nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
@@ -364,10 +400,13 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 }
 
 func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, userID string) (*models.RoundSubmission, error) {
-	room, err := service.FindRoomByID(roomID)
+	room, err := service.FindRoomByCode(roomID)
 	if err != nil {
-		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
+		room, err = service.FindRoomByID(roomID)
+		if err != nil {
+			log.Printf("Error finding room: %v\n", err)
+			return nil, err
+		}
 	}
 	if len(room.Rounds) <= 0 {
 		log.Printf("Error creating room submission: Round has not been created")
@@ -386,13 +425,17 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 	return result, nil
 }
 
-func (service *RoomService) ProcessSubmissionSuccess(roomID string, userID string, problemSlug string, verdict string) (*SubmissionResult, error) {
+func (service *RoomService) ProcessSubmissionSuccess(roomIDOrCode string, userID string, problemSlug string, verdict string) (*SubmissionResult, error) {
 	// Find the room
-	_, err := service.FindRoomByID(roomID)
+	room, err := service.FindRoomByCode(roomIDOrCode)
 	if err != nil {
-		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
+		room, err = service.FindRoomByID(roomIDOrCode)
+		if err != nil {
+			log.Printf("Error finding room: %v\n", err)
+			return nil, err
+		}
 	}
+	roomID := room.ID.String()
 
 	// Get user handle (try to find handle in DB)
 	userHandle := userID

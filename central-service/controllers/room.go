@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"firebase.google.com/go/auth"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -25,7 +25,7 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 	if err := c.Bind(&roomDTO); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	newRoom, err := controller.roomService.CreateRoom(&roomDTO, userAuthID)
 	if err != nil {
 		log.Printf("User id: %s failed to create room object: %v\n", userAuthID, err)
@@ -39,12 +39,18 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 	})
 }
 
-// Endpoint for finding a room by id
+// Endpoint for finding a room by id or code
 func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 	targetRoomID := c.Param("roomID")
-	room, err := controller.roomService.FindRoomByID(targetRoomID)
+	// Try finding by code first (more likely in UX)
+	room, err := controller.roomService.FindRoomByCode(targetRoomID)
 	if err != nil {
-		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
+		// Fallback to finding by ID (UUID)
+		room, err = controller.roomService.FindRoomByID(targetRoomID)
+	}
+
+	if err != nil {
+		log.Printf("Failed to search for room with id/code %s: %v\n", targetRoomID, err)
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Room not found")
 		}
@@ -57,7 +63,7 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 
 // Endpoint for joining a room
 func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	roomID := c.Param("roomID")
 	room, err := controller.roomService.JoinRoom(roomID, userAuthID)
 	if err != nil {
@@ -74,7 +80,7 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 
 // Endpoint for leaving a room
 func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	roomID := c.Param("roomID")
 	err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
@@ -95,7 +101,16 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
 	roomID := c.Param("roomID")
-	newRound, err := controller.roomService.CreateRound(&roundCreationParams, roomID)
+	parsedRoomID, err := uuid.Parse(roomID)
+	if err != nil {
+		// If it's not a UUID, try to find the room by code first to get the UUID
+		room, err := controller.roomService.FindRoomByCode(roomID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid room ID or code")
+		}
+		parsedRoomID = room.ID
+	}
+	newRound, err := controller.roomService.CreateRound(&roundCreationParams, parsedRoomID)
 	if err != nil {
 		log.Printf("Failed to create new round: %v\n", err)
 		if err, ok := err.(*services.BSGError); ok {
@@ -110,7 +125,7 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 
 func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	targetRoomID := c.Param("roomID")
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	roundStartTime, err := controller.roomService.StartRoundByRoomID(targetRoomID, userAuthID)
 	if err != nil {
 		log.Printf("Failed to start round for room with id %s: %v\n", targetRoomID, err)
@@ -142,7 +157,7 @@ func (controller *RoomController) GetLeaderboardEndpoint(c echo.Context) error {
 func (controller *RoomController) CreateSubmissionEndpoint(c echo.Context) error {
 	roomID := c.Param("roomID")
 	problemID := c.Param("problemID")
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	parsedProblemID, err := strconv.Atoi(problemID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problemID. Please try again")

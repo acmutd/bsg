@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"firebase.google.com/go/auth"
 	"github.com/acmutd/bsg/central-service/services"
 	"github.com/labstack/echo/v4"
 )
@@ -26,7 +25,7 @@ func (controller *SubmissionController) HandleSubmissionEndpoint(c echo.Context)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
 
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 
 	log.Printf("Processing submission: %s %s\n", submissionRequest.ProblemSlug, submissionRequest.Verdict)
 

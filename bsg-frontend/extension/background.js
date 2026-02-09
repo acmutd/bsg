@@ -50,7 +50,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'LOGOUT') {
     fetch('http://localhost:3000/auth/logout', { method: 'POST', credentials: 'include' })
       .finally(() => {
-        chrome.storage.local.remove('user', () => sendResponse({ success: true }));
+        chrome.storage.local.remove(['session', 'user'], () => {
+          sessionCache = null;
+          sendResponse({ success: true });
+        });
       });
     return true;
   }
