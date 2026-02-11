@@ -57,15 +57,15 @@ func main() {
 	}
 
 	// Initialize Kafka-related components
-	kafkaManager := services.NewKafkaManagerService()
-	defer kafkaManager.Cleanup()
-	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_INGRESS_TOPIC")); err != nil {
-		log.Fatalf("Error creating Kafka Ingress topic: %v\n", err)
-	}
-	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_EGRESS_TOPIC")); err != nil {
-		log.Fatalf("Error creating Kafka Egress topic: %v\n", err)
-	}
-	ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
+	// kafkaManager := services.NewKafkaManagerService()
+	// defer kafkaManager.Cleanup()
+	// if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_INGRESS_TOPIC")); err != nil {
+	// 	log.Fatalf("Error creating Kafka Ingress topic: %v\n", err)
+	// }
+	// if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_EGRESS_TOPIC")); err != nil {
+	// 	log.Fatalf("Error creating Kafka Egress topic: %v\n", err)
+	// }
+	// ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
 
 	rtcClient, err := services.InitializeRTCClient("central-service")
 	if err != nil {
@@ -80,12 +80,12 @@ func main() {
 	roundScheduler := tasks.New()
 	defer roundScheduler.Stop()
 
-	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue, rtcClient)
-	egressQueue := services.NewSubmissionEgressQueueService(db, &roundService)
+	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, rtcClient)
+	// egressQueue := services.NewSubmissionEgressQueueService(db, &roundService)
 
 	// co routine to listen for submission data
-	go egressQueue.ListenForSubmissionData()
-	go ingressQueue.MessageDeliveryHandler()
+	// go egressQueue.ListenForSubmissionData()
+	// go ingressQueue.MessageDeliveryHandler()
 
 	e := echo.New()
 

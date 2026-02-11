@@ -3,8 +3,8 @@ services:
   central-service:
     build: ./central-service
     depends_on:
-      - broker
-      - zookeeper
+      # - broker
+      # - zookeeper
       - db
       - redis-cache
     restart: on-failure
@@ -17,10 +17,10 @@ services:
       DB_NAME: ${POSTGRES_DB}
       MAX_NUM_ROUND_PER_ROOM: ${MAX_NUM_ROUND_PER_ROOM}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      KAFKA_BROKER: ${KAFKA_BROKER}
-      KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
-      KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
-      KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
+      # KAFKA_BROKER: ${KAFKA_BROKER}
+      # KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
+      # KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
+      # KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
       SERVER_SECRET: ${SERVER_SECRET}
   rtc-service:
     build: ./rtc-service
@@ -32,7 +32,7 @@ services:
       LEETCODE_USERNAME: ${LEETCODE_USERNAME}
       LEETCODE_PASSWORD: ${LEETCODE_PASSWORD}
   db: 
-    image: postgres:17
+    image: postgres
     restart: always
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -47,34 +47,34 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis-volume:/bitnami/redis/data
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.0
-    hostname: zookeeper
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper-data-volume:/var/lib/zookeeper/data
-      - zookeeper-log-volume:/var/lib/zookeeper/log
-  broker:
-    image: confluentinc/cp-kafka:7.3.0
-    container_name: broker
-    ports:
-      - "29092:29092"
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    volumes:
-      - kafka-data-volume:/var/lib/kafka/data
+  # zookeeper:
+    # image: confluentinc/cp-zookeeper:7.3.0
+    # hostname: zookeeper
+    # container_name: zookeeper
+    # environment:
+    #   ZOOKEEPER_CLIENT_PORT: 2181
+    #   ZOOKEEPER_TICK_TIME: 2000
+    # volumes:
+    #   - zookeeper-data-volume:/var/lib/zookeeper/data
+    #   - zookeeper-log-volume:/var/lib/zookeeper/log
+  # broker:
+    # image: confluentinc/cp-kafka:7.3.0
+    # container_name: broker
+    # ports:
+    #   - "29092:29092"
+    # depends_on:
+    #   - zookeeper
+    # environment:
+    #   KAFKA_BROKER_ID: 1
+    #   KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    #   KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:29092
+    #   KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+    #   KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    #   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    #   KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    #   KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    # volumes:
+    #   - kafka-data-volume:/var/lib/kafka/data
   adminer:
     image: adminer
     restart: always
@@ -106,7 +106,7 @@ volumes:
   db-volume:
   redis-volume: 
     driver: local
-  zookeeper-data-volume:
-  zookeeper-log-volume:
+  # zookeeper-data-volume:
+  # zookeeper-log-volume:
   redisinsight-volume:
-  kafka-data-volume:
+  # kafka-data-volume:
