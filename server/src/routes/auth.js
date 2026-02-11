@@ -13,15 +13,14 @@ router.get('/google',
 router.get('/google/callback',
     passport.authenticate('google', {failureRedirect: '/auth/google'}),
     (req, res) => {
-        res.redirect('/auth/done');
-         
+        res.redirect('/auth/done'); 
      }
 
 );
 
 
 router.get('/done',(req, res) => {
-    res.send(`You are successfully authenticated please go back to the leetcode page`);
+    res.send('You are done with authentication');
 });
 
 

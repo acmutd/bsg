@@ -81,8 +81,8 @@ async function startServer() {
         cookie: {
             maxAge: 3600000, // 1 hour
             httpOnly: true,
-            secure: false, // Set to true in production with HTTPS
-            sameSite: 'lax'
+            secure: true, // Setting it true now for deployement
+            sameSite: 'none'
         },
     }));
 

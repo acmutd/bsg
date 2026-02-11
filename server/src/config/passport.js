@@ -14,7 +14,7 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'http://localhost:3000/auth/google/callback'
+    callbackURL: 'https://bsg-kappa.vercel.app/auth/google/callback'
 },
     (accessToken, refreshToken, profile, done) => {
         const user = {
@@ -67,7 +67,7 @@ passport.use(new GoogleStrategy({
 passport.use(new GithubStrategy({
     clientID:process.env.GITHUB_CLIENT_ID,
     clientSecret:process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: 'http://localhost:3000/auth/github/callback'
+    callbackURL: 'https://bsg-kappa.vercel.app/auth/github/callback'
 },
 (accessToken, refreshToken, profile, done) => {
     // Debug: Log what GitHub is actually returning

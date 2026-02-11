@@ -68,7 +68,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'CHECK_AUTH') {
         console.log("Background: Received CHECK_AUTH message");
         // Fetch user data from localhost server
-        fetch('http://localhost:3000/auth/user', {
+        fetch('https://bsg-kappa.vercel.app/auth/user', {
             credentials: 'include',
             method: 'GET'
         })
@@ -103,7 +103,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.type === 'LOGOUT') {
         // Clear user from Chrome storage
-        fetch('http://localhost:3000/auth/logout', {
+        fetch('https://bsg-kappa.vercel.app/auth/logout', {
             method: 'POST',
             credentials: 'include'
         })
