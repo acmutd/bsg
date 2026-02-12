@@ -32,7 +32,7 @@ services:
       LEETCODE_USERNAME: ${LEETCODE_USERNAME}
       LEETCODE_PASSWORD: ${LEETCODE_PASSWORD}
   db: 
-    image: postgres
+    image: postgres:18 #lets just settle for 18th version now so no more version mismatch for any user with DB volume format
     restart: always
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
