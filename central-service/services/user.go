@@ -31,6 +31,9 @@ func InitializeUserService(db *gorm.DB) UserService {
 
 func (service *UserService) GenerateAuthToken(request *http.Request) (*auth.Token, error) {
 	authToken := request.Header.Get("Authorization")
+	if len(authToken) > 7 && authToken[:7] == "Bearer " {
+		authToken = authToken[7:]
+	}
 
 	firebaseApp, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile(os.Getenv("FIREBASE_CREDENTIALS_FILEPATH")))
 	if err != nil {

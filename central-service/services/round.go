@@ -94,7 +94,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 		return nil, err
 	}
 	log.Printf("Attached %d problems to round %d", len(problems), newRound.ID)
-	return &newRound, nil
+
 	/*
 		if err != nil {
 			return nil, err
@@ -105,6 +105,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 			log.Printf("Error setting value in redis instance: %v\n", err)
 			return nil, err
 		}*/
+	return &newRound, nil
 }
 
 func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) {

@@ -57,15 +57,17 @@ func main() {
 		fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
 	}
 
-	// Initialize Kafka-related components
+	// Initialize Kafka-related components (Manager only for now)
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
+	/* Kafka topic creation disabled for now
 	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_INGRESS_TOPIC")); err != nil {
 		log.Fatalf("Error creating Kafka Ingress topic: %v\n", err)
 	}
 	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_EGRESS_TOPIC")); err != nil {
 		log.Fatalf("Error creating Kafka Egress topic: %v\n", err)
 	}
+	*/
 	ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
 
 	rtcClient, err := services.InitializeRTCClient("central-service")
@@ -86,7 +88,7 @@ func main() {
 
 	// co routine to listen for submission data
 	go egressQueue.ListenForSubmissionData()
-	go ingressQueue.MessageDeliveryHandler()
+	// go ingressQueue.MessageDeliveryHandler()
 
 	e := echo.New()
 

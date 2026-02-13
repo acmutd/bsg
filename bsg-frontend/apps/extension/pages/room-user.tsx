@@ -103,9 +103,23 @@ export default function RedirectionToRoomScreen() {
 
       if (!roomResponse.ok) throw new Error('Failed to fetch room');
       const roomData = await roomResponse.json();
-      const round = roomData.data?.rounds?.[0];
-      if (!round) throw new Error('No round found in room');
+      let round = roomData.data?.rounds?.[0];
 
+      if (!round) {
+        // No round exists - show message and let user decide
+        alert('No round has been created for this room yet. You can create a round if you\'re the room admin, or wait for the room admin to start one.');
+        return;
+      }
+
+      // Round exists - check if it's already started
+      if (round.status === 'started') {
+        alert('Round is already in progress! You should see the problems and timer automatically.');
+        setRoundStarted(true);
+        setTimeRemaining(currentRoom.options?.duration * 60 || 1800);
+        return;
+      }
+
+      // Round exists but not started - start it
       const problemList = round.problems?.map((p: any) => String(p.ID || p.id)) || [];
       const problemSlugs = round.problems?.map((p: any) => p.slug).filter(Boolean) || [];
       const firstProblemSlug = problemSlugs[0];

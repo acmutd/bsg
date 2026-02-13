@@ -15,6 +15,19 @@ type RoomController struct {
 	roomService *services.RoomService
 }
 
+// Typed response wrappers for JSON encoding
+type RoomResponse struct {
+	Data *models.Room `json:"data"`
+}
+
+type RoundResponse struct {
+	Data *models.Round `json:"data"`
+}
+
+type RoomSubmissionResponse struct {
+	Submission *models.RoundSubmission `json:"submission"`
+}
+
 func InitializeRoomController(service *services.RoomService) RoomController {
 	return RoomController{service}
 }
@@ -34,9 +47,7 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create room. Please try again later")
 	}
-	return c.JSON(http.StatusCreated, map[string]models.Room{
-		"data": *newRoom,
-	})
+	return c.JSON(http.StatusCreated, RoomResponse{Data: newRoom})
 }
 
 // Endpoint for finding a room by id or code
@@ -56,9 +67,7 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to find room. Please try again later")
 	}
-	return c.JSON(http.StatusOK, map[string]models.Room{
-		"data": *room,
-	})
+	return c.JSON(http.StatusOK, RoomResponse{Data: room})
 }
 
 // Endpoint for joining a room
@@ -73,9 +82,7 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to join room. Please try again later")
 	}
-	return c.JSON(http.StatusOK, map[string]models.Room{
-		"data": *room,
-	})
+	return c.JSON(http.StatusOK, RoomResponse{Data: room})
 }
 
 // Endpoint for leaving a room
@@ -118,9 +125,7 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create round. Please try again later")
 	}
-	return c.JSON(http.StatusCreated, map[string]models.Round{
-		"data": *newRound,
-	})
+	return c.JSON(http.StatusCreated, RoundResponse{Data: newRound})
 }
 
 func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
@@ -174,9 +179,7 @@ func (controller *RoomController) CreateSubmissionEndpoint(c echo.Context) error
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create submission. Please try again later")
 	}
-	return c.JSON(http.StatusOK, map[string]models.RoundSubmission{
-		"submission": *result,
-	})
+	return c.JSON(http.StatusOK, RoomSubmissionResponse{Submission: result})
 }
 
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {

@@ -198,10 +198,10 @@ export default function RoomChoice({ onJoin, onCreate, useBackend = false }: Roo
 
     try {
       const token = await getAuthToken()
-      console.log('🔑 Got token:', token ? 'YES' : 'NO');
+      console.log('Got token:', token ? 'YES' : 'NO');
 
-      // Step 1: Create room on backend
-      console.log('📡 Step 1: Creating room on backend...');
+      onCreate(code, roomSettings)
+      console.log('Step 1: Creating room on backend...');
       const createResponse = await fetch(`${API_BASE_URL}/api/rooms/`, {
         method: "POST",
         headers: {
@@ -213,28 +213,28 @@ export default function RoomChoice({ onJoin, onCreate, useBackend = false }: Roo
         })
       })
 
-      console.log('📡 Create response status:', createResponse.status);
+      console.log('Create response status:', createResponse.status);
 
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
-        console.error('❌ Step 1 (Create Room) failed:', createResponse.status, errorText);
+        console.error('Step 1 (Create Room) failed:', createResponse.status, errorText);
         throw new Error(`Step 1 failed: ${createResponse.status} - ${errorText}`)
       }
 
       const createData = await createResponse.json()
-      console.log('📦 Create response data:', createData);
+      console.log('Create response data:', createData);
 
       // Use the 5-character roomCode for UX
       const roomID = createData.data.roomCode;
-      console.log('✅ Room created with Code:', roomID)
+      console.log('Room created with Code:', roomID)
 
       if (!roomID) {
-        console.error('❌ No room ID in response!');
+        console.error(' No room ID in response!');
         throw new Error('Step 1 success but room ID missing from response');
       }
 
       // Step 2: Create round with settings
-      console.log('📡 Step 2: Creating round on backend...');
+      console.log(' Step 2: Creating round on backend...');
       const roundResponse = await fetch(`${API_BASE_URL}/api/rooms/${roomID}/rounds/create`, {
         method: "POST",
         headers: {
@@ -250,22 +250,43 @@ export default function RoomChoice({ onJoin, onCreate, useBackend = false }: Roo
         })
       })
 
-      console.log('📡 Round response status:', roundResponse.status);
+      console.log(' Round response status:', roundResponse.status);
 
       if (!roundResponse.ok) {
         const errorText = await roundResponse.text();
-        console.error('❌ Step 2 (Create Round) failed:', roundResponse.status, errorText);
+        console.error(' Step 2 (Create Round) failed:', roundResponse.status, errorText);
         throw new Error(`Step 2 failed: ${roundResponse.status} - ${errorText}`)
       }
 
       const roundData = await roundResponse.json()
       console.log('✅ Round created successfully:', roundData)
 
-      // Step 3: Call onCreate with roomID
+      // Step 3: Join room on backend so RTC learns UUID <-> code mapping
+      console.log('Step 3: Joining room on backend...');
+      const joinResponse = await fetch(`${API_BASE_URL}/api/rooms/${roomID}/join`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token
+        },
+      })
+
+      console.log(' Join response status:', joinResponse.status);
+
+      if (!joinResponse.ok) {
+        const errorText = await joinResponse.text();
+        console.error('Step 3 (Join Room) failed:', joinResponse.status, errorText);
+        throw new Error(`Step 3 failed: ${joinResponse.status} - ${errorText}`)
+      }
+
+      const joinData = await joinResponse.json()
+      console.log('✅ Joined backend room:', joinData)
+
+      // Step 4: Call onCreate with roomID
       onCreate(roomID, roomSettings)
 
     } catch (err: any) {
-      console.error("❌ Backend create failed:", err)
+      console.error("Backend create failed:", err)
       alert(err.message || "Failed to create room on backend. Check console for details.")
       throw err
     }

@@ -21,7 +21,7 @@ var (
 // don't have a built-in way to send success or error messages.
 type Response struct {
 	RespStatus  ResponseStatus  `json:"status"`
-	RespMessage responseMessage `json:"message"`
+	RespMessage ResponseMessage `json:"message"`
 	RespType    ResponseType    `json:"responseType"`
 }
 
@@ -29,7 +29,7 @@ type Response struct {
 // message is a system-announcement.
 //
 // Since system-announcements are sent to a specific room.
-type responseMessage struct {
+type ResponseMessage struct {
 	RoomID     string `json:"roomID"` // Field is empty if the response is any other type.
 	Data       string `json:"data"`
 	UserHandle string `json:"userHandle"` // Field is empty if response isn't chat_message
@@ -39,7 +39,7 @@ type responseMessage struct {
 
 // NewErrorResponse creates a new error response.
 func NewErrorResponse(responseType ResponseType, message string, roomID string) *Response {
-	respMessage := responseMessage{
+	respMessage := ResponseMessage{
 		Data: message,
 	}
 
@@ -59,7 +59,7 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 	userName := ""
 	userPhoto := ""
 	data := message
-	
+
 	if responseType == CHAT_MESSAGE && message != "" {
 		// Try to unmarshal JSON first
 		var chatData map[string]string
@@ -79,7 +79,7 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 		}
 	}
 
-	respMessage := responseMessage{
+	respMessage := ResponseMessage{
 		Data:       data,
 		UserHandle: userHandle,
 		UserName:   userName,

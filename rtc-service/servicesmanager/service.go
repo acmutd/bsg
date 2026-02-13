@@ -85,6 +85,12 @@ func (s *Service) ReadMessages() {
 				} else {
 					respObj := *response.NewOkResponse(respType, resp, roomID)
 
+					// Always send response back to sender (e.g. central-service blocks on join-room)
+					// But don't send chat messages back to sender since they'll receive it in the broadcast
+					if respType != response.CHAT_MESSAGE {
+						s.Egress <- respObj
+					}
+
 					// Broadcast and Persistence Logic
 					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
@@ -120,8 +126,6 @@ func (s *Service) ReadMessages() {
 								}
 							}
 						}
-					} else {
-						s.Egress <- respObj
 					}
 
 					frontEnd := s.ServiceManager.FindService(FRONT_END_SERVICE)

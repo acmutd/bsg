@@ -18,6 +18,9 @@ type Room struct {
 	// Unique identifier for the room.
 	RoomID string
 
+	// User-friendly 5-character code for the room.
+	RoomCode string
+
 	// List of all users in the room.
 	Users UserList
 

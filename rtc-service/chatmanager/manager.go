@@ -24,15 +24,31 @@ func (sm *ChatManager) CreateRoom(room *Room) {
 	sm.Lock()
 	defer sm.Unlock()
 
-	// This is to prevent duplicate rooms from being added.
-	if _, ok := sm.Rooms[room.RoomID]; ok {
-		logging.Info("Room already exists: ", room.RoomID)
-		return
+	// 1. Handle UUID indexing
+	if existing, ok := sm.Rooms[room.RoomID]; ok {
+		if existing != room {
+			logging.Error("DUPLICATE ROOM ID DETECTED: ", room.RoomID)
+			return
+		}
+		// It's the same object, continue
+	} else {
+		sm.Rooms[room.RoomID] = room
+		logging.Info("Room indexed by ID: ", room.RoomID)
 	}
 
-	sm.Rooms[room.RoomID] = room
-
-	logging.Info("Room added: ", room.RoomID)
+	// 2. Handle Code indexing
+	if room.RoomCode != "" {
+		if existing, ok := sm.Rooms[room.RoomCode]; ok {
+			if existing != room {
+				logging.Error("DUPLICATE ROOM CODE DETECTED: ", room.RoomCode)
+				return
+			}
+			// It's the same object, continue
+		} else {
+			sm.Rooms[room.RoomCode] = room
+			logging.Info("Room indexed by Code: ", room.RoomCode)
+		}
+	}
 }
 
 func (sm *ChatManager) GetRoom(roomID string) *Room {
@@ -56,6 +72,9 @@ func (sm *ChatManager) RemoveRoom(room *Room) {
 	// Only remove a room if they exist.
 	if _, ok := sm.Rooms[room.RoomID]; ok {
 		delete(sm.Rooms, room.RoomID)
+		if room.RoomCode != "" {
+			delete(sm.Rooms, room.RoomCode)
+		}
 		logging.Info("Room removed: ", room.RoomID)
 		return
 	}

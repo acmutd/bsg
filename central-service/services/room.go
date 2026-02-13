@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -153,6 +154,22 @@ func (service *RoomService) JoinRoom(roomIDOrCode string, userID string) (*model
 			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
 				return nil, err
 			}
+			// Send round-start message to room (new user will receive it like everyone else)
+			if service.rtcClient != nil {
+				var problemList []string
+				for _, problem := range round.ProblemSet {
+					problemList = append(problemList, fmt.Sprint(problem.ID))
+				}
+
+				roundStartForNewUser := requests.RoundStartRequest{
+					RoomID:      room.ID.String(),
+					ProblemList: problemList,
+				}
+				if _, err = service.rtcClient.SendMessage("round-start", roundStartForNewUser); err != nil {
+					log.Printf("Error sending round-start message: %v", err)
+					// Don't fail the join operation, just log the error
+				}
+			}
 		}
 	}
 	// RTCClient is nil in test cases
@@ -160,6 +177,7 @@ func (service *RoomService) JoinRoom(roomIDOrCode string, userID string) (*model
 		joinRoom := requests.JoinRoomRequest{
 			UserHandle: userID,
 			RoomID:     roomID,
+			RoomCode:   room.RoomCode,
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
@@ -382,7 +400,7 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 		return nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
 	}
 	round := room.Rounds[len(room.Rounds)-1]
-	activeUsers, err := service.FindActiveUsers(roomID)
+	activeUsers, err := service.FindActiveUsers(room.ID.String())
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, err
@@ -445,15 +463,21 @@ func (service *RoomService) ProcessSubmissionSuccess(roomIDOrCode string, userID
 	}
 
 	// Send RTC message for new submission
-	rtcMessage := requests.NewSubmissionRequest{
-		UserHandle: userHandle,
-		RoomID:     roomID,
-		ProblemID:  problemSlug, // Use slug as problemID for now
-		Verdict:    verdict,
-	}
+	if service.rtcClient != nil {
+		rtcMessage := requests.NewSubmissionRequest{
+			UserHandle: userHandle,
+			RoomID:     roomID,
+			ProblemID:  problemSlug, // Use slug as problemID for now
+			Verdict:    verdict,
+		}
 
-	// Send the RTC message
-	_, err = service.rtcClient.SendMessage("new-submission", rtcMessage)
+		// Send the RTC message
+		_, err = service.rtcClient.SendMessage("new-submission", rtcMessage)
+		if err != nil {
+			log.Printf("Error sending RTC message: %v\n", err)
+			// Don't return error - the submission was still processed
+		}
+	}
 	if err != nil {
 		log.Printf("Error sending RTC message: %v\n", err)
 		// Don't return error - the submission was still processed
