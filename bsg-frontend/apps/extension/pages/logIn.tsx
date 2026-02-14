@@ -117,13 +117,13 @@ export default function LogIn() {
     };
 
     return (
-        <div className={'m-32 justify-center'}>
+        <div className={'m-32 justify-center border-0'}>
             <Logo></Logo>
             <div className={'flex justify-center items-center flex-col gap-4'}>
                 {user ? (
                     // User is signed in - show user info and sign out option
                     <div className="text-center space-y-4">
-                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="p-4 bg-green-50 rounded-lg border-green-200">
                             <p className="text-green-800 font-medium">Welcome!</p>
                             <p className="text-green-700">{user.displayName || user.email}</p>
                             {user.photoURL && (
