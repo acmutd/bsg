@@ -1,19 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, {useState} from 'react';
 import ProblemStatistics from "./problemStatistics";
 import Leaderboard from "./leaderboard";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock } from "@fortawesome/free-regular-svg-icons";
-import { cn } from "@bsg/lib/utils"
-import { Participant } from '@bsg/models/Participant';
-import { Problem } from '@bsg/models/Problem';
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {cn} from "@bsg/lib/utils"
+import {Participant} from '@bsg/models/Participant';
+import {Problem} from '@bsg/models/Problem';
+import {Button} from "@bsg/ui/button";
+import {faAngleLeft, faAngleRight} from "@fortawesome/free-solid-svg-icons";
 
 type LiveStatisticsProps = {
     participants: Participant[]
     problems: Problem[]
     className?: String
 }
+//TODO: incrementing can go out of bounds like negative, fix that
 
-const LiveStatistics = ({ participants, problems, className }: LiveStatisticsProps) => {
+const LiveStatistics = ({participants, problems, className}: LiveStatisticsProps) => {
 
     const [selectedProblem, setSelectedProblem] = useState(0)
     const [completedProblem, setCompletedProblem] = useState(-1)
@@ -30,7 +32,7 @@ const LiveStatistics = ({ participants, problems, className }: LiveStatisticsPro
         participant.currentProblemIndex == selectedProblem
     )
     const submitted = participants.filter(participant =>
-        participant.currentProblemIndex == null || 
+        participant.currentProblemIndex == null ||
         participant.currentProblemIndex > selectedProblem
     )
 
@@ -46,8 +48,14 @@ const LiveStatistics = ({ participants, problems, className }: LiveStatisticsPro
             </div> */}
 
             <div className="flex gap-1">
-                <button className="rounded px-1 bg-neutral-750" onClick={decrementProblem}>{"<"}</button>
-                <button className="rounded px-1 bg-neutral-750" onClick={incrementProblem}>{">"}</button>
+                <Button className="bg-neutral-750 hover:bg-inputBackground hover:brightness-125" size={'icon'}
+                        onClick={decrementProblem}>
+                    <FontAwesomeIcon icon={faAngleLeft} size="sm"/>
+                </Button>
+                <Button className="bg-neutral-750 hover:bg-inputBackground hover:brightness-125" size={'icon'}
+                        onClick={incrementProblem}>
+                    <FontAwesomeIcon icon={faAngleRight} size="sm"/>
+                </Button>
             </div>
 
             {/* Problem Selection & Progress Bar */}
@@ -75,7 +83,8 @@ const LiveStatistics = ({ participants, problems, className }: LiveStatisticsPro
                         )}
                     />
                 ))}
-                <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-neutral-200 pointer-events-none" />
+                <div
+                    className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-neutral-200 pointer-events-none"/>
             </div>
 
             <ProblemStatistics
@@ -83,7 +92,7 @@ const LiveStatistics = ({ participants, problems, className }: LiveStatisticsPro
                 solving={solving}
                 submitted={submitted}
             />
-            <Leaderboard participants={participants} />
+            <Leaderboard participants={participants}/>
         </div>
     )
 }
