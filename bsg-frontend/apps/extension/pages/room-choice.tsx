@@ -231,7 +231,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                     <div className="flex gap-2 mt-2">
                         <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)}
                                placeholder="Enter room code"
-                               className="flex-1 px-3 py-2 rounded-lg bg-background text-white focus:outline-none focus:ring-2 focus:ring-primary transition"/>
+                               className="flex-1 px-3 py-2 rounded-lg bg-background text-white focus:outline-none focus:ring-2 focus:ring-white transition"/>
                         <Button
                             onClick={handleJoinRoom}
                             className="px-4 py-2 flex items-center gap-1 text-white bg-primary hover:bg-primary/90 transition-colors"
