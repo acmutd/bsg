@@ -117,7 +117,7 @@ export default function LogIn() {
     };
 
     return (
-        <div className={'m-32 justify-center border-0'}>
+        <div className={'m-32 justify-center bg-background border-0'}>
             <Logo></Logo>
             <div className={'flex justify-center items-center flex-col gap-4'}>
                 {user ? (

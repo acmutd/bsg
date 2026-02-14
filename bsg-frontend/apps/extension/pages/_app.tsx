@@ -103,7 +103,7 @@ export default function App() {
     if (!loggedIn) {
         return (
             <div
-                className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
+                className={`${poppins.className} min-h-screen bg-background flex items-center justify-center px-4 py-8`}>
                 <div className="bg-inputBackground rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
                     <div className="flex justify-center mb-2">
                         <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
@@ -162,7 +162,7 @@ export default function App() {
     ]
 
     return (
-        <div className="flex flex-col h-screen bg-[#262626]">
+        <div className="flex flex-col h-screen bg-background">
 
             {/* HEADER */}
             <header className="bg-inputBackground px-4 py-3 flex items-center justify-between">
@@ -248,7 +248,7 @@ export default function App() {
                 <>
                     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                         {messages.map((msg, i) => (
-                            <div key={i}>{msg.data}</div>
+                            <div className={'bg-inputBackground'} key={i}>{msg.data}</div>
                         ))}
                     </div>
 
@@ -259,10 +259,12 @@ export default function App() {
                             placeholder="Type a message..."
                             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                         />
-                        <Button onClick={sendMessage}
-                                className="bg-primary rounded-full w-10 h-10">
-                            <FontAwesomeIcon icon={faPaperPlane}/>
-                        </Button>
+                        <TooltipWrapper text={'Send Your Message'}>
+                            <Button onClick={sendMessage}
+                                    className="bg-primary rounded-full w-10 h-10">
+                                <FontAwesomeIcon icon={faPaperPlane}/>
+                            </Button>
+                        </TooltipWrapper>
                     </div>
                 </>
             )}
