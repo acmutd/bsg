@@ -29,14 +29,17 @@ func InitializeUserService(db *gorm.DB) UserService {
 	return UserService{db}
 }
 
-// Generate auth data based on token provided by user in request header
 func (service *UserService) GenerateAuthToken(request *http.Request) (*auth.Token, error) {
+	authToken := request.Header.Get("Authorization")
+	if len(authToken) > 7 && authToken[:7] == "Bearer " {
+		authToken = authToken[7:]
+	}
+
 	firebaseApp, err := firebase.NewApp(context.Background(), nil, option.WithCredentialsFile(os.Getenv("FIREBASE_CREDENTIALS_FILEPATH")))
 	if err != nil {
 		log.Printf("error initializing app: %v\n", err)
 		return nil, err
 	}
-	authToken := request.Header.Get("Authorization")
 	authClient, err := firebaseApp.Auth(context.Background())
 	if err != nil {
 		log.Printf("something is wrong with auth client: %v\n", err)

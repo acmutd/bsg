@@ -25,11 +25,10 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 WORKDIR /app
 
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+COPY central-service/ .
+COPY rtc-service/ ../rtc-service/
 
-COPY . .
+RUN go mod download
 
 # Build with dynamic linking
 RUN CGO_ENABLED=1 GOOS=linux go build -tags dynamic -o ./central-service

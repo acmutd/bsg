@@ -26,10 +26,11 @@ type RoundService struct {
 }
 
 type RoundCreationParameters struct {
-	Duration          int `json:"duration"` // Duration in minutes
-	NumEasyProblems   int `json:"numEasyProblems"`
-	NumMediumProblems int `json:"numMediumProblems"`
-	NumHardProblems   int `json:"numHardProblems"`
+	Duration          int      `json:"duration"` // Duration in minutes
+	NumEasyProblems   int      `json:"numEasyProblems"`
+	NumMediumProblems int      `json:"numMediumProblems"`
+	NumHardProblems   int      `json:"numHardProblems"`
+	Topics            []string `json:"topics"`
 }
 
 type RoundSubmissionParameters struct {
@@ -57,44 +58,63 @@ func (service *RoundService) SetDBConnection(db *gorm.DB) {
 	service.db = db
 }
 
-func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, error) {
+func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID uuid.UUID) (*models.Round, error) {
 	newRound := models.Round{
 		Duration:        params.Duration,
-		RoomID:          *roomID,
+		RoomID:          roomID,
 		LastUpdatedTime: time.Now(),
 		Status:          constants.ROUND_CREATED,
 	}
-	result := service.db.Create(&newRound)
-	if result.Error != nil {
-		log.Printf("Error creating new round: %v\n", result.Error)
-		return nil, result.Error
-	}
 	// TODO: Add logic for problem generation
-	problemSet, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
-		NumEasyProblems:   params.NumEasyProblems,
-		NumMediumProblems: params.NumMediumProblems,
-		NumHardProblems:   params.NumHardProblems,
+	problems, err := service.problemAccessor.GetProblemAccessor().
+		GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+			NumEasyProblems:   params.NumEasyProblems,
+			NumMediumProblems: params.NumMediumProblems,
+			NumHardProblems:   params.NumHardProblems,
+			Topics:            params.Topics,
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = service.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&newRound).Error; err != nil {
+			log.Printf("Error creating new round: %v\n", err)
+			return err
+		}
+
+		if err := tx.Model(&newRound).Association("ProblemSet").Replace(problems); err != nil {
+			return err
+		}
+		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
-	err = service.db.Model(&newRound).Association("ProblemSet").Append(problemSet)
-	if err != nil {
-		return nil, err
-	}
-	redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
-	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
-	if err != nil {
-		log.Printf("Error setting value in redis instance: %v\n", err)
-		return nil, err
-	}
-	newRound.ProblemSet = []models.Problem{}
+	log.Printf("Attached %d problems to round %d", len(problems), newRound.ID)
+
+	/*
+		if err != nil {
+			return nil, err
+		}
+		redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
+		_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
+		if err != nil {
+			log.Printf("Error setting value in redis instance: %v\n", err)
+			return nil, err
+		}*/
 	return &newRound, nil
 }
 
 func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) {
 	var round models.Round
-	result := service.db.Where("ID = ?", roundID).Limit(1).Find(&round)
+	result := service.db.
+		Preload("ProblemSet").
+		Where("id = ?", roundID).
+		First(&round)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}

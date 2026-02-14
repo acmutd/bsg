@@ -38,16 +38,16 @@ func TestCoreRoomFunctionality(t *testing.T) {
 // TestMessageHistoryCapping verifies the memory-safety edge case.
 func TestMessageHistoryCapping(t *testing.T) {
 	room := &Room{Messages: make([]response.Response, 0)}
-	
+
 	// Push more messages than the cap (MaxMessageHistory = 100)
 	totalMessages := MaxHistorySize + 50
 	for i := 0; i < totalMessages; i++ {
 		msg := response.Response{
-			RespMessage: struct {
-				RoomID     string `json:"roomID"`
-				Data       string `json:"data"`
-				UserHandle string `json:"userHandle"`
-			}{Data: fmt.Sprintf("msg-%d", i)},
+			RespMessage: response.ResponseMessage{
+				RoomID:     "",
+				Data:       fmt.Sprintf("msg-%d", i),
+				UserHandle: "",
+			},
 		}
 		room.AddMessage(msg)
 	}
@@ -69,7 +69,7 @@ func TestHistoryLockingConcurrency(t *testing.T) {
 		Messages: make([]response.Response, 0),
 		Users:    make(UserList),
 	}
-	
+
 	// Pre-fill history
 	for i := 0; i < 50; i++ {
 		room.AddMessage(response.Response{})

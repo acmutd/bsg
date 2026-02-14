@@ -122,7 +122,7 @@ func TestCreateNewRound(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoom.ID)
+	}, mockRoom.ID)
 	if err != nil {
 		t.Fatalf("Error at create round: %v\n", err)
 	}
@@ -237,7 +237,7 @@ func TestFindRoundByID(t *testing.T) {
 	roundService := InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, nil, nil)
 	newRound, err := roundService.CreateRound(&RoundCreationParameters{
 		Duration: 20,
-	}, &mockRoom.ID)
+	}, mockRoom.ID)
 	if err != nil {
 		t.Fatalf("Error at create round: %v\n", err)
 	}
@@ -377,7 +377,7 @@ func TestInitiateRoundStart(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -557,7 +557,7 @@ func TestProblemSetVisibility(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -751,7 +751,7 @@ func TestRoundEndTransition(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -903,7 +903,7 @@ func TestSubmitToRound(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -1155,7 +1155,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -1365,7 +1365,7 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -1526,7 +1526,7 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -1697,7 +1697,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}
@@ -1911,7 +1911,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 		NumEasyProblems:   1,
 		NumMediumProblems: 2,
 		NumHardProblems:   1,
-	}, &mockRoomUUID)
+	}, mockRoomUUID)
 	if err != nil {
 		t.Fatalf("Error creating new round: %v\n", err)
 	}

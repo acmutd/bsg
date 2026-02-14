@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -30,7 +31,7 @@ func main() {
 	}
 
 	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
-		fmt.Printf("Error migrating schema: %v\n", err)
+		log.Fatalf("Error migrating schema: %v\n", err)
 	}
 
 	rdb := redis.NewClient(&redis.Options{
@@ -53,18 +54,20 @@ func main() {
 	}
 
 	if err := db.AutoMigrate(&models.Leaderboard{}); err != nil {
-    	fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
+		fmt.Printf("Error migrating Leaderboard schema: %v\n", err)
 	}
 
-	// Initialize Kafka-related components
+	// Initialize Kafka-related components (Manager only for now)
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
+	/* Kafka topic creation disabled for now
 	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_INGRESS_TOPIC")); err != nil {
 		log.Fatalf("Error creating Kafka Ingress topic: %v\n", err)
 	}
 	if err := kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_EGRESS_TOPIC")); err != nil {
 		log.Fatalf("Error creating Kafka Egress topic: %v\n", err)
 	}
+	*/
 	ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
 
 	rtcClient, err := services.InitializeRTCClient("central-service")
@@ -85,7 +88,7 @@ func main() {
 
 	// co routine to listen for submission data
 	go egressQueue.ListenForSubmissionData()
-	go ingressQueue.MessageDeliveryHandler()
+	// go ingressQueue.MessageDeliveryHandler()
 
 	e := echo.New()
 
@@ -93,6 +96,10 @@ func main() {
 	problemController := controllers.InitializeProblemController(&problemService)
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
+	fmt.Println("Room controller initialized")
+
+	submissionController := controllers.InitializeSubmissionController(&roomService)
+	fmt.Println("Submission controller initialized")
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
@@ -100,8 +107,18 @@ func main() {
 	e.Use(userController.ValidateUserRequest)
 
 	userController.InitializeRoutes(e.Group("/api/users"))
+	fmt.Println("User routes initialized")
 	problemController.InitializeRoutes(e.Group("/api/problems"))
+	fmt.Println("Problem routes initialized")
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
+	fmt.Println("Room routes initialized")
+	submissionController.InitializeRoutes(e.Group("/api/submissions"))
+	fmt.Println("Submission routes initialized")
+
+	// Add a simple health check
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
 	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
 
 	e.Logger.Fatal(e.Start(":5000"))

@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -30,6 +32,17 @@ type RoomDTO struct {
 	Name string `json:"roomName"`
 }
 
+type SubmissionRequest struct {
+	RoomID      string `json:"roomID"`
+	ProblemSlug string `json:"problemSlug"`
+	Verdict     string `json:"verdict"`
+}
+
+type SubmissionResult struct {
+	NextProblem interface{} `json:"nextProblem"`
+	IsComplete  bool        `json:"isComplete"`
+}
+
 // Creates a room and persist
 // adminID is the the user that will be assigned room leader
 func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.Room, error) {
@@ -37,16 +50,26 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		return nil, err
 	}
 	newRoom := models.Room{
-		ID:     uuid.New(),
-		Name:   room.Name,
-		Admin:  adminID,
-		Rounds: []models.Round{},
+		ID:       uuid.New(),
+		RoomCode: service.generateRoomCode(),
+		Name:     room.Name,
+		Admin:    adminID,
+		Rounds:   []models.Round{},
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	return &newRoom, nil
+}
+
+func (service *RoomService) generateRoomCode() string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }
 
 // Deletes leaderboard and join time stamps from Redis
@@ -75,14 +98,14 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
-	uuid, err := uuid.Parse(roomID)
+	parsedID, err := uuid.Parse(roomID)
 	if err != nil {
 		return nil, BSGError{
 			StatusCode: 400,
-			Message:    "roomID could not be parsed",
+			Message:    "Invalid room UUID",
 		}
 	}
-	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", parsedID).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -95,13 +118,33 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	return &room, nil
 }
 
+func (service *RoomService) FindRoomByCode(roomCode string) (*models.Room, error) {
+	var room models.Room
+	result := service.db.Preload("Rounds.ProblemSet").Where("room_code = ?", roomCode).Limit(1).Find(&room)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, BSGError{
+			StatusCode: 404,
+			Message:    "Room code not found",
+		}
+	}
+	return &room, nil
+}
+
 // Allows a user to join a room
 // Adds user join timestamp and leaderboard entries into Redis
-func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room, error) {
-	room, err := service.FindRoomByID(roomID)
+func (service *RoomService) JoinRoom(roomIDOrCode string, userID string) (*models.Room, error) {
+	room, err := service.FindRoomByCode(roomIDOrCode)
 	if err != nil {
-		return nil, err
+		// Try finding by UUID if code fails
+		room, err = service.FindRoomByID(roomIDOrCode)
+		if err != nil {
+			return nil, err
+		}
 	}
+	roomID := room.ID.String()
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
@@ -111,6 +154,22 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
 				return nil, err
 			}
+			// Send round-start message to room (new user will receive it like everyone else)
+			if service.rtcClient != nil {
+				var problemList []string
+				for _, problem := range round.ProblemSet {
+					problemList = append(problemList, fmt.Sprint(problem.ID))
+				}
+
+				roundStartForNewUser := requests.RoundStartRequest{
+					RoomID:      room.ID.String(),
+					ProblemList: problemList,
+				}
+				if _, err = service.rtcClient.SendMessage("round-start", roundStartForNewUser); err != nil {
+					log.Printf("Error sending round-start message: %v", err)
+					// Don't fail the join operation, just log the error
+				}
+			}
 		}
 	}
 	// RTCClient is nil in test cases
@@ -118,12 +177,13 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 		joinRoom := requests.JoinRoomRequest{
 			UserHandle: userID,
 			RoomID:     roomID,
+			RoomCode:   room.RoomCode,
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
 			return nil, BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -132,11 +192,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 
 // Allows a user to leave a room
 // If the departing user is the room leader, a new leader will be assigned
-func (service *RoomService) LeaveRoom(roomID string, userID string) error {
-	room, err := service.FindRoomByID(roomID)
+func (service *RoomService) LeaveRoom(roomIDOrCode string, userID string) error {
+	room, err := service.FindRoomByCode(roomIDOrCode)
 	if err != nil {
-		return err
+		room, err = service.FindRoomByID(roomIDOrCode)
+		if err != nil {
+			return err
+		}
 	}
+	roomID := room.ID.String()
 	if err := service.removeJoinMember(roomID, userID); err != nil {
 		return err
 	}
@@ -150,7 +214,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			log.Printf("Error sending leave-room message: %v", err)
 			return BSGError{
 				StatusCode: 500,
-				Message: "Internal Server Error",
+				Message:    "Internal Server Error",
 			}
 		}
 	}
@@ -284,8 +348,8 @@ func validateRoomName(name string) error {
 	return nil
 }
 
-func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, error) {
-	room, err := service.FindRoomByID(roomID)
+func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID uuid.UUID) (*models.Round, error) {
+	room, err := service.FindRoomByID(roomID.String())
 	if err != nil {
 		log.Printf("Error finding room by ID: %v\n", err)
 		return nil, err
@@ -300,7 +364,7 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 			Message:    "Round limit exceeded",
 		}
 	}
-	round, err := service.roundService.CreateRound(params, &room.ID)
+	round, err := service.roundService.CreateRound(params, room.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -320,10 +384,13 @@ func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, er
 }
 
 func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*time.Time, error) {
-	room, err := service.FindRoomByID(roomID)
+	room, err := service.FindRoomByCode(roomID)
 	if err != nil {
-		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
+		room, err = service.FindRoomByID(roomID)
+		if err != nil {
+			log.Printf("Error finding room: %v\n", err)
+			return nil, err
+		}
 	}
 	if room.Admin != userID { // check if user is room admin
 		return nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
@@ -333,7 +400,7 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 		return nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
 	}
 	round := room.Rounds[len(room.Rounds)-1]
-	activeUsers, err := service.FindActiveUsers(roomID)
+	activeUsers, err := service.FindActiveUsers(room.ID.String())
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, err
@@ -351,10 +418,13 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 }
 
 func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, userID string) (*models.RoundSubmission, error) {
-	room, err := service.FindRoomByID(roomID)
+	room, err := service.FindRoomByCode(roomID)
 	if err != nil {
-		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
+		room, err = service.FindRoomByID(roomID)
+		if err != nil {
+			log.Printf("Error finding room: %v\n", err)
+			return nil, err
+		}
 	}
 	if len(room.Rounds) <= 0 {
 		log.Printf("Error creating room submission: Round has not been created")
@@ -362,7 +432,7 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 	}
 	round := room.Rounds[len(room.Rounds)-1]
 	roundSubmissionParamters := RoundSubmissionParameters{
-		RoundID: round.ID,
+		RoundID:   round.ID,
 		ProblemID: problemID,
 	}
 	result, err := service.roundService.CreateRoundSubmission(roundSubmissionParamters, userID)
@@ -370,5 +440,54 @@ func (service *RoomService) CreateRoomSubmission(roomID string, problemID uint, 
 		log.Printf("Error initiating creating round submission start: %v\n", err)
 		return nil, err
 	}
+	return result, nil
+}
+
+func (service *RoomService) ProcessSubmissionSuccess(roomIDOrCode string, userID string, problemSlug string, verdict string) (*SubmissionResult, error) {
+	// Find the room
+	room, err := service.FindRoomByCode(roomIDOrCode)
+	if err != nil {
+		room, err = service.FindRoomByID(roomIDOrCode)
+		if err != nil {
+			log.Printf("Error finding room: %v\n", err)
+			return nil, err
+		}
+	}
+	roomID := room.ID.String()
+
+	// Get user handle (try to find handle in DB)
+	userHandle := userID
+	var user models.User
+	if dbErr := service.db.Where("auth_id = ?", userID).First(&user).Error; dbErr == nil && user.Handle != "" {
+		userHandle = user.Handle
+	}
+
+	// Send RTC message for new submission
+	if service.rtcClient != nil {
+		rtcMessage := requests.NewSubmissionRequest{
+			UserHandle: userHandle,
+			RoomID:     roomID,
+			ProblemID:  problemSlug, // Use slug as problemID for now
+			Verdict:    verdict,
+		}
+
+		// Send the RTC message
+		_, err = service.rtcClient.SendMessage("new-submission", rtcMessage)
+		if err != nil {
+			log.Printf("Error sending RTC message: %v\n", err)
+			// Don't return error - the submission was still processed
+		}
+	}
+	if err != nil {
+		log.Printf("Error sending RTC message: %v\n", err)
+		// Don't return error - the submission was still processed
+	}
+
+	// For now, return a simple result
+	result := &SubmissionResult{
+		NextProblem: nil,
+		IsComplete:  false,
+	}
+
 	return result, nil
 }
