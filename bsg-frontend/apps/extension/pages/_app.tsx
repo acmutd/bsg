@@ -4,7 +4,7 @@ import '@bsg/ui-styles/global.css';
 import {Poppins} from 'next/font/google'
 import {Button} from '@bsg/ui/button'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faCopy, faEllipsisVertical, faPaperPlane, faRightFromBracket} from '@fortawesome/free-solid-svg-icons'
+import {faCircle, faCopy, faEllipsisVertical, faPaperPlane, faRightFromBracket} from '@fortawesome/free-solid-svg-icons'
 import {faGoogle} from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
 import {
@@ -23,6 +23,7 @@ import {
     DropdownMenuTrigger,
 } from "@bsg/ui/dropdown-menu"
 import {Avatar, AvatarFallback, AvatarImage} from "@bsg/ui/avatar";
+import TooltipWrapper from "@bsg/components/TooltipWrapper";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -120,7 +121,7 @@ export default function App() {
             <div
                 className={`${poppins.className} min-h-screen bg-[#262626] flex items-center justify-center px-4 py-8`}>
                 <div
-                    className="bg-inputBackground border rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
+                    className="bg-inputBackground rounded-xl shadow-2xl w-full max-w-md p-8 pt-16 space-y-8">
                     <div className="flex justify-center mb-2">
                         <span className="text-5xl font-extrabold tracking-wide text-white drop-shadow-lg">BSG_</span>
                     </div>
@@ -243,19 +244,25 @@ export default function App() {
 
     return (
         <div className="flex flex-col h-screen bg-[#262626]">
-            <header className="bg-inputBackground border-b px-4 py-3 flex items-center justify-between">
+            <header className="bg-inputBackground px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col">
                         <div className="text-xs text-gray-300 mb-1">Room Code:</div>
                         <div
-                            className="bg-inputBackground text-white p-2 rounded-lg font-mono text-lg tracking-widest flex items-center space-x-2">
+                            className="bg-background text-white p-2 rounded-lg font-mono text-lg tracking-widest flex items-center space-x-2">
                             <div className="text-2xl font-semibold">{currentRoom.code}</div>
-                            <button onClick={() => copyRoomCode(currentRoom.code)} aria-label="Copy room code"
-                                    className="p-1 rounded hover:bg-gray-600">
-                                <FontAwesomeIcon icon={faCopy} className="text-gray-200 text-sm"/>
-                            </button>
-                            {copied && <div className="text-xs text-green-400 ml-2">copied</div>}
-                            {!isConnected && <div className="text-xs text-red-500 ml-2">Disconnected</div>}
+                            <TooltipWrapper text={'Copy Code'}>
+                                <Button onClick={() => copyRoomCode(currentRoom.code)}
+                                        size={'icon'} variant={'outline'}
+                                        className={'border-0 hover:bg-inputBackground'}>
+                                    <FontAwesomeIcon icon={faCopy} className="text-gray-200 text-sm"/>
+                                </Button>
+                            </TooltipWrapper>
+                            {copied && <div className="text-xs text-white ml-2">copied</div>}
+                            <TooltipWrapper text={isConnected ? 'Connected' : 'Not connected'}>
+                                <FontAwesomeIcon icon={faCircle} size={'2xs'}
+                                                 className={isConnected ? 'text-green-500' : 'text-red-500'}/>
+                            </TooltipWrapper>
                         </div>
                     </div>
                 </div>
@@ -277,7 +284,8 @@ export default function App() {
 
                     {/* */}
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon"
+                                className={'hover:bg-inputBackground hover:text-white hover:brightness-125'}>
                             <FontAwesomeIcon
                                 icon={faEllipsisVertical}
                                 className="text-2xl"
@@ -363,7 +371,7 @@ export default function App() {
                             </div>
                         ) : (
                             <div
-                                className={`${msg.userHandle === userProfile?.id ? 'bg-green-600 self-end ml-auto' : 'bg-gray-700 self-start'} text-white p-2 rounded-lg max-w-xs break-words`}>
+                                className={`${msg.userHandle === userProfile?.id ? 'bg-primary self-end ml-auto' : 'bg-gray-700 self-start'} text-white p-2 rounded-lg max-w-xs break-words`}>
                                 <div
                                     className="text-xs text-gray-300 mb-1">{msg.userHandle === userProfile?.id ? 'You' : msg.userHandle}</div>
                                 {msg.data}
@@ -373,25 +381,27 @@ export default function App() {
                 ))}
             </div>
 
-            <div className="bg-[#1e1e1f] border-t px-4 py-3 flex items-center space-x-2">
+            <div className="bg-inputBackground px-4 py-3 flex items-center space-x-2">
                 <input
                     ref={inputRef}
                     type="text"
                     placeholder="Type a message..."
-                    className="flex-1 bg-[#2a2a2a] text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary transition"
+                    className="flex-1 bg-background text-white rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary transition"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             sendMessage()
                         }
                     }}
                 />
-                <Button
-                    onClick={sendMessage}
-                    className="w-10 h-10 rounded-full flex items-center justify-center bg-primary hover:bg-primary/90 transition-colors"
-                >
-                    <FontAwesomeIcon icon={faPaperPlane} className="text-white"
-                                     style={{transform: 'translateX(-1px)'}}/>
-                </Button>
+                <TooltipWrapper text={'Send Message'}>
+                    <Button
+                        onClick={sendMessage}
+                        className="w-10 h-10 rounded-full flex items-center justify-center bg-primary hover:bg-primary/90 transition-colors"
+                    >
+                        <FontAwesomeIcon icon={faPaperPlane} className="text-white"
+                                         style={{transform: 'translateX(-1px)'}}/>
+                    </Button>
+                </TooltipWrapper>
             </div>
         </div>
     )
