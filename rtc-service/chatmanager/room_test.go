@@ -44,9 +44,7 @@ func TestMessageHistoryCapping(t *testing.T) {
 	for i := 0; i < totalMessages; i++ {
 		msg := response.Response{
 			RespMessage: response.ResponseMessage{
-				RoomID:     "",
-				Data:       fmt.Sprintf("msg-%d", i),
-				UserHandle: "",
+				Data: fmt.Sprintf("msg-%d", i),
 			},
 		}
 		room.AddMessage(msg)
