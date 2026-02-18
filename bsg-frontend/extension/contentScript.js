@@ -52,10 +52,10 @@
         Object.assign(panel.style, {
             width: '360px',
             height: `${qd.getBoundingClientRect().height}px`,
-            backgroundColor: '#333333',
+            backgroundColor: '#262626',
             //border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            //boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
             overflow: 'hidden',
             boxSizing: 'border-box',
             transition: 'width 0.05s ease-out',
@@ -109,7 +109,7 @@
         panelWrapper.appendChild(panel);
 
         // Add resize functionality using pointer events and pointer capture
-        const MIN_WIDTH = 325;
+        const MIN_WIDTH = 36;
         const MAX_WIDTH = 900;
 
         let isDragging = false;
