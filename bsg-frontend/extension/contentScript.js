@@ -60,6 +60,7 @@
             boxSizing: 'border-box',
             transition: 'width 0.05s ease-out',
         });
+        console.log("extension panel created")
 
         // Create and style iframe early so handlers can reference it
         const iframe = document.createElement('iframe');
@@ -72,6 +73,7 @@
             display: 'block',
             borderRadius: '8px',
         });
+        console.log("iframe created")
 
         // Create resize handle with larger hit area (we'll insert it between page content and panel)
         const handle = document.createElement('div');
@@ -217,7 +219,7 @@
         wrapper.appendChild(handle);
         wrapper.appendChild(panelWrapper);
         console.log('panel injected with resize handle (handle placed between content and panel)');
-
+        
         // Listen for auth state changes from extension
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (message.type === 'AUTH_STATE_CHANGED') {
@@ -227,6 +229,16 @@
                 iframe.src = iframe.src;
 
                 sendResponse({success: true});
+            }
+
+            if (message.type === "TOGGLE_COLLAPSE") {
+                console.log("collapse message recieved")
+                
+                if (panel.style.width === "36px") {
+                    panel.style.width = "360px";
+                } else {
+                    panel.style.width = "36px";
+                }
             }
         });
     });

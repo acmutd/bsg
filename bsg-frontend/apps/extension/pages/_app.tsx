@@ -22,6 +22,7 @@ import {
 } from "@bsg/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@bsg/ui/avatar";
 import TooltipWrapper from "@bsg/components/TooltipWrapper";
+import { domainToUnicode } from 'url';
 
 //const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
@@ -132,6 +133,30 @@ export default function App() {
         setCredentials({ ...credentials, [e.target.name]: e.target.value })
     }
 
+    const toggleCollapse = async () => {
+        const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+
+        if (tab?.id) {
+            chrome.tabs.sendMessage(tab.id, {
+                type: "TOGGLE_COLLAPSE"
+            });
+        }
+    }
+
+    useEffect(() => {
+        const observer = new ResizeObserver(([entry]) => {
+            setCollapsed(entry.contentRect.width <= 36);
+            console.log(entry.contentRect.width);
+        });
+
+        observer.observe(document.documentElement);
+
+        return () => observer.disconnect();
+    }, []);
+
     /*
     <svg
                                 aria-hidden="true"
@@ -176,7 +201,10 @@ export default function App() {
                     </div>
 
                     <div>
-                        <Button className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center bg-transparent">
+                        <Button
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center bg-transparent"
+                            onClick={toggleCollapse}
+                        >
                             <svg
                                 aria-hidden="true"
                                 focusable="false"
