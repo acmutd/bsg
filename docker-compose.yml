@@ -1,7 +1,9 @@
 version: '3.7'
-services: 
+services:
   central-service:
-    build: ./central-service
+    build:
+      context: .
+      dockerfile: central-service/Dockerfile
     depends_on:
       - broker
       - zookeeper
@@ -22,16 +24,24 @@ services:
       KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
       KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
       SERVER_SECRET: ${SERVER_SECRET}
+    volumes:
+      - ./seed-service:/app/seed-service
   rtc-service:
     build: ./rtc-service
     ports:
       - 5001:8080
   worker-service:
     build: ./worker-service
+    depends_on:
+      - broker
     environment:
       LEETCODE_USERNAME: ${LEETCODE_USERNAME}
       LEETCODE_PASSWORD: ${LEETCODE_PASSWORD}
-  db: 
+      KAFKA_BROKER: ${KAFKA_BROKER}
+      KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
+      KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
+      KAFKA_WORKER_GROUP_ID: "worker-service-group"
+  db:
     image: postgres
     restart: always
     environment:
@@ -41,12 +51,17 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-volume:/var/lib/postgresql/data
-  redis-cache: 
+  redis-cache:
     image: bitnami/redis:latest
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis-volume:/bitnami/redis/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     hostname: zookeeper
@@ -78,11 +93,11 @@ services:
   adminer:
     image: adminer
     restart: always
-    ports: 
+    ports:
       - 8080:8080
   redisinsight:
     image: redislabs/redisinsight:latest
-    ports: 
+    ports:
       - 8001:5540
     volumes:
       - redisinsight-volume:/data
@@ -90,8 +105,12 @@ services:
 
   server:
     build: ./server
+    # image: bsg-server
     ports:
       - 3000:3000
+    depends_on:
+      redis-cache:
+        condition: service_healthy
     environment:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -104,7 +123,7 @@ services:
 
 volumes:
   db-volume:
-  redis-volume: 
+  redis-volume:
     driver: local
   zookeeper-data-volume:
   zookeeper-log-volume:

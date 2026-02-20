@@ -35,7 +35,7 @@ func (r *RoundStartRequest) validate() error {
 
 // Returns the response type for the request.
 func (r *RoundStartRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
+	return response.ROUND_START
 }
 
 // Handles the request and returns a response.

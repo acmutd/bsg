@@ -57,7 +57,28 @@ func (controller *ProblemController) FindProblemsEndpoint(c echo.Context) error 
 	})
 }
 
+func (controller *ProblemController) FindProblemBySlugEndpoint(c echo.Context) error {
+	slug := c.QueryParam("slug")
+	if slug == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Slug required")
+	}
+
+	problem, err := controller.problemService.FindProblemBySlug(slug)
+	if err != nil {
+		log.Printf("Error finding problem by slug %s: %v", slug, err)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	if problem == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Problem not found")
+	}
+
+	return c.JSON(http.StatusOK, map[string]models.Problem{
+		"data": *problem,
+	})
+}
+
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
+	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)
 }

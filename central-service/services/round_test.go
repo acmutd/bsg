@@ -41,7 +41,7 @@ func createMockProblems(db *gorm.DB, mock *sqlmock.Sqlmock) error {
 			problemIndex := j*10 + i + 1
 			(*mock).ExpectBegin()
 			(*mock).ExpectQuery("INSERT(.*)").
-				WithArgs(fmt.Sprintf("problem%d", problemIndex), "", "", "", diff).
+				WithArgs(fmt.Sprintf("problem%d", problemIndex), "", "", "", diff, false).
 				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(fmt.Sprintf("%d", problemIndex)))
 			(*mock).ExpectCommit()
 			result := db.Create(&models.Problem{
@@ -101,13 +101,13 @@ func TestCreateNewRound(t *testing.T) {
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -217,13 +217,13 @@ func TestFindRoundByID(t *testing.T) {
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 
@@ -275,7 +275,7 @@ func TestInitiateRoundStart(t *testing.T) {
 	// Create a mock user
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").
-		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	userService := InitializeUserService(db)
@@ -319,6 +319,7 @@ func TestInitiateRoundStart(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoomUUID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoomUUID.String(), newUser.AuthID)
 	if err != nil {
@@ -336,33 +337,33 @@ func TestInitiateRoundStart(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -387,6 +388,13 @@ func TestInitiateRoundStart(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -397,12 +405,15 @@ func TestInitiateRoundStart(t *testing.T) {
 		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
+	roundStartTime, problems, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
 	if err != nil {
 		t.Fatalf("Error starting new round: %v\n", err)
 	}
 	if roundStartTime == nil {
 		t.Fatalf("Start time is nil")
+	}
+	if len(problems) != 4 {
+		t.Fatalf("Expected 4 problems returned, got %d", len(problems))
 	}
 	// Add mock expect for round scheduling
 	if len(roundScheduler.Tasks()) != 1 {
@@ -455,7 +466,7 @@ func TestProblemSetVisibility(t *testing.T) {
 	// Create a mock user
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").
-		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	userService := InitializeUserService(db)
@@ -499,6 +510,7 @@ func TestProblemSetVisibility(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoomUUID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoomUUID.String(), newUser.AuthID)
 	if err != nil {
@@ -516,33 +528,33 @@ func TestProblemSetVisibility(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -579,6 +591,13 @@ func TestProblemSetVisibility(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -598,12 +617,15 @@ func TestProblemSetVisibility(t *testing.T) {
 		Score:  float64(compressScoreAndTimeStamp(0, time.Now())),
 		Member: newUser.AuthID,
 	}).SetVal(1)
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
+	roundStartTime, problems, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
 	if err != nil {
 		t.Fatalf("Error starting new round: %v\n", err)
 	}
 	if roundStartTime == nil {
 		t.Fatalf("Start time is nil")
+	}
+	if len(problems) != 4 {
+		t.Fatalf("Expected 4 problems returned, got %d", len(problems))
 	}
 	// Add mock expect for round scheduling
 	if len(roundScheduler.Tasks()) != 1 {
@@ -649,7 +671,7 @@ func TestRoundEndTransition(t *testing.T) {
 	// Create a mock user
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT(.*)").
-		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	userService := InitializeUserService(db)
@@ -693,6 +715,7 @@ func TestRoundEndTransition(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoomUUID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoomUUID.String(), newUser.AuthID)
 	if err != nil {
@@ -710,33 +733,33 @@ func TestRoundEndTransition(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -761,6 +784,13 @@ func TestRoundEndTransition(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -781,7 +811,7 @@ func TestRoundEndTransition(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.*)").WithArgs(constants.ROUND_END, newRound.ID).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
+	roundStartTime, _, err := roundService.InitiateRoundStart(newRound, []string{newUser.AuthID})
 	if err != nil {
 		t.Fatalf("Error starting new round: %v\n", err)
 	}
@@ -856,33 +886,33 @@ func TestSubmitToRound(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -921,7 +951,7 @@ func TestSubmitToRound(t *testing.T) {
 	}
 	// create new user
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").WillReturnRows(
+	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(
 			1,
 			"hello",
@@ -956,6 +986,7 @@ func TestSubmitToRound(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoom.ID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoom.ID.String(), newUser.AuthID)
 	if err != nil {
@@ -967,6 +998,13 @@ func TestSubmitToRound(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -982,7 +1020,14 @@ func TestSubmitToRound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error finding active users: %v\n", err)
 	}
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, activeParticipants)
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
+	roundStartTime, _, err := roundService.InitiateRoundStart(newRound, activeParticipants)
 	if err != nil {
 		t.Fatalf("Error starting round: %v\n", err)
 	}
@@ -1000,29 +1045,15 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "duration", "room_id", "status"}).AddRow("1", 1, mockRoomUUID.String(), constants.ROUND_STARTED))
-	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
-		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
-			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
-			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
-			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
-			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
-	)
+
 	mock.ExpectQuery("SELECT(.*)").
-		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).AddRow(
-			1,
-			"problem1",
-			"",
-			"",
-			constants.DIFFICULTY_EASY,
-		))
-	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
-		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+		WithArgs(newRound.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
 			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
 			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
 			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
 			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
-	)
+		)
 	mock.ExpectQuery("SELECT(.*)").
 		WithArgs(newUser.AuthID, newRound.ID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).AddRow(
@@ -1032,11 +1063,12 @@ func TestSubmitToRound(t *testing.T) {
 			0,
 			0,
 		))
+	// Updated DetermineScoreDelta expectation
 	mock.ExpectQuery("SELECT(.*)").
-		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1).
+		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newUser.AuthID).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(0))
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 3).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 5).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("INSERT(.*)").WithArgs(
 		"",
 		"",
@@ -1050,11 +1082,15 @@ func TestSubmitToRound(t *testing.T) {
 	mock.ExpectCommit()
 	// mock relationship
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 0, 3, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 5, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 3, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 5, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
+	// Expect Count for problem set (Added logic in CreateRoundSubmission)
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "problems" JOIN "round_problems" ON "round_problems"."problem_id" = "problems"."id" AND "round_problems"."round_id" = $1`)).
+		WithArgs(newRound.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(4))
 	submissionData, err := roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
 		ProblemID: 1,
@@ -1108,33 +1144,33 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -1173,7 +1209,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	}
 	// create new user
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").WillReturnRows(
+	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(
 			1,
 			"hello",
@@ -1208,6 +1244,7 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoom.ID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoom.ID.String(), newUser.AuthID)
 	if err != nil {
@@ -1219,6 +1256,13 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -1234,7 +1278,14 @@ func TestSubmitAfterRoundEnds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error finding active users: %v\n", err)
 	}
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, activeParticipants)
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
+	roundStartTime, _, err := roundService.InitiateRoundStart(newRound, activeParticipants)
 	if err != nil {
 		t.Fatalf("Error starting round: %v\n", err)
 	}
@@ -1318,33 +1369,33 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -1418,6 +1469,7 @@ func TestSubmitBeforeRoundStarts(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoom.ID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoom.ID.String(), newUser.AuthID)
 	if err != nil {
@@ -1480,33 +1532,33 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -1544,7 +1596,7 @@ func TestSubmitWithoutJoiningRound(t *testing.T) {
 	}
 	// create new user
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").WillReturnRows(
+	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(
 			1,
 			"hello",
@@ -1656,33 +1708,33 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -1706,7 +1758,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	}
 	// create mock user
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").WillReturnRows(
+	mock.ExpectQuery("INSERT(.*)").WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(
 			1,
 			"hello",
@@ -1741,6 +1793,7 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoom.ID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoom.ID.String(), newUser.AuthID)
 	if err != nil {
@@ -1752,6 +1805,13 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -1767,7 +1827,25 @@ func TestMismatchProblemIDAndRoundID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error finding active participants: %v\n", err)
 	}
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, activeParticipants)
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.*)").
+		WithArgs(AnyTime{}, "started", newRound.ID).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
+	// Check participant object in DB
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
+		WithArgs("abc12345", 1, 0, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
+	mock.ExpectCommit()
+	roundStartTime, _, err := roundService.InitiateRoundStart(newRound, activeParticipants)
 	if err != nil {
 		t.Fatalf("Error starting round: %v\n", err)
 	}
@@ -1870,33 +1948,33 @@ func TestDuplicateACSubmission(t *testing.T) {
 	easyRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 1; i <= 1; i++ {
 		easyRows = easyRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_EASY)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_EASY, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mediumRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 11; i <= 12; i++ {
 		mediumRows = mediumRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_MEDIUM)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_MEDIUM, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	hardRows := sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"})
 	for i := 21; i <= 21; i++ {
 		hardRows = hardRows.AddRow(strconv.Itoa(i), fmt.Sprintf("problem%d", i), "", "", constants.DIFFICULTY_HARD)
-		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, i)
+		testParams = append(testParams, fmt.Sprintf("problem%d", i), "", "", "", constants.DIFFICULTY_HARD, false, i)
 		relationRows = relationRows.AddRow(strconv.Itoa(i))
 		joinTableRows = joinTableRows.AddRow(1, i)
 	}
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_EASY).
+		WithArgs(constants.DIFFICULTY_EASY, false).
 		WillReturnRows(easyRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_MEDIUM).
+		WithArgs(constants.DIFFICULTY_MEDIUM, false).
 		WillReturnRows(mediumRows)
 	mock.ExpectQuery("SELECT(.*) ORDER BY RAND()").
-		WithArgs(constants.DIFFICULTY_HARD).
+		WithArgs(constants.DIFFICULTY_HARD, false).
 		WillReturnRows(hardRows)
 	mock.ExpectCommit()
 	mock.ExpectBegin()
@@ -1955,6 +2033,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 			Member: newUser.AuthID,
 		},
 	).SetVal(1)
+	mockRedis.ExpectSet(fmt.Sprintf("user:%s:active_room", newUser.AuthID), mockRoom.ID.String(), 0).SetVal("OK")
 	mockRedis.ExpectZRange(mockRedisZKey, 0, -1).SetVal([]string{"abc12345"})
 	_, err = roomService.JoinRoom(mockRoom.ID.String(), newUser.AuthID)
 	if err != nil {
@@ -1966,6 +2045,13 @@ func TestDuplicateACSubmission(t *testing.T) {
 		WithArgs(AnyTime{}, "started", newRound.ID).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
 	// Check participant object in DB
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"round_participants\" (.+) VALUES (.+)").
@@ -1981,7 +2067,14 @@ func TestDuplicateACSubmission(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error finding active participants: %v\n", err)
 	}
-	roundStartTime, err := roundService.InitiateRoundStart(newRound, activeParticipants)
+	mock.ExpectQuery("SELECT(.*)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "name", "description", "hints", "difficulty"}).
+			AddRow(1, "problem1", "", "", constants.DIFFICULTY_EASY).
+			AddRow(11, "problem11", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(12, "problem12", "", "", constants.DIFFICULTY_MEDIUM).
+			AddRow(21, "problem21", "", "", constants.DIFFICULTY_HARD),
+	)
+	roundStartTime, _, err := roundService.InitiateRoundStart(newRound, activeParticipants)
 	if err != nil {
 		t.Fatalf("Error starting round: %v\n", err)
 	}
@@ -2035,7 +2128,7 @@ func TestDuplicateACSubmission(t *testing.T) {
 		WithArgs(constants.SUBMISSION_STATUS_ACCEPTED, 1, newRound.ID, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(0))
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs(0, 0, 3).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 5).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("INSERT(.*)").WithArgs(
 		"",
 		"",
@@ -2049,10 +2142,10 @@ func TestDuplicateACSubmission(t *testing.T) {
 	mock.ExpectCommit()
 	// mock relationship
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 0, 3, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 5, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 3, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("INSERT(.*)").WithArgs(newRound.ID, 1, 5, 1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectCommit()
 	newSubmission, err := roundService.CreateRoundSubmission(RoundSubmissionParameters{
 		RoundID:   1,
