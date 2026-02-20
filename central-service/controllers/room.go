@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"firebase.google.com/go/auth"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
 	"github.com/labstack/echo/v4"
@@ -25,7 +24,7 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 	if err := c.Bind(&roomDTO); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	newRoom, err := controller.roomService.CreateRoom(&roomDTO, userAuthID)
 	if err != nil {
 		log.Printf("User id: %s failed to create room object: %v\n", userAuthID, err)
@@ -55,13 +54,23 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 	})
 }
 
-// Endpoint for joining a room
+// i don't know when this changed but my room codes were long ash so i made an additional short code field
 func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
-	userAuthID := c.Get("authToken").(*auth.Token).UID
-	roomID := c.Param("roomID")
-	room, err := controller.roomService.JoinRoom(roomID, userAuthID)
+	userAuthID := c.Get("userAuthID").(string)
+	roomParam := c.Param("roomID")
+
+	var room *models.Room
+	var err error
+	if len(roomParam) == 6 {
+		room, err = controller.roomService.FindRoomByShortCode(roomParam)
+		if err == nil {
+			roomParam = room.ID.String()
+		}
+	}
+
+	room, err = controller.roomService.JoinRoom(roomParam, userAuthID)
 	if err != nil {
-		log.Printf("User id: %s failed to join room with id %s: %v\n", userAuthID, roomID, err)
+		log.Printf("User id: %s failed to join room %s: %v\n", userAuthID, roomParam, err)
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to join room. "+err.Error())
 		}
@@ -74,7 +83,7 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 
 // Endpoint for leaving a room
 func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	roomID := c.Param("roomID")
 	err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
@@ -110,8 +119,8 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 
 func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	targetRoomID := c.Param("roomID")
-	userAuthID := c.Get("authToken").(*auth.Token).UID
-	roundStartTime, err := controller.roomService.StartRoundByRoomID(targetRoomID, userAuthID)
+	userAuthID := c.Get("userAuthID").(string)
+	roundStartTime, problems, err := controller.roomService.StartRoundByRoomID(targetRoomID, userAuthID)
 	if err != nil {
 		log.Printf("Failed to start round for room with id %s: %v\n", targetRoomID, err)
 		if err, ok := err.(*services.BSGError); ok {
@@ -121,6 +130,7 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"startTime": roundStartTime.Unix(),
+		"problems":  problems,
 	})
 }
 
@@ -142,16 +152,17 @@ func (controller *RoomController) GetLeaderboardEndpoint(c echo.Context) error {
 func (controller *RoomController) CreateSubmissionEndpoint(c echo.Context) error {
 	roomID := c.Param("roomID")
 	problemID := c.Param("problemID")
-	userAuthID := c.Get("authToken").(*auth.Token).UID
+	userAuthID := c.Get("userAuthID").(string)
 	parsedProblemID, err := strconv.Atoi(problemID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid problemID. Please try again")
 	}
-	// var roundSubmissionParameters services.RoundSubmissionParameters
-	// if err := c.Bind(&roundSubmissionParameters); err != nil {
-	// 	return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
-	// }
-	result, err := controller.roomService.CreateRoomSubmission(roomID, uint(parsedProblemID), userAuthID)
+	var roundSubmissionParameters services.RoundSubmissionParameters
+	if err := c.Bind(&roundSubmissionParameters); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
+	}
+	roundSubmissionParameters.ProblemID = uint(parsedProblemID)
+	result, err := controller.roomService.CreateRoomSubmission(roomID, roundSubmissionParameters, userAuthID)
 	if err != nil {
 		log.Printf("User id: %s failed to create submission: %v\n", userAuthID, err)
 		if err, ok := err.(services.BSGError); ok {
@@ -164,12 +175,47 @@ func (controller *RoomController) CreateSubmissionEndpoint(c echo.Context) error
 	})
 }
 
+func (controller *RoomController) GetActiveRoomEndpoint(c echo.Context) error {
+	userAuthID := c.Get("userAuthID").(string)
+	roomID, err := controller.roomService.GetActiveRoomForUser(userAuthID)
+	if err != nil {
+		log.Printf("Failed to get active room for user %s: %v", userAuthID, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get active room")
+	}
+	if roomID == "" {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"roomID": nil,
+		})
+	}
+	return c.JSON(http.StatusOK, map[string]string{
+		"roomID": roomID,
+	})
+}
+
+func (controller *RoomController) EndRoundEndpoint(c echo.Context) error {
+	targetRoomID := c.Param("roomID")
+	userAuthID := c.Get("userAuthID").(string)
+	if err := controller.roomService.EndRoundByRoomID(targetRoomID, userAuthID); err != nil {
+		log.Printf("Failed to end round for room %s: %v\n", targetRoomID, err)
+		if err, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to end round. "+err.Error())
+		}
+		if err, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to end round. "+err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to end round. Please try again later")
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Round ended"})
+}
+
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
+	g.GET("/active", controller.GetActiveRoomEndpoint)
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 	g.POST("/:roomID/rounds/create", controller.CreateNewRoundEndpoint)
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
+	g.POST("/:roomID/end", controller.EndRoundEndpoint)
 	g.POST("/:roomID/:problemID", controller.CreateSubmissionEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)

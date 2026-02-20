@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/gorilla/websocket"
@@ -28,7 +29,7 @@ func InitializeRTCClient(name string) (*RTCClient, error) {
 	rtcClient := RTCClient{
 		Name:            name,
 		Connection:      conn,
-		Ingress:         make(chan response.Response),
+		Ingress:         make(chan response.Response, 10),
 		ConnectionMutex: sync.Mutex{},
 	}
 	// Start listening for incoming messages
@@ -61,19 +62,24 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*res
 	}
 	// Lock connection
 	client.ConnectionMutex.Lock()
+	defer client.ConnectionMutex.Unlock()
+
 	// Send message
 	err = client.Connection.WriteMessage(websocket.TextMessage, jsonMessage)
 	if err != nil {
 		return nil, err
 	}
+
 	// Read response from Ingress
-	responseObject := <-client.Ingress
-	// Unlock connection
-	client.ConnectionMutex.Unlock()
-	if responseObject.RespStatus != "ok" {
-		return &responseObject, BSGError{StatusCode: 500, Message: responseObject.Message()}
+	select {
+	case responseObject := <-client.Ingress:
+		if responseObject.RespStatus != "ok" {
+			return &responseObject, BSGError{StatusCode: 500, Message: responseObject.Message()}
+		}
+		return &responseObject, nil
+	case <-time.After(5 * time.Second):
+		return nil, BSGError{StatusCode: 504, Message: "Timeout waiting for RTC response"}
 	}
-	return &responseObject, nil
 }
 
 // Close the WebSocket connection

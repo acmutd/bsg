@@ -11,4 +11,10 @@ var (
 
 	// Response type that doesn't require any special handling.
 	GENERAL ResponseType = "general"
+
+	// round start broadcast
+	ROUND_START ResponseType = "round-start"
+
+	// next problem broadcast
+	NEXT_PROBLEM ResponseType = "next-problem"
 )

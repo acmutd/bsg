@@ -1,7 +1,7 @@
 package chatmanager
 
 // List of all chat users connected to RTC service.
-type UserList map[*User]bool
+type UserList map[string]*User
 
 // Actual rooms/users themselves
 type User struct {
