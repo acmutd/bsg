@@ -91,7 +91,7 @@ services:
   server:
     build: ./server
     ports:
-      - 3000:3000
+      - 3001:3000
     environment:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -100,7 +100,12 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
       - SERVER_SECRET=${SERVER_SECRET}
       - CENTRAL_SERVICE_URL=http://central-service:5000
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}  
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: acm-cloudflare-tunnel
+    restart: always
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
 
 volumes:
   db-volume:
