@@ -7,4 +7,5 @@ type Problem struct {
 	Description string `json:"description"`
 	Hints       string `json:"hints"`
 	Difficulty  string `json:"difficulty"`
+	IsPaid      bool   `json:"isPaid"`
 }
