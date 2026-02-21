@@ -94,6 +94,25 @@ async function startServer() {
     const authRoutes = require('./routes/auth');
     app.use('/auth', authRoutes);
 
+    // Healthcheck endpoint
+    app.get('/health', async (req, res) => {
+        try {
+            // check Redis status
+            const redisStatus = Redisclient.isReady ? 'ok' : 'not ready';
+
+            res.status(200).json({
+                status: 'ok',
+                redis: redisStatus,
+                timestamp: new Date().toISOString()
+            });
+        } catch (err) {
+            res.status(500).json({
+                status: 'error',
+                error: err.message
+            });
+        }
+    });
+
 
     app.listen(port, () => {
         console.log(`Server listening on port ${port}`);
