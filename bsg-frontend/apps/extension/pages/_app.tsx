@@ -1,8 +1,9 @@
+
 import '../../../packages/ui-styles/global.css'
 import { useState, useRef, useEffect } from 'react'
 import type { AppProps } from 'next/app'
 import '@bsg/ui-styles/global.css';
-import {Poppins} from 'next/font/google'
+import { Poppins } from 'next/font/google'
 import { Button } from '@bsg/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane, faSmile, faCopy } from '@fortawesome/free-solid-svg-icons'

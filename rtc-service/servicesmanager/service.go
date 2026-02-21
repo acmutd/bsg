@@ -85,9 +85,26 @@ func (s *Service) ReadMessages() {
 				} else {
 					respObj := *response.NewOkResponse(respType, resp, roomID)
 
+					// Always send response back to sender (e.g. central-service blocks on join-room)
+					// But don't send chat messages back to sender since they'll receive it in the broadcast
+					if respType != response.CHAT_MESSAGE {
+						s.Egress <- respObj
+					}
+
 					// Broadcast and Persistence Logic
 					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
+						if room == nil {
+							// Create the room if it doesn't exist (Lazy creation for round-start/background messages)
+							logging.Info("Creating room on broadcast: ", roomID)
+							room = &chatmanager.Room{
+								RoomID: roomID,
+								Users:  make(chatmanager.UserList),
+							}
+							chatmanager.RTCChatManager.CreateRoom(room)
+						}
+
+						// Re-verify room exists after potential creation
 						if room != nil {
 							// 1. If this is a join-room request, replay history to the joining user.
 							if messageStruct.Type == "join-room" {
@@ -102,17 +119,13 @@ func (s *Service) ReadMessages() {
 							room.AddMessage(respObj)
 
 							// 3. Send to all users in the room.
-							for user := range room.Users {
-								userService := s.ServiceManager.FindService(user.Handle)
+							for handle := range room.Users {
+								userService := s.ServiceManager.FindService(handle)
 								if userService != nil {
 									userService.Egress <- respObj
 								}
 							}
-						} else {
-							s.Egress <- respObj
 						}
-					} else {
-						s.Egress <- respObj
 					}
 
 					frontEnd := s.ServiceManager.FindService(FRONT_END_SERVICE)

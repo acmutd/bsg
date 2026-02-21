@@ -12,6 +12,7 @@ import (
 type JoinRoomRequest struct {
 	UserHandle string `json:"userHandle" validate:"required"`
 	RoomID     string `json:"roomID" validate:"required"`
+	RoomCode   string `json:"roomCode"`
 }
 
 func init() {
@@ -60,11 +61,39 @@ func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, str
 
 	room := chatmanager.RTCChatManager.GetRoom(r.RoomID)
 	if room == nil {
-		room = &chatmanager.Room{
-			RoomID: r.RoomID,
-			Users:  make(chatmanager.UserList),
+		// New Logic: If not found by ID (UUID), try finding by Code
+		if r.RoomCode != "" {
+			room = chatmanager.RTCChatManager.GetRoom(r.RoomCode)
+		}
+
+		if room == nil {
+			// If still nil, create new
+			room = &chatmanager.Room{
+				RoomID:   r.RoomID,
+				RoomCode: r.RoomCode,
+				Users:    make(chatmanager.UserList),
+			}
+		} else {
+			// If found by code, we might need to update/ensure RoomID is set if it was missing?
+			// But usually r.RoomID from backend is the UUID.
+			// If the existing room was created by extension, its RoomID might be the Code.
+			// We should probably update the RoomID to the UUID if we have one?
+			// Let's just ensure we register the new ID.
+			if room.RoomID != r.RoomID && r.RoomID != "" {
+				// The room was keyed by Code, now we have a UUID.
+				// We should probably update the RoomID field to the UUID?
+				// Or jus register the UUID as an alias.
+				// Let's assume we want the UUID to be the primary ID if available.
+				if len(r.RoomID) > len(room.RoomID) { // Heuristic: UUID is longer than Code
+					room.RoomID = r.RoomID
+				}
+			}
 		}
 		chatmanager.RTCChatManager.CreateRoom(room)
+	} else if room.RoomCode == "" && r.RoomCode != "" {
+		// Link the code if it wasn't set yet
+		room.RoomCode = r.RoomCode
+		chatmanager.RTCChatManager.CreateRoom(room) // Re-register to add Code index
 	}
 
 	user := &chatmanager.User{

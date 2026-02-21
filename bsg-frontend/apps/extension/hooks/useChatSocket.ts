@@ -44,9 +44,49 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
+                        // Check if this is a round-start message (contains comma-separated problem IDs)
+                        let displayMessage = message.data;
+                        if (message.data && message.data.includes(',') && /^\d+(,\d+)*$/.test(message.data)) {
+                            // This is a problem list from round-start
+                            const problemIds = message.data.split(',');
+                            displayMessage = `Round started!\nProblems: ${problemIds.join(', ')}`;
+                        }
+
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
-                            data: message.data,
+                            data: displayMessage,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'user-joined') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${message.userHandle} joined the room`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'user-left') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${message.userHandle} left the room`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'round-started') {
+                        const problemList = message.problemList || [];
+                        const problemText = problemList.length > 0
+                            ? `\nProblems: ${problemList.join(', ')}`
+                            : '';
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `Round started! Duration: ${message.duration} minutes${problemText}`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                    } else if (responseType === 'submission-created') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${message.userHandle} submitted a solution!`,
                             roomID: message.roomID,
                             isSystem: true
                         }]);
@@ -57,6 +97,10 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
             } catch (e) {
                 console.error('Failed to parse WS message', e);
             }
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
         };
 
         ws.onclose = () => {
@@ -70,9 +114,6 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     }, [userEmail]);
 
     const joinRoom = useCallback((roomID: string) => {
-        // Clear messages when joining a new room so we don't see chat history from previous rooms
-        setMessages([]);
-
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
                 name: userEmail,
@@ -82,6 +123,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                     roomID: roomID
                 })
             };
+            console.log('Sending join-room:', payload); // Debug log
             socketRef.current.send(JSON.stringify(payload));
         }
     }, [userEmail]);
@@ -103,10 +145,15 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         }
     }, [userEmail]);
 
+    const addMessage = useCallback((message: Message) => {
+        setMessages(prev => [...prev, message]);
+    }, []);
+
     return {
         messages,
         isConnected,
         joinRoom,
-        sendChatMessage
+        sendChatMessage,
+        addMessage
     };
 };
