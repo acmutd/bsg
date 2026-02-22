@@ -12,6 +12,8 @@ import (
 // Request for a user to send a message to a room.
 type ChatMessageRequest struct {
 	UserHandle string `json:"userHandle" validate:"required"`
+	UserName   string `json:"userName"`
+	UserPhoto  string `json:"userPhoto"`
 	RoomID     string `json:"roomID" validate:"required"`
 	Message    string `json:"message" validate:"required"`
 }
@@ -69,6 +71,8 @@ func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, 
 	// Return data as JSON so response handler can parse it easily
 	responseData := map[string]string{
 		"userHandle": r.UserHandle,
+		"userName":   r.UserName,
+		"userPhoto":  r.UserPhoto,
 		"message":    r.Message,
 	}
 	jsonBytes, _ := json.Marshal(responseData)
