@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build-extension": "next build && shx mv out/_next out/next && shx cp -R ../../extension/* ./out/ && npm run fix-paths && npm run extract-inline",
-    "build-extension-test": "next build && shx cp -R ../../extension/* ./out/ && npm run fix-paths && npm run extract-inline",
     "fix-paths": "replace-in-file --configFile=replacementFileConfig.json",
     "extract-inline": "node scripts/extract-inline.js",
     "start": "next start",
