@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
+import {useCallback} from 'react';
 
 export const useNewTab = () => {
-  const openInNewTab = useCallback((url: string) => {
-    chrome.tabs.create({ url });
-  }, []);
+    const openInNewTab = useCallback((url: string) => {
+        void chrome.tabs.create({url});
+    }, []);
 
-  return { openInNewTab };
+    return {openInNewTab};
 };

@@ -12,7 +12,7 @@ export default function DefaultPopup() {
             <Logo/>
             {isOnLeetCode ? (
                 <>
-                    <p className={"m-2"}>You are on LeetCode</p>
+                    <p className={"m-2"}>You are on LeetCode. Go to a problem to open up the side panel!</p>
                 </>
             ) : (
                 <>
