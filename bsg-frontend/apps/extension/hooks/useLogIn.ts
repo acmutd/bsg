@@ -63,7 +63,6 @@ export const useLogIn = () => {
 
 
     const logout = () => {
-        console.log("Got inside of the logout function ")
 
         if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
             chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
@@ -77,24 +76,16 @@ export const useLogIn = () => {
 
     //check if the user is logged in using the service worker
     useEffect(() => {
-        console.log("useEffect running on mount");
-
         //check if chrome api is available
         if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
-            console.log("Sending CHECK_AUTH message");
 
             chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
-                console.log("Received response from background:", response);
                 if (response && response.success) {
-                    console.log("Auth successful, setting user:", response.user);
                     setUserProfile(response.user)
                     setUser(true)
                     setLoggedIn(true)
                     void router.push('/room-user')
-                } else {
-                    console.log("Auth failed or no session");
                 }
-
             })
 
         }
