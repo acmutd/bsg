@@ -9,13 +9,24 @@ import { faPaperPlane, faSmile, faCopy } from '@fortawesome/free-solid-svg-icons
 import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
 import { useChatSocket } from '../hooks/useChatSocket'
+import DefaultPopup  from './defaultPopup'
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
 
 export default function App({ Component, pageProps }: AppProps) {
+    const isDefaultPopup = Component === DefaultPopup
+
+    if(isDefaultPopup){
+        return (
+            <div className={poppins.className}>
+                <Component {...pageProps} />
+            </div>
+        )
+    }
 
   return (
+    //Implement Scrollbar code here 
     <div className={poppins.className}>
       <Component  {...pageProps} />
     </div>
