@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
+
     --foreground: 255, 255, 255;
 
     --card: 255 255 255;
