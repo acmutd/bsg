@@ -3,18 +3,16 @@ import {Button} from "@bsg/ui/button";
 import useDefaultPopup from "@/hooks/useDefaultPopup";
 import React from "react";
 import Logo from "@bsg/components/Logo";
-import {useState} from 'react';
 
 export default function DefaultPopup() {
     const {redirectToLeetCode, isOnLeetCode} = useDefaultPopup();
- 
-    
+
     return (
         <div className={'my-5 mx-7'}>
             <Logo/>
             {isOnLeetCode ? (
                 <>
-                    <p className={"m-2"}>You are on LeetCode</p>
+                    <p className={"m-2"}>You are on LeetCode. Go to a problem to open up the side panel!</p>
                 </>
             ) : (
                 <>
