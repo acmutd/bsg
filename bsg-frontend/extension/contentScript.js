@@ -218,19 +218,22 @@
         // Listen for auth state changes from extension
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (message.type === 'AUTH_STATE_CHANGED') {
-
                 // Refresh the iframe to reflect new auth state
                 iframe.src = iframe.src;
 
                 sendResponse({success: true});
             }
 
-            if (message.type === "TOGGLE_COLLAPSE") {
-                if (panel.style.width === "36px") {
-                    panel.style.width = "360px";
-                } else {
-                    panel.style.width = "36px";
-                }
+            if (message.type === "COLLAPSE") {
+                panel.style.width = "36px";
+            }
+
+            if (message.type === "EXPAND") {
+                panel.style.width = "360px";
+            }
+
+            if (message.type === "MAXIMIZE") {
+                panel.style.width = "100vw";
             }
         });
     });
