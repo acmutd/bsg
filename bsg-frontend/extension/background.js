@@ -133,6 +133,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       if (pendingData) {
         if (status_msg === 'Accepted') {
+          console.log(`Background: Processing Accepted submission ${submissionId} for ${pendingData.problemSlug}`);
           fetch('http://localhost:3000/submission', {
             method: 'POST',
             headers: {
@@ -148,8 +149,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }),
             credentials: 'include'
           })
-            .then(res => res.json())
-            .catch(e => console.error('Background: Failed to report submission:', e));
+            .then(res => {
+              console.log("Background: Submission server response status:", res.status);
+              return res.text().then(text => ({ status: res.status, text }));
+            })
+            .then(({ status, text }) => console.log('Background: Submission server response text:', status, text))
+            .catch(err => console.error('Background: Submission server network error:', err));
+
         }
 
         // cleanup
@@ -222,11 +228,14 @@ function connectWebSocket() {
       if (response.status === 'ok') {
         const { responseType, message } = response;
         if (responseType === 'next-problem') {
+          console.log("Background DEBUG: Received next-problem from WS!", message);
           if (message && message.data) {
             handleNextProblem(message.data);
           }
         } else if (responseType === 'round-end') {
           console.log("Background: Round ended:", message?.data);
+          chrome.storage.local.remove('nextProblem');
+          chrome.action.setBadgeText({ text: "" });
         }
       }
     } catch (e) {
@@ -278,8 +287,10 @@ async function handleNextProblem(dataStr) {
   }
 
   const { nextProblem, userHandle } = data;
+  console.log("Background DEBUG: handleNextProblem called! My ID:", userProfile?.id, "Event handle:", userHandle, "Next:", nextProblem);
 
   if (userProfile && (userProfile.id == userHandle)) {
+    console.log("Background DEBUG: Setting nextProblem in chrome storage to:", nextProblem);
     chrome.storage.local.set({ nextProblem: nextProblem });
     chrome.action.setBadgeText({ text: "!" });
     chrome.action.setBadgeBackgroundColor({ color: "#00FF00" });

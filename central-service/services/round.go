@@ -160,15 +160,37 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 				Message:    "Internal Server Error",
 			}
 		}
+	} // This closing brace was missing
+	err := service.db.Transaction(func(tx *gorm.DB) error {
+		oldDBConnection := service.db
+		service.SetDBConnection(tx)
+		for _, participantAuthID := range activeRoomParticipants {
+			if err := service.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
+				service.SetDBConnection(oldDBConnection)
+				return err
+			}
+			if err := service.addLeaderboardMember(round.ID, participantAuthID); err != nil {
+				service.SetDBConnection(oldDBConnection)
+				return err
+			}
+		}
+		service.SetDBConnection(oldDBConnection)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
+
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
-	_, err := service.roundScheduler.Add(&tasks.Task{
-		Interval:    time.Duration(10 * time.Second),
+	// Schedule task to change round state to ended
+	_, err = service.roundScheduler.Add(&tasks.Task{
+		// Set an extra buffer time in case of submission at the end of the round
+		Interval:    time.Duration(time.Minute*time.Duration(round.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER)*time.Second),
 		RunOnce:     true,
 		TaskContext: tasks.TaskContext{Context: ctx},
-		FuncWithTaskContext: func(ctx tasks.TaskContext) error {
-			roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
+		FuncWithTaskContext: func(tc tasks.TaskContext) error {
+			roundService, isValidType := tc.Context.Value(constants.ROUND_SERVICE).(*RoundService)
 			if !isValidType {
 				return &BSGError{
 					Message:    "Error get round service from context",
@@ -181,72 +203,27 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 					StatusCode: 500,
 				}
 			}
-			err := roundService.db.Transaction(func(tx *gorm.DB) error {
-				oldDBConnection := roundService.db
-				roundService.SetDBConnection(tx)
-				for _, participantAuthID := range activeRoomParticipants {
-					if err := roundService.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
-						roundService.SetDBConnection(oldDBConnection)
-						return err
-					}
-					if err := roundService.addLeaderboardMember(round.ID, participantAuthID); err != nil {
-						roundService.SetDBConnection(oldDBConnection)
-						return err
+			result := roundService.db.Model(round).Updates(models.Round{
+				Status: constants.ROUND_END,
+			})
+			if result.Error != nil {
+				return &BSGError{
+					Message:    "Error ending round",
+					StatusCode: 500,
+				}
+			}
+			// RTCClient is nil in test cases
+			if service.rtcClient != nil {
+				var roundEnd = requests.RoundEndRequest{
+					RoomID: round.RoomID.String(),
+				}
+				if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
+					log.Printf("Error sending round-end message: %v", err)
+					return BSGError{
+						StatusCode: 500,
+						Message:    "Internal Server Error",
 					}
 				}
-				roundService.SetDBConnection(oldDBConnection)
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-			// Schedule task to change round state to ended
-			_, err = roundService.roundScheduler.Add(&tasks.Task{
-				// Set an extra buffer time in case of submission at the end of the round
-				Interval:    time.Duration(time.Minute*time.Duration(round.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER)*time.Second),
-				RunOnce:     true,
-				TaskContext: ctx,
-				FuncWithTaskContext: func(tc tasks.TaskContext) error {
-					roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
-					if !isValidType {
-						return &BSGError{
-							Message:    "Error get round service from context",
-							StatusCode: 500,
-						}
-					}
-					if roundService == nil {
-						return &BSGError{
-							Message:    "Round service is nil",
-							StatusCode: 500,
-						}
-					}
-					result := roundService.db.Model(round).Updates(models.Round{
-						Status: constants.ROUND_END,
-					})
-					if result.Error != nil {
-						return &BSGError{
-							Message:    "Error ending round",
-							StatusCode: 500,
-						}
-					}
-					// RTCClient is nil in test cases
-					if service.rtcClient != nil {
-						var roundEnd = requests.RoundEndRequest{
-							RoomID: round.RoomID.String(),
-						}
-						if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
-							log.Printf("Error sending round-end message: %v", err)
-							return BSGError{
-								StatusCode: 500,
-								Message:    "Internal Server Error",
-							}
-						}
-					}
-					return nil
-				},
-			})
-			if err != nil {
-				return err
 			}
 			return nil
 		},

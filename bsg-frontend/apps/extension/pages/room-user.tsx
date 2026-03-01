@@ -138,6 +138,7 @@ export default function RedirectionToRoomScreen() {
     const updateState = () => {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
             chrome.storage.local.get(['nextProblem'], (result) => {
+                console.log("DEBUG EVENT: on mount chrome.storage.local.get nextProblem:", result.nextProblem);
                 setNextProblem(result.nextProblem || null);
             });
         }
@@ -148,6 +149,7 @@ export default function RedirectionToRoomScreen() {
     // Listen for changes (e.g. background script updates while popup is open)
     const listener = (changes: any, namespace: string) => {
         if (namespace === 'local' && changes.nextProblem) {
+            console.log("DEBUG EVENT: chrome.storage.local nextProblem changed:", changes.nextProblem);
             setNextProblem(changes.nextProblem.newValue || null);
         }
     };
@@ -162,6 +164,10 @@ export default function RedirectionToRoomScreen() {
         }
     };
   }, []);
+
+  useEffect(() => {
+     console.log("DEBUG EVENT: React state nextProblem is now:", nextProblem);
+  }, [nextProblem]);
 
 
   // copy room code to clipboard (works in extension and locally)
@@ -231,6 +237,14 @@ export default function RedirectionToRoomScreen() {
            const duration = currentRoom?.options?.duration || 30;
            setRoundEndTime(Date.now() + duration * 60 * 1000);
            setRoundStarted(true);
+           
+           // Clear stale nextProblem state
+           setNextProblem(null);
+           if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+               chrome.storage.local.remove('nextProblem');
+               if (chrome.action) chrome.action.setBadgeText({ text: "" });
+           }
+
            window.open(`https://leetcode.com/problems/${firstProblem}/`, '_top');
        }
     } else if (lastGameEvent.type === 'next-problem') {
@@ -261,6 +275,13 @@ export default function RedirectionToRoomScreen() {
         setRoundEndTime(null);
         setRoundStarted(false);
         setCurrentRoom(null);
+        
+        // Clear nextProblem state on round end
+        setNextProblem(null);
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.remove('nextProblem');
+            if (chrome.action) chrome.action.setBadgeText({ text: "" });
+        }
     }
   }, [lastGameEvent, userProfile]);
 
@@ -287,6 +308,8 @@ export default function RedirectionToRoomScreen() {
         
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
              chrome.storage.local.set({ activeRoomId: room.id });
+             chrome.storage.local.remove('nextProblem');
+             if (chrome.action) chrome.action.setBadgeText({ text: "" });
         }
     } catch(e) {
         console.error(e);
@@ -342,6 +365,8 @@ export default function RedirectionToRoomScreen() {
         
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
              chrome.storage.local.set({ activeRoomId: roomId });
+             chrome.storage.local.remove('nextProblem');
+             if (chrome.action) chrome.action.setBadgeText({ text: "" });
         }
         
         joinRoom(roomId);
