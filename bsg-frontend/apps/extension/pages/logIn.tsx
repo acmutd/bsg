@@ -8,7 +8,7 @@ export default function UserLogIn() {
     const {credentials, handleChange, login} = useLogIn()
 
     return (
-        <div className="flex flex-col px-5 py-16 gap-8 items-center">
+        <div className="flex-1 flex flex-col min-w-[24rem] px-5 pt-8 pb-16 gap-8 items-center overflow-y-auto">
             <div className="flex items-center text-4xl font-bold gap-3">
                 <div className="w-16 h-16 flex items-center justify-center">
                     <svg
@@ -28,7 +28,7 @@ export default function UserLogIn() {
                 BSG_
             </div>
 
-            <div className="rounded-lg w-full h-full max-w-sm flex flex-col p-8 gap-8 items-center bg-[#333333]">
+            <div className="rounded-lg w-full h-fit max-w-sm flex flex-col p-8 gap-8 items-center bg-[#333333]">
                 <div className="flex flex-col items-center gap-1">
                     <h1 className="text-lg font-medium">Join Now</h1>
                     <p className="text-xs">Create your account to start coding</p>
