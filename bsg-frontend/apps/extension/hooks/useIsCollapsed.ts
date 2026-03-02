@@ -6,6 +6,7 @@ export const useIsCollapsed = () => {
     useEffect(() => {
         const observer = new ResizeObserver(([element]) => {
             setCollapsed(element.contentRect.width <= 36);
+            console.log(element.contentRect.width);
         });
 
         observer.observe(document.documentElement);

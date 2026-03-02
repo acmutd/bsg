@@ -71,6 +71,7 @@
   .no-scrollbar-x::-webkit-scrollbar:horizontal {
     display: none;
   }
+
   .no-scrollbar-x {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -79,6 +80,7 @@
   .no-scrollbar-y::-webkit-scrollbar:vertical {
     display: none;
   }
+  
   .no-scrollbar-y {
     -ms-overflow-style: none;
     scrollbar-width: none;
