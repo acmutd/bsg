@@ -1,5 +1,5 @@
-import { signOut } from "firebase/auth";
-import { getFirebaseAuth } from "../config";
+import {signOut} from "firebase/auth";
+import {getFirebaseAuth} from "../config";
 
 export async function signOutOfAccount(): Promise<void> {
     const auth = getFirebaseAuth();
@@ -11,8 +11,6 @@ export async function signOutOfAccount(): Promise<void> {
     try {
         return await signOut(auth);
     } catch (error: any) {
-        console.log(error?.code);
-        console.log(error?.message);
         throw error;
     }
 }

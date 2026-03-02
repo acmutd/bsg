@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
 
@@ -23,7 +23,6 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         socketRef.current = ws;
 
         ws.onopen = () => {
-            console.log('Connected to RTC service');
             setIsConnected(true);
         };
 
@@ -32,7 +31,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                 const response = JSON.parse(event.data);
 
                 if (response.status === 'ok') {
-                    const { message, responseType } = response;
+                    const {message, responseType} = response;
 
                     if (responseType === 'chat-message') {
                         setMessages(prev => [...prev, {
@@ -60,7 +59,6 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         };
 
         ws.onclose = () => {
-            console.log('Disconnected from RTC service');
             setIsConnected(false);
         };
 
