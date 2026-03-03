@@ -113,6 +113,11 @@ async function startServer() {
         }
     });
 
+    const submissionRoutes = require('./routes/submission');
+    app.use('/submission', submissionRoutes);
+
+    const roomsRoutes = require('./routes/rooms');
+    app.use('/rooms', roomsRoutes);
 
     app.listen(port, () => {
         console.log(`Server listening on port ${port}`);
