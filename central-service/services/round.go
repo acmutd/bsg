@@ -33,13 +33,12 @@ type RoundCreationParameters struct {
 }
 
 type RoundSubmissionParameters struct {
-	RoundID   uint `json:"roundID"`
-	ProblemID uint `json:"problemID"`
-	// Code      string `json:"code"`
-	// Language  string `json:"language"`
-	// Maybe the score could be related to proportion of test cases passed
-	// TotalCorrect   uint `json:"totalCorrect"`
-	// TotalTestcases uint `json:"totalTestcases"`
+	RoundID       uint   `json:"roundID"`
+	ProblemID     uint   `json:"problemID"`
+	Code          string `json:"code"`
+	Language      string `json:"language"`
+	Verdict       string `json:"verdict"`
+	ExecutionTime uint   `json:"runtime"`
 }
 
 func InitializeRoundService(db *gorm.DB, rdb *redis.Client, roundScheduler *tasks.Scheduler, problemAccessor *ProblemAccessor, submissionQueue *SubmissionIngressQueueService, rtcClient *RTCClient) RoundService {
@@ -118,15 +117,15 @@ func (service *RoundService) CreateRoundParticipant(participantAuthID string, ro
 	return result.Error
 }
 
-func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomParticipants []string) (*time.Time, error) {
+func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomParticipants []string) (*time.Time, []models.Problem, error) {
 	if round == nil {
-		return nil, &BSGError{
+		return nil, nil, &BSGError{
 			Message:    "Round not found",
 			StatusCode: 404,
 		}
 	}
 	if round.Status != constants.ROUND_CREATED {
-		return nil, &BSGError{
+		return nil, nil, &BSGError{
 			Message:    "Round is either started or ended",
 			StatusCode: 400,
 		}
@@ -137,13 +136,18 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		Status:          constants.ROUND_STARTED,
 	})
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, nil, result.Error
+	}
+
+	// fetch problems before starting
+	if err := service.db.Model(round).Association("ProblemSet").Find(&round.ProblemSet); err != nil {
+		return nil, nil, err
 	}
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
 		var problemList []string
 		for _, problem := range round.ProblemSet {
-			problemList = append(problemList, fmt.Sprint(problem.ID))
+			problemList = append(problemList, problem.Slug)
 		}
 		var roundStart = requests.RoundStartRequest{
 			RoomID:      round.RoomID.String(),
@@ -151,20 +155,42 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		}
 		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
 			log.Printf("Error sending round-start message: %v", err)
-			return nil, BSGError{
+			return nil, nil, BSGError{
 				StatusCode: 500,
 				Message:    "Internal Server Error",
 			}
 		}
+	} // This closing brace was missing
+	err := service.db.Transaction(func(tx *gorm.DB) error {
+		oldDBConnection := service.db
+		service.SetDBConnection(tx)
+		for _, participantAuthID := range activeRoomParticipants {
+			if err := service.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
+				service.SetDBConnection(oldDBConnection)
+				return err
+			}
+			if err := service.addLeaderboardMember(round.ID, participantAuthID); err != nil {
+				service.SetDBConnection(oldDBConnection)
+				return err
+			}
+		}
+		service.SetDBConnection(oldDBConnection)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
+
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, constants.ROUND_SERVICE, service)
-	_, err := service.roundScheduler.Add(&tasks.Task{
-		Interval:    time.Duration(10 * time.Second),
+	// Schedule task to change round state to ended
+	_, err = service.roundScheduler.Add(&tasks.Task{
+		// Set an extra buffer time in case of submission at the end of the round
+		Interval:    time.Duration(time.Minute*time.Duration(round.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER)*time.Second),
 		RunOnce:     true,
 		TaskContext: tasks.TaskContext{Context: ctx},
-		FuncWithTaskContext: func(ctx tasks.TaskContext) error {
-			roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
+		FuncWithTaskContext: func(tc tasks.TaskContext) error {
+			roundService, isValidType := tc.Context.Value(constants.ROUND_SERVICE).(*RoundService)
 			if !isValidType {
 				return &BSGError{
 					Message:    "Error get round service from context",
@@ -177,72 +203,27 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 					StatusCode: 500,
 				}
 			}
-			err := roundService.db.Transaction(func(tx *gorm.DB) error {
-				oldDBConnection := roundService.db
-				roundService.SetDBConnection(tx)
-				for _, participantAuthID := range activeRoomParticipants {
-					if err := roundService.CreateRoundParticipant(participantAuthID, round.ID); err != nil {
-						roundService.SetDBConnection(oldDBConnection)
-						return err
-					}
-					if err := roundService.addLeaderboardMember(round.ID, participantAuthID); err != nil {
-						roundService.SetDBConnection(oldDBConnection)
-						return err
+			result := roundService.db.Model(round).Updates(models.Round{
+				Status: constants.ROUND_END,
+			})
+			if result.Error != nil {
+				return &BSGError{
+					Message:    "Error ending round",
+					StatusCode: 500,
+				}
+			}
+			// RTCClient is nil in test cases
+			if service.rtcClient != nil {
+				var roundEnd = requests.RoundEndRequest{
+					RoomID: round.RoomID.String(),
+				}
+				if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
+					log.Printf("Error sending round-end message: %v", err)
+					return BSGError{
+						StatusCode: 500,
+						Message:    "Internal Server Error",
 					}
 				}
-				roundService.SetDBConnection(oldDBConnection)
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-			// Schedule task to change round state to ended
-			_, err = roundService.roundScheduler.Add(&tasks.Task{
-				// Set an extra buffer time in case of submission at the end of the round
-				Interval:    time.Duration(time.Minute*time.Duration(round.Duration)) + time.Duration(time.Duration(constants.ROUND_DURATION_BUFFER)*time.Second),
-				RunOnce:     true,
-				TaskContext: ctx,
-				FuncWithTaskContext: func(tc tasks.TaskContext) error {
-					roundService, isValidType := ctx.Context.Value(constants.ROUND_SERVICE).(*RoundService)
-					if !isValidType {
-						return &BSGError{
-							Message:    "Error get round service from context",
-							StatusCode: 500,
-						}
-					}
-					if roundService == nil {
-						return &BSGError{
-							Message:    "Round service is nil",
-							StatusCode: 500,
-						}
-					}
-					result := roundService.db.Model(round).Updates(models.Round{
-						Status: constants.ROUND_END,
-					})
-					if result.Error != nil {
-						return &BSGError{
-							Message:    "Error ending round",
-							StatusCode: 500,
-						}
-					}
-					// RTCClient is nil in test cases
-					if service.rtcClient != nil {
-						var roundEnd = requests.RoundEndRequest{
-							RoomID: round.RoomID.String(),
-						}
-						if _, err := service.rtcClient.SendMessage("round-end", roundEnd); err != nil {
-							log.Printf("Error sending round-end message: %v", err)
-							return BSGError{
-								StatusCode: 500,
-								Message:    "Internal Server Error",
-							}
-						}
-					}
-					return nil
-				},
-			})
-			if err != nil {
-				return err
 			}
 			return nil
 		},
@@ -251,9 +232,9 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &roundStartTime, nil
+	return &roundStartTime, round.ProblemSet, nil
 }
 
 // Adds a user to a round leaderboard
@@ -269,10 +250,6 @@ func (service *RoundService) addLeaderboardMember(roundID uint, userID string) e
 	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
 		log.Printf("Error adding user leaderboard score in redis instance: %v\n", err)
 		return err
-	}
-	// TODO: remove
-	if leaderboard, err := service.getLeaderboardByRoundID(roundID); err == nil {
-		log.Printf("Leaderboard in round %d::\n%v\n", roundID, leaderboard)
 	}
 	return nil
 }
@@ -323,6 +300,42 @@ func compressScoreAndTimeStamp(score uint64, timestamp time.Time) uint64 {
 	return score | uint64(^time)
 }
 
+func decompressScoreOnly(compressedScore float64) uint64 {
+	// compressedScore is stored as float64 in Redis ZSet
+	val := uint64(compressedScore)
+	const scoreBits = 10
+	return val >> (64 - scoreBits)
+}
+
+func (service *RoundService) UpdateLeaderboardScore(roundID uint, userID string, scoreToAdd uint) error {
+	leaderboardKey := fmt.Sprintf("%d_leaderboard", roundID)
+
+	currentScore, err := service.rdb.ZScore(context.Background(), leaderboardKey, userID).Result()
+	if err != nil {
+		if err == redis.Nil {
+			// user not in leaderboard yet, treat as 0
+			currentScore = float64(compressScoreAndTimeStamp(0, time.Now()))
+		} else {
+			return err
+		}
+	}
+
+	points := decompressScoreOnly(currentScore)
+	newPoints := points + uint64(scoreToAdd)
+	newCompressedScore := float64(compressScoreAndTimeStamp(newPoints, time.Now()))
+
+	leaderboardMember := redis.Z{
+		Score:  newCompressedScore,
+		Member: userID,
+	}
+
+	if err := service.rdb.ZAdd(context.Background(), leaderboardKey, leaderboardMember).Err(); err != nil {
+		log.Printf("Error updating user leaderboard score in redis: %v\n", err)
+		return err
+	}
+	return nil
+}
+
 func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserAuthID string) (*models.RoundParticipant, error) {
 	var participant models.RoundParticipant
 	result := service.db.Limit(1).Where("participant_auth_id = ? AND round_id = ?", UserAuthID, RoundID).Find(&participant)
@@ -335,18 +348,18 @@ func (service *RoundService) FindParticipantByRoundAndUserID(RoundID uint, UserA
 	return &participant, nil
 }
 
-func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, problem *models.Problem) (bool, error) {
+func (service *RoundService) CheckIfRoundContainsProblem(round *models.Round, problem *models.Problem) (bool, int, error) {
 	var problemset []models.Problem
 	err := service.db.Model(round).Association("ProblemSet").Find(&problemset)
 	if err != nil {
-		return false, err
+		return false, -1, err
 	}
-	for _, roundProblem := range problemset {
+	for i, roundProblem := range problemset {
 		if roundProblem.ID == problem.ID {
-			return true, nil
+			return true, i, nil
 		}
 	}
-	return false, nil
+	return false, -1, nil
 }
 
 func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
@@ -363,13 +376,14 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 			submissions 
 		INNER JOIN round_submissions 
 			ON submissions.submission_owner_id = round_submissions.id
+		LEFT JOIN round_participants
+			ON round_submissions.round_participant_id = round_participants.id
 		WHERE 
 			submissions.verdict = ?
 			AND submissions.problem_id = ?
-			AND round_submissions.round_id = ?
-			AND round_submissions.round_participant_id = ?
+			AND round_participants.participant_auth_id = ?
 			AND submissions.submission_owner_type = 'round_submissions'
-	`, constants.SUBMISSION_STATUS_ACCEPTED, problem.ID, round.ID, participant.ID).Scan(&numACSubmissions)
+	`, constants.SUBMISSION_STATUS_ACCEPTED, problem.ID, participant.ParticipantAuthID).Scan(&numACSubmissions)
 
 	if result.Error != nil {
 		return 0, result.Error
@@ -406,7 +420,7 @@ func (service *RoundService) CreateRoundSubmission(
 	}
 
 	// check if problem is in round's problemset
-	problemInRoundProblemset, err := service.CheckIfRoundContainsProblem(round, problem)
+	problemInRoundProblemset, problemIndex, err := service.CheckIfRoundContainsProblem(round, problem)
 	if err != nil {
 		return nil, err
 	}
@@ -431,12 +445,14 @@ func (service *RoundService) CreateRoundSubmission(
 
 	// create submission object
 	newSubmission := models.RoundSubmission{
+		RoundID:            round.ID,
+		RoundParticipantID: participant.ID,
 		Submission: models.Submission{
-			// Code:                submissionParams.Code,
-			// Language:            submissionParams.Language,
+			Code:                submissionParams.Code,
+			Language:            submissionParams.Language,
 			ProblemID:           problem.ID,
-			ExecutionTime:       0,
-			Verdict:             constants.SUBMISSION_STATUS_SUBMITTED,
+			ExecutionTime:       submissionParams.ExecutionTime,
+			Verdict:             submissionParams.Verdict,
 			SubmissionTimestamp: time.Now(),
 		},
 		Score: problemScore,
@@ -455,9 +471,38 @@ func (service *RoundService) CreateRoundSubmission(
 		return nil, err
 	}
 
-	// service.submissionQueue is nil in unit tests
+	// skip kafka queue in unit tests
 	if service.submissionQueue != nil {
-		service.submissionQueue.AddSubmissionToQueue(problem, &newSubmission)
+		if err := service.submissionQueue.AddSubmissionToQueue(problem, &newSubmission); err != nil {
+			log.Printf("failed to queue submission: %v", err)
+		}
+	}
+
+	problemCount := service.db.Model(round).Association("ProblemSet").Count()
+
+	if submissionParams.Verdict == constants.SUBMISSION_STATUS_ACCEPTED {
+		if problemIndex == int(problemCount)-1 {
+			// user solved their last problem, round keeps running for others
+			log.Printf("User %s finished all problems in round %d", participant.ParticipantAuthID, round.ID)
+		} else {
+			// not the last problem, send next-problem event to this user only
+			var problemset []models.Problem
+			service.db.Model(round).Association("ProblemSet").Find(&problemset)
+
+			if problemIndex+1 < len(problemset) {
+				nextProblem := problemset[problemIndex+1]
+				if service.rtcClient != nil {
+					req := requests.NextProblemRequest{
+						RoomID:      round.RoomID.String(),
+						NextProblem: nextProblem.Slug,
+						UserHandle:  participant.ParticipantAuthID,
+					}
+					if _, err := service.rtcClient.SendMessage("next-problem", req); err != nil {
+						log.Printf("Error sending next-problem message: %v", err)
+					}
+				}
+			}
+		}
 	}
 
 	return &newSubmission, nil
