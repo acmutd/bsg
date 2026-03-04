@@ -1,6 +1,7 @@
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
 import {User} from "@bsg/models/User";
+import { useIsInRoom } from "./useIsInRoom";
 
 export type AuthProvider = 'google' | 'github';
 
@@ -14,6 +15,7 @@ export const useLogIn = () => {
         password: ''
     })
     const [loading, setLoading] = useState(false);
+    const setIsInRoom = useIsInRoom((s) => s.setIsInRoom);
 
     const router = useRouter()
     const handleChange = (e: { target: { name: any; value: any; }; }) => {

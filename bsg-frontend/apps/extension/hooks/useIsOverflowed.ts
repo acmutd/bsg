@@ -15,15 +15,11 @@ export const useIsOverflowed = <T extends HTMLElement>() => {
             setIsOverflowedY(element.scrollHeight > element.clientHeight);
         };
 
-        handleOverflow();
-
         const resizeObserver = new ResizeObserver(handleOverflow);
         resizeObserver.observe(element);
+        return () => resizeObserver.disconnect();
 
-        return () => {
-            resizeObserver.disconnect();
-        };
-    }, []);
+    }, [overflowRef.current]);
 
     return { 
         overflowRef,

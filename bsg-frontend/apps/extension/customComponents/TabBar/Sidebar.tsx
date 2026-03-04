@@ -1,37 +1,35 @@
 import React, { useState } from 'react';
 import { Button } from '@bsg/ui/button';
-import { collapse, maximize } from './panelResize';
+import { expand, maximize } from './panelResize';
+import { TabName } from '@bsg/models/TabName';
 import { useIsScrolled } from './useIsScrolled';
+import { useActiveTab } from './useActiveTab';
+import { useTabNavigation } from './useTabNavigation';
+import { useIsInRoom } from "@/hooks/useIsInRoom";
+import { useIsPanelHovered } from "@/hooks/useIsPanelHovered";
 
-interface TabBarProps {
-    isHovered: boolean,
-    isInRoom: boolean
-}
+export const Sidebar = () => {
 
-export const HeaderBar = ({ isHovered, isInRoom }: TabBarProps) => {
-
-    type tabName = 'room' | 'chat' | 'leaderboard' | 'statistics';
-    const [activeTab, setActiveTab] = useState<tabName>('chat');
-    const [hoveredTab, setHoveredTab] = useState<tabName | null>(null);
-
-    const { scrollRef, isScrolledX } = useIsScrolled<HTMLDivElement>();
+    const navToTab = useTabNavigation();
+    const activeTab = useActiveTab((s) => s.activeTab);
+    const isInRoom = useIsInRoom((s) => s.isInRoom);
+    const isPanelHovered = useIsPanelHovered((s) => s.isPanelHovered);
+    const [ hoveredTab, setHoveredTab ] = useState<TabName | null>(null);
+    const { scrollRef, isScrolledY } = useIsScrolled<HTMLDivElement>();
 
     return (
-        <div
-            ref={scrollRef}
-            className="bg-[#333333] flex items-center p-1 overflow-auto no-scrollbar"
-        >
+        <div className="bg-[#262626] flex flex-col relative items-center p-1">
             {
-                
-                // In room render
                 isInRoom ?
+
+                    // In room render
                     <>
                         {/* Logo Container */}
-                        <div className="flex absolute left-0 h-9 items-center pointer-events-none">
+                        <div className="flex flex-col absolute top-0 w-full items-center pointer-events-none z-10">
 
                             {/* Logo */}
-                            <div className="flex h-full items-center bg-[#333333] pl-1 pointer-events-auto">
-                                <div className="flex pl-2 py-1 gap-1 font-medium text-sm">
+                            <div className="flex flex-col w-full items-center bg-[#262626] pt-1 pointer-events-auto">
+                                <div className="flex pt-2 px-1 gap-1 font-medium text-sm">
                                     <div className="w-5 h-5 flex items-center justify-center">
                                         <svg
                                             viewBox="0 0 81 65"
@@ -50,133 +48,136 @@ export const HeaderBar = ({ isHovered, isInRoom }: TabBarProps) => {
                                 </div>
                             </div>
 
-                            {/* Gradient */}
-                            {isScrolledX && <div className="w-8 h-full bg-[linear-gradient(to_right,#333333_33.3%,transparent)]" />}
+                            {/* Fade */}
+                            <div className={`h-8 w-full bg-[linear-gradient(to_bottom,#262626_33.3%,transparent)] ${(isScrolledY) ? '' : 'hidden'}`} />
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex items-center pl-9 pr-14">
+                        <div 
+                            ref={scrollRef}
+                            className="flex flex-col items-center pt-9 pb-14 overflow-y-auto no-scrollbar"
+                        >
 
-                            <div className={`w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'room') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'room') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('room')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('room')}
-                                className="flex h-fit px-2 py-1 gap-1 text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                onClick={() => navToTab('room')}
+                                className="flex flex-col h-fit py-2 px-1 gap-1 text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 {
                                     activeTab === 'room' ?
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 font-medium">Room</div>
+
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="font-medium">Room</div>
                                         </>
                                         :
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 text-foreground/60 font-normal">Room</div>
+                                            
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="text-foreground/60 font-normal">Room</div>
                                         </>
                                 }
                             </Button>
 
-                            <div className={`w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'room' || hoveredTab === 'chat') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'room' || hoveredTab === 'chat') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('chat')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('chat')}
-                                className="flex h-fit px-2 py-1 gap-1 font-medium text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                onClick={() => navToTab('chat')}
+                                className="flex flex-col h-fit py-2 px-1 gap-1 text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 {
                                     activeTab === 'chat' ?
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 font-medium">Chat</div>
+
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="font-medium">Chat</div>
                                         </>
                                         :
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 text-foreground/60 font-normal">Chat</div>
+
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="text-foreground/60 font-normal">Chat</div>
                                         </>
                                 }
                             </Button>
 
-                            <div className={`w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('leaderboard')}
-                                className="flex h-fit px-2 py-1 gap-1 font-medium text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                onClick={() => navToTab('leaderboard')}
+                                className="flex flex-col h-fit py-2 px-1 gap-1 text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 {
                                     activeTab === 'leaderboard' ?
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 font-medium">Leaderboard</div>
+
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="font-medium">Leaderboard</div>
                                         </>
                                         :
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 text-foreground/60 font-normal">Leaderboard</div>
+
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="text-foreground/60 font-normal">Leaderboard</div>
                                         </>
                                 }
                             </Button>
 
-                            <div className={`w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('statistics')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('statistics')}
-                                className="flex h-fit px-2 py-1 gap-1 font-medium text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                onClick={() => navToTab('statistics')}
+                                className="flex flex-col h-fit py-2 px-1 gap-1 text-sm items-center bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 {
                                     activeTab === 'statistics' ?
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 font-medium">Statistics</div>
+                                            
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="font-medium">Statistics</div>
                                         </>
                                         :
                                         <>
-                                            <div className="w-5 h-5 flex items-center justify-center">
+                                            <div className="[writing-mode:vertical-lr] rotate-180 text-foreground/60 font-normal">Statistics</div>
+
+                                            <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
-
-                                            <div className="text-foreground/60 font-normal">Statistics</div>
                                         </>
                                 }
                             </Button>
                         </div>
                     </>
 
-                    :
-
+                    : 
+                    
                     // Not in room render
                     <>
                         {/* Logo */}
-                        <div className="flex px-2 py-1 gap-1 font-medium text-sm items-center">
+                        <div className="flex flex-col py-2 px-1 gap-1 font-medium text-sm items-center">
                             <div className="w-5 h-5 flex items-center justify-center">
                                 <svg
                                     viewBox="0 0 81 65"
@@ -192,18 +193,19 @@ export const HeaderBar = ({ isHovered, isInRoom }: TabBarProps) => {
                                     />
                                 </svg>
                             </div>
-                            BSG
+                            
+                            <div className="font-medium text-sm [writing-mode:vertical-lr] rotate-180">BSG</div>
                         </div>
                     </>
             }
 
             {/* Toolbar */}
-            <div className="flex absolute right-0 h-9 pointer-events-none">
+            <div className="flex flex-col absolute bottom-0 w-full pointer-events-none">
 
                 {/* Fade */}
-                <div className="w-8 h-full bg-[linear-gradient(to_left,#333333_33.3%,transparent)]" />
+                <div className="h-8 w-full bg-[linear-gradient(to_top,#262626_33.3%,transparent)]" />
 
-                <div className={`flex items-center gap-1 px-1 bg-[#333333] pointer-events-auto ${(isHovered) ? '' : 'hidden'}`}>
+                <div className={`flex flex-col items-center gap-1 py-1.5 bg-[#262626] pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize Button */}
                     <Button
@@ -222,7 +224,7 @@ export const HeaderBar = ({ isHovered, isInRoom }: TabBarProps) => {
 
                     {/* Collapse Button */}
                     <Button
-                        onClick={collapse}
+                        onClick={expand}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
                     >
                         <svg
@@ -231,7 +233,7 @@ export const HeaderBar = ({ isHovered, isInRoom }: TabBarProps) => {
                             fill="currentColor"
                             xmlns="http://www.w3.org/2000/svg"
                         >
-                            <path d="M305 239c9.4 9.4 9.4 24.6 0 33.9L113 465c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l175-175L79 81c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0L305 239z" />
+                            <path d="M15 239c-9.4 9.4-9.4 24.6 0 33.9L207 465c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9L65.9 256 241 81c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0L15 239z" />
                         </svg>
                     </Button>
                 </div>

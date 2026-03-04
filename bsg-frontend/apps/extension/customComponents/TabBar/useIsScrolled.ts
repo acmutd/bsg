@@ -14,15 +14,11 @@ export const useIsScrolled = <T extends HTMLElement>() => {
             setIsScrolledX(element.scrollLeft > 0);
             setIsScrolledY(element.scrollTop > 0);
         };
-
-        handleScroll(); // sync initial state
-
+        
         element.addEventListener("scroll", handleScroll);
+        return () => element.removeEventListener("scroll", handleScroll);
 
-        return () => {
-            element.removeEventListener("scroll", handleScroll);
-        };
-    }, []);
+    }, [scrollRef.current]);
 
     return {
         scrollRef,
