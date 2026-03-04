@@ -7,6 +7,7 @@ type KafkaIngressDTO struct {
 	ProblemId uint `json:"problemID"`
 	Lang string `json:"lang"`
 	Code string `json:"code"`
+	Verdict string `json:"verdict"`
 	SubmissionId uint `json:"submissionID"`
 }
 
@@ -20,10 +21,11 @@ type KafkaEgressDTO struct {
 
 func NewKafkaIngressDTO(problem *models.Problem, submission *models.RoundSubmission) KafkaIngressDTO {
 	return KafkaIngressDTO{
-		ProblemSlug: "", // TODO: replace with legit value,
+		ProblemSlug: problem.Slug,
 		ProblemId: problem.ID,
 		Lang: submission.Submission.Language,
 		Code: submission.Submission.Code,
+		Verdict: submission.Submission.Verdict,
 		SubmissionId: submission.ID,
 	}
 }

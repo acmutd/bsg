@@ -15,6 +15,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     const socketRef = useRef<WebSocket | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isConnected, setIsConnected] = useState(false);
+    const [lastGameEvent, setLastGameEvent] = useState<{ type: 'round-start' | 'next-problem' | 'round-end', data: any, timestamp: number } | null>(null);
 
     useEffect(() => {
         if (!userEmail) return;
@@ -50,6 +51,29 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             roomID: message.roomID,
                             isSystem: true
                         }]);
+                    } else if (responseType === 'round-start') {
+                        setLastGameEvent({
+                            type: 'round-start',
+                            data: message.data,
+                            timestamp: Date.now()
+                        });
+                    } else if (responseType === 'round-end') {
+                        setLastGameEvent({
+                            type: 'round-end',
+                            data: message.data,
+                            timestamp: Date.now()
+                        });
+                    } else if (responseType === 'next-problem') {
+                        try {
+                            const parsedData = JSON.parse(message.data);
+                            setLastGameEvent({
+                                type: 'next-problem',
+                                data: parsedData,
+                                timestamp: Date.now()
+                            });
+                        } catch (e) {
+                            console.error('Failed to parse next-problem data', e);
+                        }
                     }
                 } else if (response.status === 'error') {
                     console.error('RTC Error:', response.message);
@@ -72,6 +96,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     const joinRoom = useCallback((roomID: string) => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
+        setLastGameEvent(null);
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
@@ -107,6 +132,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         messages,
         isConnected,
         joinRoom,
-        sendChatMessage
+        sendChatMessage,
+        lastGameEvent
     };
 };

@@ -86,7 +86,7 @@ func (s *Service) ReadMessages() {
 					respObj := *response.NewOkResponse(respType, resp, roomID)
 
 					// Broadcast and Persistence Logic
-					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT {
+					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
 						if room != nil {
 							// 1. If this is a join-room request, replay history to the joining user.
@@ -102,11 +102,20 @@ func (s *Service) ReadMessages() {
 							room.AddMessage(respObj)
 
 							// 3. Send to all users in the room.
-							for user := range room.Users {
+							senderReceived := false
+							for _, user := range room.Users {
 								userService := s.ServiceManager.FindService(user.Handle)
 								if userService != nil {
 									userService.Egress <- respObj
+									if userService == s {
+										senderReceived = true
+									}
 								}
+							}
+
+							// if sender isn't in the room (e.g. central-service), send to them directly
+							if !senderReceived {
+								s.Egress <- respObj
 							}
 						} else {
 							s.Egress <- respObj
