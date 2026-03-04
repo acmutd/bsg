@@ -40,7 +40,6 @@
         Object.assign(panelWrapper.style, {
             display: 'flex',
             alignItems: 'stretch',
-            marginLeft: '8px',
             position: 'relative',
         });
 
@@ -79,12 +78,10 @@
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '8px', // smaller hit area
-            cursor: 'col-resize',
+            minWidth: '8px', // smaller hit area
+            cursor: 'ew-resize',
             zIndex: 1000,
             background: 'transparent',
-            marginLeft: '1px',
-            marginRight: '-6px', // overlap slightly onto the panel side
             padding: '0',
         });
 
