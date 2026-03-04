@@ -1,4 +1,3 @@
-"use client";
 import {Button} from "@bsg/ui/button";
 import useDefaultPopup from "@/hooks/useDefaultPopup";
 import React from "react";

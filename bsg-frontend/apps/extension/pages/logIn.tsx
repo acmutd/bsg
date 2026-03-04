@@ -1,11 +1,20 @@
-"use client";
 import {Button} from "@bsg/ui/button";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faEnvelope} from "@fortawesome/free-solid-svg-icons";
 import {useLogIn} from "@/hooks/useLogIn";
+import { useTabNavigation } from "@/customComponents/TabBar/useTabNavigation";
+import { useIsInRoom } from "@/hooks/useIsInRoom";
 
 export default function UserLogIn() {
+
     const {credentials, handleChange, login} = useLogIn()
+    const navToTab = useTabNavigation();
+    const setIsInRoom = useIsInRoom((s) => s.setIsInRoom)
+
+    const mockLogin = () => {
+        navToTab('chat');
+        setIsInRoom(true);
+    };
 
     return (
         <div className="flex-1 flex flex-col min-w-[24rem] px-5 pt-8 pb-16 gap-8 items-center overflow-y-auto">
@@ -88,6 +97,7 @@ export default function UserLogIn() {
                         className="w-full rounded-lg"
                         type="submit"
                         form="createAccount"
+                        onClick={() => mockLogin()} // TEMPORARY
                     >
                         Create Acount
                     </Button>

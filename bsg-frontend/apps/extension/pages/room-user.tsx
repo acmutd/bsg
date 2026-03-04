@@ -1,4 +1,3 @@
-"use client"
 import '@bsg/ui-styles'
 import {Button} from '@bsg/ui/button'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
