@@ -1,21 +1,48 @@
 import React from 'react';
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@bsg/ui/tooltip";
-import {ReactNode} from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@bsg/ui/tooltip";
+import { ReactNode } from "react";
 
-const TooltipWrapper = (props: { children: ReactNode, text: string }) => {
+interface TooltipWrapperProps {
+    children: ReactNode
+    side?: 'top' | 'bottom' | 'left' | 'right'
+    sideOffset?: number
+    text: string
+    shortcuts?: string[]
+}
+
+export const TooltipWrapper = ({
+    children,
+    side,
+    sideOffset = 6,
+    text,
+    shortcuts,
+}: TooltipWrapperProps) => {
     return (
         <TooltipProvider>
-            <Tooltip>
+            <Tooltip disableHoverableContent>
                 <TooltipTrigger asChild>
-                    {props.children}
+                    {children}
                 </TooltipTrigger>
-                <TooltipContent className={'bg-inputBackground border-gray-600'}>
-                    <p className={'text-white'}>{props.text}</p>
+                <TooltipContent 
+                    side={side}
+                    sideOffset={sideOffset}
+                    className="flex bg-[#333333] border border-[#484848] rounded-lg gap-2 text-[#FAFAFA] items-center"
+                >
+                    {text}
+                    {shortcuts && shortcuts.length > 0 && (
+                        <div className="flex items-center gap-1">
+                            {shortcuts.map((key, index) => (
+                                <div
+                                    key={index}
+                                    className="flex min-w-[21px] px-1 py-0.5 rounded-[0.2rem] border border-[#484848] justify-center"
+                                >
+                                    {key}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
-
     );
 };
-
-export default TooltipWrapper;

@@ -1,4 +1,4 @@
-export const collapse = async () => {
+export const fold = async () => {
     const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true
@@ -6,12 +6,12 @@ export const collapse = async () => {
 
     if (tab?.id) {
         chrome.tabs.sendMessage(tab.id, {
-            type: "COLLAPSE"
+            type: "FOLD"
         });
     }
 }
 
-export const expand = async () => {
+export const unfold = async () => {
     const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true
@@ -19,7 +19,7 @@ export const expand = async () => {
 
     if (tab?.id) {
         chrome.tabs.sendMessage(tab.id, {
-            type: "EXPAND"
+            type: "UNFOLD"
         });
     }
 }

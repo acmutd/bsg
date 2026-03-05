@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@bsg/ui/dropdown-menu"
 import {Avatar, AvatarFallback, AvatarImage} from "@bsg/ui/avatar";
-import TooltipWrapper from "@bsg/components/TooltipWrapper";
+import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import LiveStatistics from "@bsg/components/liveStatistics/liveStatistics";
 import RoomChoice from "@/pages/room-choice";
 import {useRoomUser} from "@/hooks/useRoomUser";

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Button } from '@bsg/ui/button';
-import { expand, maximize } from './panelResize';
+import { unfold, maximize } from './panelResize';
 import { TabName } from '@bsg/models/TabName';
 import { useIsScrolled } from './useIsScrolled';
 import { useActiveTab } from './useActiveTab';
 import { useTabNavigation } from './useTabNavigation';
 import { useIsInRoom } from "@/hooks/useIsInRoom";
 import { useIsPanelHovered } from "@/hooks/useIsPanelHovered";
+import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 
 export const Sidebar = () => {
 
@@ -53,7 +54,7 @@ export const Sidebar = () => {
                         </div>
 
                         {/* Tabs */}
-                        <div 
+                        <div
                             ref={scrollRef}
                             className="flex flex-col items-center pt-9 pb-14 overflow-y-auto no-scrollbar"
                         >
@@ -78,7 +79,7 @@ export const Sidebar = () => {
                                         :
                                         <>
                                             <div className="[writing-mode:vertical-lr] rotate-180 text-foreground/60 font-normal">Room</div>
-                                            
+
                                             <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
@@ -154,7 +155,7 @@ export const Sidebar = () => {
                                     activeTab === 'statistics' ?
                                         <>
                                             <div className="[writing-mode:vertical-lr] rotate-180 font-medium">Statistics</div>
-                                            
+
                                             <div className="-rotate-90 w-5 h-5 flex items-center justify-center">
 
                                             </div>
@@ -172,8 +173,8 @@ export const Sidebar = () => {
                         </div>
                     </>
 
-                    : 
-                    
+                    :
+
                     // Not in room render
                     <>
                         {/* Logo */}
@@ -193,7 +194,7 @@ export const Sidebar = () => {
                                     />
                                 </svg>
                             </div>
-                            
+
                             <div className="font-medium text-sm [writing-mode:vertical-lr] rotate-180">BSG</div>
                         </div>
                     </>
@@ -208,34 +209,38 @@ export const Sidebar = () => {
                 <div className={`flex flex-col items-center gap-1 py-1.5 bg-[#262626] pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize Button */}
-                    <Button
-                        onClick={maximize}
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
-                    >
-                        <svg
-                            className="h-[1em] w-[1em]"
-                            viewBox="0 0 448 512"
-                            fill="currentColor"
-                            xmlns="http://www.w3.org/2000/svg"
+                    <TooltipWrapper text="Maximize" shortcuts={["Alt", "+"]}>
+                        <Button
+                            onClick={maximize}
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
                         >
-                            <path d="M136 32c13.3 0 24 10.7 24 24s-10.7 24-24 24H48v88c0 13.3-10.7 24-24 24s-24-10.7-24-24V56C0 42.7 10.7 32 24 32H136zM0 344c0-13.3 10.7-24 24-24s24 10.7 24 24v88h88c13.3 0 24 10.7 24 24s-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V344zM424 32c13.3 0 24 10.7 24 24V168c0 13.3-10.7 24-24 24s-24-10.7-24-24V80H312c-13.3 0-24-10.7-24-24s10.7-24 24-24H424zM400 344c0-13.3 10.7-24 24-24s24 10.7 24 24V456c0 13.3-10.7 24-24 24H312c-13.3 0-24-10.7-24-24s10.7-24 24-24h88V344z" />
-                        </svg>
-                    </Button>
+                            <svg
+                                className="h-[1em] w-[1em]"
+                                viewBox="0 0 448 512"
+                                fill="currentColor"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path d="M136 32c13.3 0 24 10.7 24 24s-10.7 24-24 24H48v88c0 13.3-10.7 24-24 24s-24-10.7-24-24V56C0 42.7 10.7 32 24 32H136zM0 344c0-13.3 10.7-24 24-24s24 10.7 24 24v88h88c13.3 0 24 10.7 24 24s-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V344zM424 32c13.3 0 24 10.7 24 24V168c0 13.3-10.7 24-24 24s-24-10.7-24-24V80H312c-13.3 0-24-10.7-24-24s10.7-24 24-24H424zM400 344c0-13.3 10.7-24 24-24s24 10.7 24 24V456c0 13.3-10.7 24-24 24H312c-13.3 0-24-10.7-24-24s10.7-24 24-24h88V344z" />
+                            </svg>
+                        </Button>
+                    </TooltipWrapper>
 
-                    {/* Collapse Button */}
-                    <Button
-                        onClick={expand}
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
-                    >
-                        <svg
-                            className="h-[1em]"
-                            viewBox="0 0 320 512"
-                            fill="currentColor"
-                            xmlns="http://www.w3.org/2000/svg"
+                    {/* Unfold Button */}
+                    <TooltipWrapper text="Unfold" shortcuts={["Alt", "-"]}>
+                        <Button
+                            onClick={unfold}
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
                         >
-                            <path d="M15 239c-9.4 9.4-9.4 24.6 0 33.9L207 465c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9L65.9 256 241 81c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0L15 239z" />
-                        </svg>
-                    </Button>
+                            <svg
+                                className="h-[1em] w-[1em]"
+                                viewBox="0 0 320 512"
+                                fill="currentColor"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path d="M15 239c-9.4 9.4-9.4 24.6 0 33.9L207 465c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9L65.9 256 241 81c9.4-9.4 9.4-24.6 0-33.9s-24.6-9.4-33.9 0L15 239z" />
+                            </svg>
+                        </Button>
+                    </TooltipWrapper>
                 </div>
             </div>
         </div>

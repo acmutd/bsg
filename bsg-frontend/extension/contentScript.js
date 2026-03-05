@@ -221,11 +221,11 @@
                 sendResponse({success: true});
             }
 
-            if (message.type === "COLLAPSE") {
+            if (message.type === "FOLD") {
                 panel.style.width = "36px";
             }
 
-            if (message.type === "EXPAND") {
+            if (message.type === "UNFOLD") {
                 panel.style.width = "360px";
             }
 
