@@ -86,7 +86,7 @@ export const useLogIn = () => {
                     setUserProfile(response.user)
                     setUser(true)
                     setLoggedIn(true)
-                    void router.push('/room-user')
+                    void router.push('/room-page')
                 }
             })
 
