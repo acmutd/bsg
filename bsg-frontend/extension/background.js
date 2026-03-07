@@ -127,12 +127,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'SUBMISSION_RESULT') {
     const { submissionId, status_msg } = request.data;
-    chrome.storage.local.get(['pendingSubmissions'], (result) => {
+    chrome.storage.local.get(['pendingSubmissions', 'roundEndTime'], (result) => {
       const pending = result.pendingSubmissions || {};
       const pendingData = pending[submissionId];
 
       if (pendingData) {
         if (status_msg === 'Accepted') {
+          // TTL check: reject if the round timer has already expired
+          const roundEndTime = result.roundEndTime;
+          if (roundEndTime && Date.now() > roundEndTime) {
+            console.log(`Background: Submission ${submissionId} rejected — round TTL exceeded`);
+            delete pending[submissionId];
+            chrome.storage.local.set({ pendingSubmissions: pending });
+            sendResponse({ received: true });
+            return;
+          }
+
           console.log(`Background: Processing Accepted submission ${submissionId} for ${pendingData.problemSlug}`);
           fetch('http://localhost:3000/submission', {
             method: 'POST',
@@ -161,13 +171,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // cleanup
         delete pending[submissionId];
         chrome.storage.local.set({ pendingSubmissions: pending });
+        sendResponse({ received: true });
       } else {
         console.warn(`Background: No pending submission found for ID ${submissionId}`);
+        sendResponse({ received: true });
       }
     });
 
-    sendResponse({ received: true });
-    return false;
+    return true; // keep message channel open for async sendResponse
   }
 });
 
