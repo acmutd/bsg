@@ -147,10 +147,10 @@ func main() {
 	e.Use(rateLimitMiddleware.Handler())
 	e.Use(middleware.CORS())
 
-	userController := controllers.InitializeUserController(&userService)
-	problemController := controllers.InitializeProblemController(&problemService)
+	userController := controllers.InitializeUserController(&userService, logger)
+	problemController := controllers.InitializeProblemController(&problemService, logger)
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
-	roomController := controllers.InitializeRoomController(&roomService)
+	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 

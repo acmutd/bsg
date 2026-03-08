@@ -8,6 +8,7 @@ import (
 
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
+	"github.com/acmutd/bsg/central-service/utils"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
@@ -17,6 +18,11 @@ func setupTestDB() (*gorm.DB, error) {
 	// Note: In production tests, use actual database or proper mocking
 	// For now, we'll return a nil to skip DB-dependent tests
 	return nil, nil
+}
+
+// setupTestLogger creates a test logger instance
+func setupTestLogger() *utils.StructuredLogger {
+	return utils.NewStructuredLogger("test-service")
 }
 
 // TestProblemControllerFindByID tests finding a problem by ID
@@ -36,8 +42,9 @@ func TestProblemControllerFindByID(t *testing.T) {
 	db.Create(&testProblem)
 
 	// Initialize service and controller
+	logger := setupTestLogger()
 	problemService := services.InitializeProblemService(db)
-	controller := InitializeProblemController(&problemService)
+	controller := InitializeProblemController(&problemService, logger)
 
 	// Create request and response recorder
 	e := echo.New()
@@ -64,8 +71,9 @@ func TestProblemControllerFindByIDNotFound(t *testing.T) {
 		t.Skip("Database setup not available for testing")
 	}
 
+	logger := setupTestLogger()
 	problemService := services.InitializeProblemService(db)
-	controller := InitializeProblemController(&problemService)
+	controller := InitializeProblemController(&problemService, logger)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/problems/999", nil)
@@ -87,8 +95,9 @@ func TestProblemControllerFindByIDInvalid(t *testing.T) {
 		t.Skip("Database setup not available for testing")
 	}
 
+	logger := setupTestLogger()
 	problemService := services.InitializeProblemService(db)
-	controller := InitializeProblemController(&problemService)
+	controller := InitializeProblemController(&problemService, logger)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/problems/invalid", nil)
@@ -120,8 +129,9 @@ func TestProblemControllerFindAll(t *testing.T) {
 		db.Create(&p)
 	}
 
+	logger := setupTestLogger()
 	problemService := services.InitializeProblemService(db)
-	controller := InitializeProblemController(&problemService)
+	controller := InitializeProblemController(&problemService, logger)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/problems", nil)
@@ -150,8 +160,9 @@ func TestProblemControllerFindBySlug(t *testing.T) {
 	}
 	db.Create(&testProblem)
 
+	logger := setupTestLogger()
 	problemService := services.InitializeProblemService(db)
-	controller := InitializeProblemController(&problemService)
+	controller := InitializeProblemController(&problemService, logger)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/problems/lookup?slug=test-problem", nil)
@@ -174,8 +185,9 @@ func TestProblemControllerFindBySlugNotFound(t *testing.T) {
 		t.Skip("Database setup not available for testing")
 	}
 
+	logger := setupTestLogger()
 	problemService := services.InitializeProblemService(db)
-	controller := InitializeProblemController(&problemService)
+	controller := InitializeProblemController(&problemService, logger)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/problems/lookup?slug=nonexistent", nil)
@@ -291,8 +303,9 @@ func TestUserControllerCreateNewUser(t *testing.T) {
 		t.Skip("Database setup not available for testing")
 	}
 
+	logger := setupTestLogger()
 	userService := services.InitializeUserService(db)
-	controller := InitializeUserController(&userService)
+	controller := InitializeUserController(&userService, logger)
 
 	e := echo.New()
 	userJSON := `{"firstName":"John","lastName":"Doe","handle":"johndoe","email":"john@example.com"}`
@@ -330,8 +343,9 @@ func TestUserControllerFindUserByAuthID(t *testing.T) {
 	}
 	db.Create(&testUser)
 
+	logger := setupTestLogger()
 	userService := services.InitializeUserService(db)
-	controller := InitializeUserController(&userService)
+	controller := InitializeUserController(&userService, logger)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/api/users/me", nil)
