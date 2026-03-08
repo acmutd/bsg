@@ -44,7 +44,7 @@ func main() {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "redis-cache:6379",
+		Addr:     func() string { if v := os.Getenv("REDIS_ADDR"); v != "" { return v }; return "redis-cache:6379" }(),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})

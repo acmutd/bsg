@@ -1,3 +1,8 @@
+const CONFIG = {
+  SERVER_URL: 'http://localhost:3000',
+  RTC_SERVICE_URL: 'ws://localhost:5001/ws',
+};
+
 let offscreenCreated = false;
 
 async function ensureOffscreen() {
@@ -67,7 +72,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'CHECK_AUTH') {
     // fetch user data from localhost server
-    fetch('http://localhost:3000/auth/user', {
+    fetch(`${CONFIG.SERVER_URL}/auth/user`, {
       credentials: 'include',
       method: 'GET'
     })
@@ -93,7 +98,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'LOGOUT') {
-    fetch('http://localhost:3000/auth/logout', {
+    fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -144,7 +149,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
 
           console.log(`Background: Processing Accepted submission ${submissionId} for ${pendingData.problemSlug}`);
-          fetch('http://localhost:3000/submission', {
+          fetch(`${CONFIG.SERVER_URL}/submission`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -184,7 +189,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 // redirect logic
-const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+const RTC_SERVICE_URL = CONFIG.RTC_SERVICE_URL;
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;

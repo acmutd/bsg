@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-
-const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+import { RTC_SERVICE_URL } from '../lib/config';
 
 export type Message = {
     userHandle: string;

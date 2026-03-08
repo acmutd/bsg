@@ -3,6 +3,7 @@ import Logo from "@bsg/components/Logo";
 import { useEffect, useState } from 'react';
 import {Poppins} from 'next/font/google';
 import { useRouter } from 'next/router';
+import { SERVER_URL } from '../lib/config';
 
 
 type AuthProvider = 'google' | 'github';
@@ -31,13 +32,13 @@ export default function UserLogIn() {
         try{
             
             //Open the OAuth Window
-            const popup = window.open(`http://localhost:3000/auth/${Provider}`)
+            const popup = window.open(`${SERVER_URL}/auth/${Provider}`)
 
             //Keep polling to see if auth is done or not
             const checkAuth = async () => {
                     
                     //wait for response from the server
-                    const response = await fetch(`http://localhost:3000/auth/user`, {
+                    const response = await fetch(`${SERVER_URL}/auth/user`, {
                                                 method: "GET",
                                                 credentials: "include"
                     });

@@ -10,6 +10,7 @@ import { faPaperPlane, faSmile, faCopy } from '@fortawesome/free-solid-svg-icons
 import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
 import { useChatSocket } from '../hooks/useChatSocket'
+import { SERVER_URL as API_URL } from '../lib/config'
 
 
 
@@ -110,7 +111,6 @@ const RoomHeader = ({
 };
 
 
-const API_URL = 'http://localhost:3000';
 
 export default function RedirectionToRoomScreen() {
 

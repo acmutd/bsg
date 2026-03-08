@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"log"
 
@@ -12,13 +13,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func listenPort() string {
+	if p := os.Getenv("PORT"); p != "" {
+		return ":" + p
+	}
+	return ":8080"
+}
+
 var (
 	// Read and write buffer sizes for the websocket connection.
 	readBufferSize  = 1024
 	writeBufferSize = 1024
-
-	// Port to listen on.
-	port = ":8080"
 
 	// Path to the websocket endpoint.
 	path = "/ws"
@@ -38,6 +43,7 @@ var upgrader = websocket.Upgrader{
 var serviceManager = servicesmanager.NewServiceManager()
 
 func main() {
+	port := listenPort()
 	logging.Info("Starting RTC Service on " + port)
 
 	http.HandleFunc(path, wsHandler)
