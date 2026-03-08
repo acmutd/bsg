@@ -13,7 +13,16 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// skipIfNoKafka skips the test if Kafka broker is not available
+func skipIfNoKafka(t *testing.T) {
+	kafkaServer := os.Getenv("KAFKA_BROKER")
+	if kafkaServer == "" {
+		t.Skip("Skipping Kafka integration test: KAFKA_BROKER not set")
+	}
+}
+
 func TestNewKafkaConsumer(t *testing.T) {
+	skipIfNoKafka(t)
 	// Get the username and password environment variables
 	err := godotenv.Load("../.env")
 	if err != nil {
@@ -30,6 +39,7 @@ func TestNewKafkaConsumer(t *testing.T) {
 }
 
 func TestNewKafkaProducer(t *testing.T) {
+	skipIfNoKafka(t)
 	// Get the username and password environment variables
 	err := godotenv.Load("../.env")
 	if err != nil {
@@ -45,6 +55,7 @@ func TestNewKafkaProducer(t *testing.T) {
 }
 
 func TestSendSubmissionResult(t *testing.T) {
+	skipIfNoKafka(t)
 	// Get the username and password environment variables
 	err := godotenv.Load("../.env")
 	if err != nil {
@@ -65,6 +76,7 @@ func TestSendSubmissionResult(t *testing.T) {
 }
 
 func TestReceiveRequest(t *testing.T) {
+	skipIfNoKafka(t)
 	var wg sync.WaitGroup
 	request := make(chan string)
 	receiveRequestErr := make(chan error)
@@ -113,6 +125,7 @@ func TestReceiveRequest(t *testing.T) {
 }
 
 func TestMultipleWorkerReceiveMultipleRequest(t *testing.T) {
+	skipIfNoKafka(t)
 	var wg sync.WaitGroup
 	request := make(chan string)
 	receiveRequestErr := make(chan error)
