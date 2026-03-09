@@ -252,6 +252,15 @@ function connectWebSocket() {
           console.log("Background: Round ended:", message?.data);
           chrome.storage.local.remove('nextProblem');
           chrome.action.setBadgeText({ text: "" });
+        } else if (responseType === 'room-expired') {
+          console.log("Background: Room expired and deleted:", message?.data);
+          chrome.storage.local.remove(['activeRoomId', 'nextProblem', 'roundEndTime']);
+          chrome.action.setBadgeText({ text: "" });
+          chrome.notifications.create({
+            type: 'basic',
+            title: 'Room Closed',
+            message: 'Your room has expired and been deleted.'
+          });
         }
       }
     } catch (e) {

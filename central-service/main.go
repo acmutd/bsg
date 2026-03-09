@@ -119,7 +119,9 @@ func main() {
 
 	userController := controllers.InitializeUserController(&userService)
 	problemController := controllers.InitializeProblemController(&problemService)
-	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
+	roomScheduler := tasks.New()
+	defer roomScheduler.Stop()
+	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)
