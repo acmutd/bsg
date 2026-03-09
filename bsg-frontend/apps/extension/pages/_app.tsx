@@ -5,10 +5,11 @@ import { Poppins } from 'next/font/google';
 import DefaultPopup from './defaultPopup';
 import { HeaderBar } from '@/customComponents/TabBar/HeaderBar';
 import { Sidebar } from '@/customComponents/TabBar/Sidebar';
-import { Toolbar } from '@/customComponents/Toolbar/Toolbar';
 import { useIsFolded } from '@/hooks/useIsFolded';
 import { useIsPanelHovered } from '@/hooks/useIsPanelHovered';
 import { useIsInRoom } from '@/hooks/useIsInRoom';
+import { Toolbar } from '@/customComponents/Toolbar/Toolbar';
+import { Footer } from '@/customComponents/Footer/Footer';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
@@ -35,18 +36,24 @@ export default function App({ Component, pageProps }: AppProps) {
       onMouseEnter={() => setIsPanelHovered(true)}
       onMouseLeave={() => setIsPanelHovered(false)}
       onClick={() => {console.log("panel clicked")}}
+      className="overflow-hidden"
     >
       {/* Sidebar */}
       <div className={isFolded ? 'flex h-screen' : 'hidden'}>
-        <Sidebar />
+        <Sidebar/>
       </div>
 
       {/* Main Layout */}
       <div className={isFolded ? 'hidden' : 'flex flex-col h-screen'}>
-        <HeaderBar />
-        {isInRoom && <Toolbar />}
+        <HeaderBar/>
         <div className="flex-1 flex overflow-x-auto">
-          <Component {...pageProps} />
+          <div className="flex-1 flex flex-col min-w-[24rem]">
+            {isInRoom && <Toolbar/>}
+            <div className="flex-1 overflow-y-auto">
+              <Component {...pageProps}/>
+            </div>
+            <Footer/>
+          </div>
         </div>
       </div>
     </div>
