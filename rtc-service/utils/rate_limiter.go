@@ -10,7 +10,7 @@ import (
 type WebSocketRateLimiter struct {
 	requestsPerSecond int
 	burstSize         int
-	tokens            int
+	tokens            float64
 	lastRefillTime    time.Time
 	mu                sync.Mutex
 }
@@ -20,7 +20,7 @@ func NewWebSocketRateLimiter(requestsPerSecond, burstSize int) *WebSocketRateLim
 	return &WebSocketRateLimiter{
 		requestsPerSecond: requestsPerSecond,
 		burstSize:         burstSize,
-		tokens:            burstSize,
+		tokens:            float64(burstSize),
 		lastRefillTime:    time.Now(),
 	}
 }
@@ -31,21 +31,21 @@ func (wrl *WebSocketRateLimiter) Allow() bool {
 	defer wrl.mu.Unlock()
 
 	now := time.Now()
-	elapsed := now.Sub(wrl.lastRefillTime)
+	elapsed := now.Sub(wrl.lastRefillTime).Seconds()
 
-	// Refill tokens based on elapsed time
-	tokensToAdd := (int(elapsed.Seconds()) * wrl.requestsPerSecond)
+	// Refill tokens based on elapsed time (float precision prevents the "never-refill" bug)
+	tokensToAdd := elapsed * float64(wrl.requestsPerSecond)
 	wrl.tokens += tokensToAdd
 
 	// Cap tokens at burst size
-	if wrl.tokens > wrl.burstSize {
-		wrl.tokens = wrl.burstSize
+	if wrl.tokens > float64(wrl.burstSize) {
+		wrl.tokens = float64(wrl.burstSize)
 	}
 
 	wrl.lastRefillTime = now
 
-	// Check if we have tokens
-	if wrl.tokens > 0 {
+	// Check if we have at least one token
+	if wrl.tokens >= 1 {
 		wrl.tokens--
 		return true
 	}
@@ -53,11 +53,11 @@ func (wrl *WebSocketRateLimiter) Allow() bool {
 	return false
 }
 
-// GetRemainingTokens returns the number of remaining tokens
+// GetRemainingTokens returns the number of remaining tokens (rounded down)
 func (wrl *WebSocketRateLimiter) GetRemainingTokens() int {
 	wrl.mu.Lock()
 	defer wrl.mu.Unlock()
-	return wrl.tokens
+	return int(wrl.tokens)
 }
 
 // ConnectionLimiter manages rate limits per connection

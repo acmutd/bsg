@@ -40,27 +40,28 @@ func (rl *RateLimiter) Allow(ctx context.Context, identifier string) (bool, erro
 	now := time.Now().Unix()
 
 	// Use a Lua script to atomically check and update the rate limit
-	// This ensures thread-safety in distributed scenarios
+	// This implements a token bucket with refill logic based on elapsed time
 	script := `
 		local key = KEYS[1]
 		local now = tonumber(ARGV[1])
-		local rate = tonumber(ARGV[2])
+		local limit = tonumber(ARGV[2])
 		local burst = tonumber(ARGV[3])
 		local ttl = tonumber(ARGV[4])
 
-		-- Get current bucket state
-		local bucket = redis.call('GET', key)
-		if not bucket then
-			-- First request, initialize bucket with burst allowance
-			redis.call('SET', key, burst, 'EX', ttl)
-			return 1
-		end
+		-- Get current bucket state (stored as a hash for tokens and timestamp)
+		local data = redis.call('HMGET', key, 'tokens', 'last_updated')
+		local tokens = tonumber(data[1]) or burst
+		local last_updated = tonumber(data[2]) or now
 
-		local tokens = tonumber(bucket)
-		-- Refill based on time elapsed (not used for simplicity, but can be enhanced)
-		if tokens > 0 then
+		-- Refill tokens based on time elapsed
+		local delta = math.max(0, now - last_updated)
+		tokens = math.min(burst, tokens + (delta * limit))
+
+		if tokens >= 1 then
+			-- Consume one token and update state
 			tokens = tokens - 1
-			redis.call('SET', key, tokens, 'EX', ttl)
+			redis.call('HSET', key, 'tokens', tokens, 'last_updated', now)
+			redis.call('EXPIRE', key, ttl)
 			return 1
 		else
 			return 0
@@ -102,7 +103,8 @@ func (rl *RateLimiter) AllowByEndpoint(ctx context.Context, endpoint, ipAddr str
 // GetRemainingTokens returns the number of remaining tokens for an identifier
 func (rl *RateLimiter) GetRemainingTokens(ctx context.Context, identifier string) (int, error) {
 	key := rl.keyPrefix + identifier
-	result, err := rl.rdb.Get(ctx, key).Int()
+	// Since we switched to HSET, we use HGET for tokens
+	result, err := rl.rdb.HGet(ctx, key, "tokens").Int()
 	if err == redis.Nil {
 		return rl.burstSize, nil
 	}

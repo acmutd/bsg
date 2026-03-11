@@ -134,6 +134,7 @@ func main() {
 	go ingressQueue.MessageDeliveryHandler()
 
 	e := echo.New()
+	e.IPExtractor = echo.ExtractIPFromXFFHeader()
 
 	// Initialize rate limiter
 	rateLimitConfig := utils.DefaultRateLimitConfig()
