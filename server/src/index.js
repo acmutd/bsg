@@ -11,7 +11,12 @@ require('./config/passport');
 
 //other middleware imports
 const corsMiddleware = require('./middleware/cors');
+const loggingModule = require('./middleware/logging');
+
 const port = 3000;
+
+// Initialize logger
+const logger = new loggingModule.StructuredLogger('auth-server');
 
 
 
@@ -72,6 +77,12 @@ async function startServer() {
 
     //Important Middleware
     app.use(express.json());
+    app.use(loggingModule.createValidationMiddleware(logger));
+    app.use(loggingModule.createRateLimitMiddleware(logger, {
+        requestsPerMinute: 60,
+        timeWindow: 60000
+    }));
+    app.use(loggingModule.createStructuredLoggingMiddleware(logger));
     app.use(corsMiddleware)
     app.use(session({
         store: storeObj,
@@ -93,6 +104,12 @@ async function startServer() {
 
     const authRoutes = require('./routes/auth');
     app.use('/auth', authRoutes);
+
+    const roomsRoutes = require('./routes/rooms');
+    app.use('/rooms', roomsRoutes);
+
+    const submissionRoutes = require('./routes/submission');
+    app.use('/submission', submissionRoutes);
 
     // Healthcheck endpoint
     app.get('/health', async (req, res) => {

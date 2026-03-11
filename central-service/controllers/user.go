@@ -1,21 +1,22 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
+	"github.com/acmutd/bsg/central-service/utils"
 	"github.com/labstack/echo/v4"
 )
 
 type UserController struct {
 	userService *services.UserService
+	logger      *utils.StructuredLogger
 }
 
-func InitializeUserController(service *services.UserService) UserController {
-	return UserController{service}
+func InitializeUserController(service *services.UserService, logger *utils.StructuredLogger) UserController {
+	return UserController{service, logger}
 }
 
 // Milddleware used to validate whether user request contains authorization token
@@ -34,7 +35,9 @@ func (controller *UserController) ValidateUserRequest(next echo.HandlerFunc) ech
 
 		authToken, err := controller.userService.GenerateAuthToken(c.Request())
 		if err != nil {
-			log.Printf("Error generating auth token: %v\n", err)
+			controller.logger.Warn("Failed to generate auth token", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 		}
 		c.Set("userAuthID", authToken.UID)
@@ -51,7 +54,9 @@ func (controller *UserController) CreateNewUserEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	newUser, err := controller.userService.CreateUser(userAuthID, &userData)
 	if err != nil {
-		log.Printf("Failed to create user object: %v\n", err)
+		controller.logger.Error("Failed to create user", err, map[string]interface{}{
+			"user_auth_id": userAuthID,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user. Please try again later")
 	}
 	return c.JSON(http.StatusCreated, map[string]models.User{
@@ -68,7 +73,9 @@ func (controller *UserController) UpdateUserDataEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	updatedUser, err := controller.userService.UpdateUserData(userAuthID, &userData)
 	if err != nil {
-		log.Printf("Failed to update user data: %v\n", err)
+		controller.logger.Error("Failed to update user data", err, map[string]interface{}{
+			"user_auth_id": userAuthID,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update user data. Please try again later")
 	}
 	return c.JSON(http.StatusCreated, map[string]models.User{
@@ -81,7 +88,9 @@ func (controller *UserController) FindUserByAuthIDEndpoint(c echo.Context) error
 	userAuthID := c.Get("userAuthID").(string)
 	searchedUser, err := controller.userService.FindUserByAuthID(userAuthID)
 	if err != nil {
-		log.Printf("Failed to find user data: %v\n", err)
+		controller.logger.Error("Failed to find user data", err, map[string]interface{}{
+			"user_auth_id": userAuthID,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to find user data. Please try again later")
 	}
 	return c.JSON(http.StatusCreated, map[string]models.User{
@@ -97,7 +106,9 @@ func (controller *UserController) FindUserByUserIDEndpoint(c echo.Context) error
 	}
 	searchedUser, err := controller.userService.FindUserByUserID(targetUserID)
 	if err != nil {
-		log.Printf("Failed to search for user with id %s: %v\n", targetUserID, err)
+		controller.logger.Error("Failed to search for user", err, map[string]interface{}{
+			"user_id": targetUserID,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	if searchedUser == nil {
