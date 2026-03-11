@@ -15,7 +15,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/api v0.142.0
 	gorm.io/driver/postgres v1.5.2
-	gorm.io/gorm v1.30.0
+	gorm.io/driver/sqlite v1.5.4
+	gorm.io/gorm v1.25.4
 )
 
 require (
@@ -70,5 +71,4 @@ require (
 	google.golang.org/grpc v1.57.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/sqlite v1.6.0 // indirect
 )
