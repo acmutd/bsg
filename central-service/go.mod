@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/api v0.142.0
 	gorm.io/driver/postgres v1.5.2
-	gorm.io/gorm v1.25.4
+	gorm.io/gorm v1.30.0
 )
 
 require (
@@ -49,6 +49,7 @@ require (
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -69,4 +70,5 @@ require (
 	google.golang.org/grpc v1.57.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gorm.io/driver/sqlite v1.6.0 // indirect
 )

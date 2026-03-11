@@ -114,8 +114,8 @@ func TestFindRoundByID(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE ID = $1 LIMIT 1`)).
-		WithArgs(uint(1)).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
+		WithArgs(uint(1), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}).
 			AddRow(1, time.Now(), 60, uuid.New(), constants.ROUND_CREATED))
 
@@ -136,8 +136,8 @@ func TestFindRoundByIDNotFound(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE ID = $1 LIMIT 1`)).
-		WithArgs(uint(999)).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
+		WithArgs(uint(999), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}))
 
 	round, err := roundService.FindRoundByID(999)
@@ -173,8 +173,8 @@ func TestFindParticipantByRoundAndUserID(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "round_participants" WHERE participant_auth_id = $1 AND round_id = $2 LIMIT 1`)).
-		WithArgs("user123", uint(1)).
+	mock.ExpectQuery(`SELECT \* FROM "round_participants" WHERE participant_auth_id = \$1 AND round_id = \$2 LIMIT \$3`).
+		WithArgs("user123", uint(1), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).
 			AddRow(1, "user123", 1, 0, 0))
 
@@ -194,8 +194,8 @@ func TestFindParticipantByRoundAndUserIDNotFound(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "round_participants" WHERE participant_auth_id = $1 AND round_id = $2 LIMIT 1`)).
-		WithArgs("user999", uint(999)).
+	mock.ExpectQuery(`SELECT \* FROM "round_participants" WHERE participant_auth_id = \$1 AND round_id = \$2 LIMIT \$3`).
+		WithArgs("user999", uint(999), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}))
 
 	participant, err := roundService.FindParticipantByRoundAndUserID(999, "user999")
@@ -221,7 +221,7 @@ func TestCompressScoreAndTimeStampZeroScore(t *testing.T) {
 	score := uint64(0)
 
 	compressed := compressScoreAndTimeStamp(score, timestamp)
-	
+
 	// Verify compression produces output regardless of score
 	assert.NotNil(t, compressed)
 }
@@ -238,7 +238,7 @@ func TestCompressScoreAndTimeStampMaxScore(t *testing.T) {
 // TestDecompressScoreOnly tests decompression of score
 func TestDecompressScoreOnly(t *testing.T) {
 	testCases := []struct {
-		name           string
+		name            string
 		compressedScore float64
 		expectedScore   uint64
 	}{
@@ -347,9 +347,9 @@ func TestCheckIfRoundContainsProblem(t *testing.T) {
 			{ID: 15},
 		},
 	}
-	
+
 	problemToFind := &models.Problem{ID: 5}
-	
+
 	// Test that we can find expected problem
 	found := false
 	var index int = -1
@@ -360,7 +360,7 @@ func TestCheckIfRoundContainsProblem(t *testing.T) {
 			break
 		}
 	}
-	
+
 	assert.True(t, found)
 	assert.Equal(t, 0, index)
 }
@@ -376,9 +376,9 @@ func TestCheckIfRoundDoesNotContainProblem(t *testing.T) {
 			{ID: 15},
 		},
 	}
-	
+
 	problemToFind := &models.Problem{ID: 99}
-	
+
 	// Test that we can't find non-existent problem
 	found := false
 	var index int = -1
@@ -389,7 +389,7 @@ func TestCheckIfRoundDoesNotContainProblem(t *testing.T) {
 			break
 		}
 	}
-	
+
 	assert.False(t, found)
 	assert.Equal(t, -1, index)
 }
@@ -429,7 +429,7 @@ func TestScoreCompressionEdgeCases(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			compressed := compressScoreAndTimeStamp(tc.score, timestamp)
-			
+
 			// Verify compression produces a result
 			assert.NotNil(t, compressed, "compression should produce a result for score %d", tc.score)
 		})
@@ -444,14 +444,14 @@ func TestCreateRoundSubmissionRoundNotFound(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE ID = $1 LIMIT 1`)).
-		WithArgs(uint(999)).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
+		WithArgs(uint(999), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}))
 
 	// Don't call CreateRoundSubmission directly since it requires complex mocking
 	// Instead, test that FindRoundByID correctly returns nil when round doesn't exist
 	round, err := roundService.FindRoundByID(999)
-	
+
 	assert.Nil(t, err)
 	assert.Nil(t, round)
 }
@@ -482,7 +482,7 @@ func TestCreateRoundSubmissionRoundEnded(t *testing.T) {
 func TestCompressDecompressCycle(t *testing.T) {
 	// Test various timestamps to ensure compression/decompression works
 	testCases := []struct {
-		name string
+		name  string
 		score uint64
 	}{
 		{"Zero score", 0},
@@ -496,10 +496,10 @@ func TestCompressDecompressCycle(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			timestamp := time.Now()
 			compressed := compressScoreAndTimeStamp(tc.score, timestamp)
-			
+
 			// Verify the compressed value can be decompressed
 			decompressed := decompressScoreOnly(float64(compressed))
-			
+
 			// The decompression may not perfectly round-trip due to bit inversion
 			// but should return a uint64 value
 			assert.NotNil(t, decompressed, "decompressed value should not be nil")
@@ -540,23 +540,23 @@ func TestRoundStatusTransitions(t *testing.T) {
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
 	testCases := []struct {
-		name              string
-		currentStatus     string
+		name               string
+		currentStatus      string
 		shouldStartSucceed bool
 	}{
 		{
-			name:              "Round created to started",
-			currentStatus:     constants.ROUND_CREATED,
+			name:               "Round created to started",
+			currentStatus:      constants.ROUND_CREATED,
 			shouldStartSucceed: false, // Would succeed with proper mocking
 		},
 		{
-			name:              "Round already started",
-			currentStatus:     constants.ROUND_STARTED,
+			name:               "Round already started",
+			currentStatus:      constants.ROUND_STARTED,
 			shouldStartSucceed: false,
 		},
 		{
-			name:              "Round already ended",
-			currentStatus:     constants.ROUND_END,
+			name:               "Round already ended",
+			currentStatus:      constants.ROUND_END,
 			shouldStartSucceed: false,
 		},
 	}
@@ -593,8 +593,8 @@ func TestRoundWithNegativeDurationParameters(t *testing.T) {
 
 	// Test that service properly validates negative round parameters
 	// by testing a round with negative duration
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "rounds" WHERE ID = $1 LIMIT 1`)).
-		WithArgs(uint(1)).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
+		WithArgs(uint(1), 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}).
 			AddRow(1, time.Now(), -60, uuid.New(), constants.ROUND_CREATED))
 

@@ -10,14 +10,28 @@ import (
 	"github.com/acmutd/bsg/central-service/services"
 	"github.com/acmutd/bsg/central-service/utils"
 	"github.com/labstack/echo/v4"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// Setup test database - uses in-memory database for testing
+// Setup test database - uses in-memory SQLite database for testing
 func setupTestDB() (*gorm.DB, error) {
-	// Note: In production tests, use actual database or proper mocking
-	// For now, we'll return a nil to skip DB-dependent tests
-	return nil, nil
+	// Create an in-memory SQLite database
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Auto-migrate the models needed for testing
+	err = db.AutoMigrate(
+		&models.Problem{},
+		&models.User{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 // setupTestLogger creates a test logger instance
