@@ -1,0 +1,32 @@
+name: BSG Unit Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  all-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0' # Required by central-service
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies
+        run: |
+          cd server && npm install
+          cd ../bsg-frontend && npm install
+
+      - name: Run all unit tests
+        run: make test # Executes test-go and test-node
