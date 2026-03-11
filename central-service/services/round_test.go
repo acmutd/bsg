@@ -114,8 +114,8 @@ func TestFindRoundByID(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT 1`).
+		WithArgs(uint(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}).
 			AddRow(1, time.Now(), 60, uuid.New(), constants.ROUND_CREATED))
 
@@ -136,8 +136,8 @@ func TestFindRoundByIDNotFound(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
-		WithArgs(uint(999), 1).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT 1`).
+		WithArgs(uint(999)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}))
 
 	round, err := roundService.FindRoundByID(999)
@@ -173,8 +173,8 @@ func TestFindParticipantByRoundAndUserID(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(`SELECT \* FROM "round_participants" WHERE participant_auth_id = \$1 AND round_id = \$2 LIMIT \$3`).
-		WithArgs("user123", uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "round_participants" WHERE participant_auth_id = \$1 AND round_id = \$2 LIMIT 1`).
+		WithArgs("user123", uint(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}).
 			AddRow(1, "user123", 1, 0, 0))
 
@@ -194,8 +194,8 @@ func TestFindParticipantByRoundAndUserIDNotFound(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(`SELECT \* FROM "round_participants" WHERE participant_auth_id = \$1 AND round_id = \$2 LIMIT \$3`).
-		WithArgs("user999", uint(999), 1).
+	mock.ExpectQuery(`SELECT \* FROM "round_participants" WHERE participant_auth_id = \$1 AND round_id = \$2 LIMIT 1`).
+		WithArgs("user999", uint(999)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "participant_auth_id", "round_id", "solved_problem_count", "score"}))
 
 	participant, err := roundService.FindParticipantByRoundAndUserID(999, "user999")
@@ -444,8 +444,8 @@ func TestCreateRoundSubmissionRoundNotFound(t *testing.T) {
 
 	roundService := InitializeRoundService(db, rdb, scheduler, nil, nil, nil)
 
-	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
-		WithArgs(uint(999), 1).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT 1`).
+		WithArgs(uint(999)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}))
 
 	// Don't call CreateRoundSubmission directly since it requires complex mocking
@@ -593,8 +593,8 @@ func TestRoundWithNegativeDurationParameters(t *testing.T) {
 
 	// Test that service properly validates negative round parameters
 	// by testing a round with negative duration
-	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT \$2`).
-		WithArgs(uint(1), 1).
+	mock.ExpectQuery(`SELECT \* FROM "rounds" WHERE ID = \$1 LIMIT 1`).
+		WithArgs(uint(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "last_updated_time", "duration", "room_id", "status"}).
 			AddRow(1, time.Now(), -60, uuid.New(), constants.ROUND_CREATED))
 
