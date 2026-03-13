@@ -62,9 +62,10 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 			break
 		}
 	}
-	var expiresAt time.Time
+	var expiresAt *time.Time
 	if room.TTL > 0 {
-		expiresAt = time.Now().Add(time.Duration(room.TTL) * time.Minute)
+		t := time.Now().Add(time.Duration(room.TTL) * time.Minute)
+		expiresAt = &t
 	}
 	newRoom := models.Room{
 		ID:        uuid.New(),
@@ -92,7 +93,7 @@ func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 	_, err := service.roomScheduler.Add(&tasks.Task{
 		Interval: ttl,
 		RunOnce:  true,
-		Func: func() error {
+		TaskFunc: func() error {
 			log.Printf("RoomService: TTL expired for room %s, deleting", roomID)
 			r, err := service.FindRoomByID(roomID)
 			if err != nil {
