@@ -1,29 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export const useIsOverflowed = <T extends HTMLElement>() => {
-    const overflowRef = useRef<T | null>(null);
+    const elementRef = useRef<T | null>(null);
+    const observerRef = useRef<ResizeObserver | null>(null);
 
     const [isOverflowedX, setIsOverflowedX] = useState(false);
     const [isOverflowedY, setIsOverflowedY] = useState(false);
 
-    useEffect(() => {
-        const element = overflowRef.current;
-        if (!element) return;
+    const overflowRef = useCallback((node: T | null) => {
+        // Cleanup previous observer
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
 
-        const handleOverflow = () => {
-            setIsOverflowedX(element.scrollWidth > element.clientWidth);
-            setIsOverflowedY(element.scrollHeight > element.clientHeight);
-        };
+        elementRef.current = node;
 
-        const resizeObserver = new ResizeObserver(handleOverflow);
-        resizeObserver.observe(element);
-        return () => resizeObserver.disconnect();
+        if (node) {
+            observerRef.current = new ResizeObserver(() => {
+                setIsOverflowedX(node.scrollWidth > node.clientWidth);
+                setIsOverflowedY(node.scrollHeight > node.clientHeight);
+            });
+            observerRef.current.observe(node);
+        }
+    }, []);
 
-    }, [overflowRef.current]);
-
-    return { 
+    return {
         overflowRef,
         isOverflowedX,
-        isOverflowedY
+        isOverflowedY,
     };
 };
