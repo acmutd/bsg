@@ -1,12 +1,12 @@
 import {useRouter} from "next/router";
 import {useEffect, useState} from "react";
 import {User} from "@bsg/models/User";
-import { useIsInRoom } from "./useIsInRoom";
+import { useRoomStore } from "@/stores/useRoomStore";
+import { useUserStore } from "@/stores/useUserStore";
 
 export type AuthProvider = 'google' | 'github';
 
 export const useLogIn = () => {
-    const [user, setUser] = useState(false);
     const [loggedIn, setLoggedIn] = useState(false);
     const [userProfile, setUserProfile] = useState<User | null>(null);
     const [isInTab, setIsInTab] = useState(false);
@@ -15,25 +15,27 @@ export const useLogIn = () => {
         password: ''
     })
     const [loading, setLoading] = useState(false);
-    const setIsInRoom = useIsInRoom((s) => s.setIsInRoom);
+    const setIsInRoom = useRoomStore(s => s.setIsInRoom);
 
     const router = useRouter()
     const handleChange = (e: { target: { name: any; value: any; }; }) => {
         setCredentials({...credentials, [e.target.name]: e.target.value})
     }
 
+    const setUser = useUserStore(s => s.setUser);
+
     const login = async (Provider: AuthProvider) => {
 
         try {
 
             //Open the OAuth Window
-            const popup = window.open(`http://localhost:3000/auth/${Provider}`)
+            const popup = window.open(`http://localhost:3001/auth/${Provider}`)
 
             //Keep polling to see if auth is done or not
             const checkAuth = async () => {
 
                 //wait for response from the server
-                const response = await fetch(`http://localhost:3000/auth/user`, {
+                const response = await fetch(`http://localhost:3001/auth/user`, {
                     method: "GET",
                     credentials: "include"
                 });
@@ -42,6 +44,7 @@ export const useLogIn = () => {
                     const userObject = await response.json()
                     setLoggedIn(true)
                     setUserProfile(userObject)
+                    setUser(userObject);
                     popup?.close()
 
                     return userObject;
@@ -84,9 +87,9 @@ export const useLogIn = () => {
             chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
                 if (response && response.success) {
                     setUserProfile(response.user)
-                    setUser(true)
+                    setUser(response.user);
                     setLoggedIn(true)
-                    void router.push('/room-page')
+                    router.push('/start-page');
                 }
             })
 

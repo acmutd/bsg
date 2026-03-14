@@ -47,7 +47,7 @@
         const panel = document.createElement('div');
         panel.id = 'bsg-extension-panel';
         Object.assign(panel.style, {
-            width: '360px',
+            width: '24rem',
             height: `${qd.getBoundingClientRect().height}px`,
             backgroundColor: '#262626',
             //border: '1px solid rgba(255,255,255,0.1)',
@@ -222,15 +222,15 @@
             }
 
             if (message.type === "FOLD") {
-                panel.style.width = "36px";
+                panel.style.width = "2.25rem";
             }
 
             if (message.type === "UNFOLD") {
-                panel.style.width = "360px";
+                panel.style.width = "24rem";
             }
 
             if (message.type === "MAXIMIZE") {
-                panel.style.width = "100vw";
+                panel.style.width = window.innerWidth;
             }
         });
     });

@@ -1,7 +1,7 @@
 import '@bsg/ui-styles'
-import {Button} from '@bsg/ui/button'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faCircle, faCopy, faEllipsisVertical, faPaperPlane, faRightFromBracket} from '@fortawesome/free-solid-svg-icons'
+import { Button } from '@bsg/ui/button'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCircle, faCopy, faEllipsisVertical, faPaperPlane, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,13 +11,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@bsg/ui/dropdown-menu"
-import {Avatar, AvatarFallback, AvatarImage} from "@bsg/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@bsg/ui/avatar";
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import LiveStatistics from "@bsg/components/liveStatistics/liveStatistics";
-import RoomChoice from "@/pages/room-choice";
-import {useRoomUser} from "@/hooks/useRoomUser";
-import {User} from "@bsg/models/User";
-
+import RoomChoice from "@/pages/room-choice-page";
+import { useRoomUser } from "@/hooks/useRoomUser";
+import { User } from "@bsg/models/User";
 
 export default function RoomPage() {
     const {
@@ -41,7 +40,19 @@ export default function RoomPage() {
         setCurrentRoom
     } = useRoomUser();
 
-    if(currentRoom){
+    const groupedMessages = messages.reduce((groups, msg) => {
+        const lastGroup = groups[groups.length - 1];
+
+        if (lastGroup && lastGroup[0].userName === msg.userName && !msg.isSystem) {
+            lastGroup.push(msg);
+        } else {
+            groups.push([msg]);
+        }
+
+        return groups;
+    }, [] as typeof messages[]);
+
+    if (currentRoom) {
         const participants: User[] = currentRoom.options?.participants || []
 
         return (
@@ -56,15 +67,15 @@ export default function RoomPage() {
                             <div className="text-2xl font-semibold">{currentRoom.code}</div>
                             <TooltipWrapper text={'Copy Code'}>
                                 <Button size={'icon'} variant={'outline'}
-                                        onClick={() => copyRoomCode(currentRoom.code)}
-                                        className={'border-0 hover:bg-inputBackground hover:text-white'}>
-                                    <FontAwesomeIcon icon={faCopy}/>
+                                    onClick={() => copyRoomCode(currentRoom.code)}
+                                    className={'border-0 hover:bg-inputBackground hover:text-white'}>
+                                    <FontAwesomeIcon icon={faCopy} />
                                 </Button>
                             </TooltipWrapper>
                             {copied && <div className="text-xs text-white ml-2">copied</div>}
                             <TooltipWrapper text={isConnected ? 'Connected' : 'Not Connected'}>
                                 <FontAwesomeIcon icon={faCircle} size={'2xs'}
-                                                 className={isConnected ? 'text-green-500' : 'text-red-500'}/>
+                                    className={isConnected ? 'text-green-500' : 'text-red-500'} />
                             </TooltipWrapper>
                         </div>
                     </div>
@@ -72,8 +83,8 @@ export default function RoomPage() {
                     <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon"
-                                    className={'hover:bg-inputBackground hover:text-white hover:brightness-125'}>
-                                <FontAwesomeIcon icon={faEllipsisVertical} size={'lg'}/>
+                                className={'hover:bg-inputBackground hover:text-white hover:brightness-125'}>
+                                <FontAwesomeIcon icon={faEllipsisVertical} size={'lg'} />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="dark bg-neutral-800">
@@ -82,14 +93,14 @@ export default function RoomPage() {
                                 {participants.map((p) => (
                                     <DropdownMenuItem key={p.id}>
                                         <Avatar>
-                                            <AvatarImage src={p.photo}/>
+                                            <AvatarImage src={p.photo} />
                                             <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         {p.name}
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuGroup>
-                            <DropdownMenuSeparator/>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onSelect={() => {
                                     setCurrentRoom(null);
@@ -98,7 +109,7 @@ export default function RoomPage() {
                                 className="text-red-500"
                             >
                                 Exit Group
-                                <FontAwesomeIcon icon={faRightFromBracket}/>
+                                <FontAwesomeIcon icon={faRightFromBracket} />
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -110,8 +121,8 @@ export default function RoomPage() {
                             onClick={() => setActiveTab('chat')}
                             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all
                         ${activeTab === 'chat'
-                                ? 'bg-inputBackground text-white shadow'
-                                : 'text-gray-300 hover:text-white'}`}
+                                    ? 'bg-inputBackground text-white shadow'
+                                    : 'text-gray-300 hover:text-white'}`}
                         >
                             Chat
                         </button>
@@ -119,8 +130,8 @@ export default function RoomPage() {
                             onClick={() => setActiveTab('live')}
                             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all
                         ${activeTab === 'live'
-                                ? 'bg-inputBackground text-white shadow'
-                                : 'text-gray-300 hover:text-white'}`}
+                                    ? 'bg-inputBackground text-white shadow'
+                                    : 'text-gray-300 hover:text-white'}`}
                         >
                             Live Statistics
                         </button>
@@ -129,9 +140,22 @@ export default function RoomPage() {
 
                 {activeTab === 'chat' && (
                     <>
-                        <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.map((msg, i) => (
-                                <div className={'bg-inputBackground'} key={i}>{msg.data}</div>
+                        <div ref={containerRef} className="flex-1 overflow-y-auto">
+                            {groupedMessages.map((group, i) => (
+                                <div
+                                    key={i}
+                                    className="flex flex-col gap-1 p-4"
+                                >
+                                    <div className="">{group[0].userName}</div>
+                                    {group.map((msg, j) => (
+                                        <div
+                                            key={j}
+                                            className={(group[0].isSystem) ? 'flex justify-center' : ''}
+                                        >
+                                            {msg.data}
+                                        </div>
+                                    ))}
+                                </div>
                             ))}
                         </div>
 
@@ -144,8 +168,8 @@ export default function RoomPage() {
                             />
                             <TooltipWrapper text={'Send Your Message'}>
                                 <Button onClick={sendMessage}
-                                        className="bg-primary rounded-full w-10 h-10">
-                                    <FontAwesomeIcon icon={faPaperPlane}/>
+                                    className="bg-primary rounded-full w-10 h-10">
+                                    <FontAwesomeIcon icon={faPaperPlane} />
                                 </Button>
                             </TooltipWrapper>
                         </div>
@@ -171,9 +195,5 @@ export default function RoomPage() {
             onJoin={handleJoin}
             onCreate={handleCreate}
         />
-
-
     )
-
-
 }

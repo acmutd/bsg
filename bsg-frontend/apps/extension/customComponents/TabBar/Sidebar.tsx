@@ -3,23 +3,22 @@ import { Button } from '@bsg/ui/button';
 import { unfold, maximize } from './panelResize';
 import { TabName } from '@bsg/models/TabName';
 import { useIsScrolled } from './useIsScrolled';
-import { useActiveTab } from './useActiveTab';
 import { useTabNavigation } from './useTabNavigation';
-import { useIsInRoom } from "@/hooks/useIsInRoom";
 import { useIsPanelHovered } from "@/hooks/useIsPanelHovered";
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
+import { useRoomStore } from '@/stores/useRoomStore';
 
 export const Sidebar = () => {
 
     const navToTab = useTabNavigation();
-    const activeTab = useActiveTab((s) => s.activeTab);
-    const isInRoom = useIsInRoom((s) => s.isInRoom);
-    const isPanelHovered = useIsPanelHovered((s) => s.isPanelHovered);
+    const activeTab = useRoomStore(s => s.activeTab);
+    const isInRoom = useRoomStore(s => s.isInRoom);
+    const isPanelHovered = useIsPanelHovered(s => s.isPanelHovered);
     const [hoveredTab, setHoveredTab] = useState<TabName | null>(null);
     const { scrollRef, isScrolledY } = useIsScrolled<HTMLDivElement>();
 
     return (
-        <div className="bg-[#262626] flex flex-col relative items-center p-1">
+        <div className="bg-[#262626] w-9 flex flex-col relative items-center">
             {
                 isInRoom ?
 
@@ -56,7 +55,7 @@ export const Sidebar = () => {
                         {/* Tabs */}
                         <div
                             ref={scrollRef}
-                            className="flex flex-col items-center pt-8 pb-14 overflow-y-auto no-scrollbar"
+                            className="flex flex-col items-center w-full pt-8 pb-14 overflow-y-auto no-scrollbar"
                         >
 
                             <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'room') ? 'invisible' : ''}`} />
@@ -176,7 +175,7 @@ export const Sidebar = () => {
                     // Not in room render
                     <>
                         {/* Logo */}
-                        <div className="flex flex-col p-1 gap-1 font-medium text-sm items-center">
+                        <div className="flex flex-col pt-2 gap-1 font-medium text-sm items-center">
                             <div className="w-5 h-5 flex items-center justify-center">
                                 <svg
                                     viewBox="0 0 81 65"

@@ -1,8 +1,12 @@
-import {useEffect, useRef, useState} from "react";
-import {useChatSocket} from "@/hooks/useChatSocket";
-import {User} from "@bsg/models/User";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
+import { useChatSocket } from "@/hooks/useChatSocket";
+import { User } from "@bsg/models/User";
+import { useRoomStore } from '@/stores/useRoomStore';
 
 export const useRoomUser = () => {
+    const router = useRouter();
+
     const [loggedIn, setLoggedIn] = useState(false)
     const [currentRoom, setCurrentRoom] = useState<{ code: string, options?: any } | null>(null)
     const [copied, setCopied] = useState(false)
@@ -11,9 +15,12 @@ export const useRoomUser = () => {
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
     const [activeTab, setActiveTab] = useState<'chat' | 'live'>('chat')
 
+    const roomCode = useRoomStore(s => s.roomCode);
+    const setRoomCode = useRoomStore(s => s.setRoomCode);
+    const setIsInRoom = useRoomStore(s => s.setIsInRoom);
 
-    const inputRef = useRef<HTMLInputElement>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<HTMLInputElement | null>(null)
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     // Initialize WebSocket Hook
     const {messages, isConnected, joinRoom, sendChatMessage} = useChatSocket(userProfile?.id);
@@ -30,7 +37,7 @@ export const useRoomUser = () => {
 
 
     // copy room code to clipboard (works in extension and locally)
-    function copyRoomCode(roomCode: string) {
+    function copyRoomCode(roomCode: string | null) {
         if (!roomCode) return
         try {
             if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
@@ -69,10 +76,10 @@ export const useRoomUser = () => {
 
     function sendMessage() {
         const text = inputRef.current?.value.trim()
-        if (!text || !currentRoom) return
+        if (!text || !roomCode) return
 
         // Send message via WebSocket
-        sendChatMessage(currentRoom.code, text, {
+        sendChatMessage(roomCode, text, {
             name: userProfile?.name || 'Unknown',
             photo: userProfile?.photo
         });
@@ -95,6 +102,10 @@ export const useRoomUser = () => {
     const handleJoin = (roomCode: string) => {
         setCurrentRoom({code: roomCode, options: {}})
         joinRoom(roomCode);
+
+        setRoomCode(roomCode);
+        setIsInRoom(true);
+        router.push('/chat-page')
     }
 
     const handleCreate = (roomCode: string, options: any) => {
@@ -102,8 +113,11 @@ export const useRoomUser = () => {
         // Currently just joins the room code generated.
         // Future: Send 'create-room' request if backend distinguishes it.
         joinRoom(roomCode);
+        
+        setRoomCode(roomCode);
+        setIsInRoom(true);
+        router.push('/chat-page')
     }
-
 
     useEffect(() => {
         if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {

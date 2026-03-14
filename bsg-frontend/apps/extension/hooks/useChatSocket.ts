@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRoomStore } from '@/stores/useRoomStore';
 
 const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
 
@@ -13,7 +14,9 @@ export type Message = {
 
 export const useChatSocket = (userEmail: string | null | undefined) => {
     const socketRef = useRef<WebSocket | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
+    const messages = useRoomStore(s => s.messages);
+    const setMessages = useRoomStore(s => s.setMessages);
+    const addMessage = useRoomStore(s => s.addMessage);
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
@@ -34,21 +37,23 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                     const {message, responseType} = response;
 
                     if (responseType === 'chat-message') {
-                        setMessages(prev => [...prev, {
+                        console.log('recieved chat message: ' + message)
+                        addMessage({
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
                             data: message.message || message.data,
                             roomID: message.roomID,
                             isSystem: false
-                        }]);
+                        });
                     } else if (responseType === 'system-announcement') {
-                        setMessages(prev => [...prev, {
+                        console.log('recieved system message: ' + message);
+                        addMessage({
                             userHandle: 'System',
                             data: message.data,
                             roomID: message.roomID,
                             isSystem: true
-                        }]);
+                        });
                     }
                 } else if (response.status === 'error') {
                     console.error('RTC Error:', response.message);

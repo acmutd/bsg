@@ -3,13 +3,13 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faEnvelope} from "@fortawesome/free-solid-svg-icons";
 import {useLogIn} from "@/hooks/useLogIn";
 import { useTabNavigation } from "@/customComponents/TabBar/useTabNavigation";
-import { useIsInRoom } from "@/hooks/useIsInRoom";
+import { useRoomStore } from "@/stores/useRoomStore";
 
 export default function UserLogIn() {
 
     const {credentials, handleChange, login} = useLogIn()
     const navToTab = useTabNavigation();
-    const setIsInRoom = useIsInRoom((s) => s.setIsInRoom)
+    const setIsInRoom = useRoomStore(s => s.setIsInRoom);
 
     const mockLogin = () => {
         navToTab('chat');

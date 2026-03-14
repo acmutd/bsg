@@ -1,5 +1,5 @@
 import React from "react";
-import {Topic} from "@/pages/room-choice";
+import {Topic} from "@/pages/room-choice-page";
 
 export const TopicComponent = ({topic, toggle}: { topic: Topic; toggle: () => void }) => {
     // TODO: try to use the existing topic component in packages folder, refactor this

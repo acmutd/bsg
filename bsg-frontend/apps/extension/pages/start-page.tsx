@@ -14,7 +14,7 @@ import {
 import {Avatar, AvatarFallback, AvatarImage} from "@bsg/ui/avatar";
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import LiveStatistics from "@bsg/components/liveStatistics/liveStatistics";
-import RoomChoice from "@/pages/room-choice";
+import RoomChoice from "@/pages/room-choice-page";
 import {useRoomUser} from "@/hooks/useRoomUser";
 import {User} from "@bsg/models/User";
 

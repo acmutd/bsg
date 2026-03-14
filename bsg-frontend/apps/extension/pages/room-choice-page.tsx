@@ -11,6 +11,7 @@ import {IncDecButtons} from "@/customComponents/inc-dec-buttons";
 import {useRoomChoice} from "@/hooks/useRoomChoice";
 import {TopicComponent} from "@/customComponents/topic-component";
 import {NumberOfProblemsWithDifficultyLabel} from "@/customComponents/number-of-problems-with-difficulty-label";
+import { useRoomUser } from '@/hooks/useRoomUser';
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -26,6 +27,9 @@ interface RoomChoiceProps {
 }
 
 export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
+
+    const { handleJoin, handleCreate } = useRoomUser();
+
     const {
         setShowCreateOptions,
         showCreateOptions,
@@ -46,7 +50,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
         joinCode,
         setJoinCode
     } = useRoomChoice({onJoin, onCreate})
-
+    
     return (
         <div
             className={`${poppins.className} min-h-screen flex items-center justify-center bg-background px-4 py-8`}>

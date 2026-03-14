@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Topic} from "@/pages/room-choice";
+import {Topic} from "@/pages/room-choice-page";
 
 export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
     const [joinCode, setJoinCode] = useState('')
