@@ -11,7 +11,7 @@ require('./config/passport');
 
 //other middleware imports
 const corsMiddleware = require('./middleware/cors');
-const port = 3000;
+const port = 3001;
 
 
 

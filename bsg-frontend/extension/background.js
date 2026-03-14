@@ -66,7 +66,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.type === 'CHECK_AUTH') {
         // Fetch user data from localhost server
-        fetch('http://localhost:3000/auth/user', {
+        fetch('http://localhost:3001/auth/user', {
             credentials: 'include',
             method: 'GET'
         })
@@ -96,7 +96,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.type === 'LOGOUT') {
         // Clear user from Chrome storage
-        fetch('http://localhost:3000/auth/logout', {
+        fetch('http://localhost:3001/auth/logout', {
             method: 'POST',
             credentials: 'include'
         })
