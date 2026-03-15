@@ -44,7 +44,7 @@ func main() {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "redis-cache:6379",
+		Addr:     func() string { if v := os.Getenv("REDIS_ADDR"); v != "" { return v }; return "redis-cache:6379" }(),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
@@ -119,7 +119,9 @@ func main() {
 
 	userController := controllers.InitializeUserController(&userService)
 	problemController := controllers.InitializeProblemController(&problemService)
-	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, maxNumRoundsPerRoom)
+	roomScheduler := tasks.New()
+	defer roomScheduler.Stop()
+	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService)
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)

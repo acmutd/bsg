@@ -86,7 +86,7 @@ func (s *Service) ReadMessages() {
 					respObj := *response.NewOkResponse(respType, resp, roomID)
 
 					// Broadcast and Persistence Logic
-					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM {
+					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
 						if room != nil {
 							// 1. If this is a join-room request, replay history to the joining user.

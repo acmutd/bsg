@@ -152,6 +152,8 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		var roundStart = requests.RoundStartRequest{
 			RoomID:      round.RoomID.String(),
 			ProblemList: problemList,
+			StartTime:   roundStartTime.Unix(),
+			Duration:    round.Duration,
 		}
 		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
 			log.Printf("Error sending round-start message: %v", err)

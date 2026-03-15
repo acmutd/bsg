@@ -94,6 +94,12 @@ async function startServer() {
     const authRoutes = require('./routes/auth');
     app.use('/auth', authRoutes);
 
+    const roomsRoutes = require('./routes/rooms');
+    app.use('/rooms', roomsRoutes);
+
+    const submissionRoutes = require('./routes/submission');
+    app.use('/submission', submissionRoutes);
+
     // Healthcheck endpoint
     app.get('/health', async (req, res) => {
         try {

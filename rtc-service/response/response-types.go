@@ -17,4 +17,7 @@ var (
 
 	// next problem broadcast
 	NEXT_PROBLEM ResponseType = "next-problem"
+
+	// room expired broadcast
+	ROOM_EXPIRED ResponseType = "room-expired"
 )
