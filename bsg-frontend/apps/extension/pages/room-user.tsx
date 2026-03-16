@@ -29,16 +29,16 @@ const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 //             IT SEEMS TO WORK FUNCTIONALLY, JUST LOOKS VERY UGLY BUT WE'RE
 //             DOING THE REDESIGN ANYWAYS SO IT WOULD HAVE TO BE CHANGED REGARDLESS
 // Header Component with Timer
-const RoomHeader = ({ 
-  userProfile, 
-  roomCode, 
+const RoomHeader = ({
+  userProfile,
+  roomCode,
   roundEndTime,
   onEndRound,
   onLogout,
   onCopy
-}: { 
-  userProfile: any, 
-  roomCode: string | undefined, 
+}: {
+  userProfile: any,
+  roomCode: string | undefined,
   roundEndTime: number | null,
   onEndRound: () => void,
   onLogout: () => void,
@@ -51,13 +51,12 @@ const RoomHeader = ({
         setTimeLeft("");
         return;
     }
-    
+
     const updateTimer = () => {
         const now = Date.now();
         const diff = roundEndTime - now;
         if (diff <= 0) {
             setTimeLeft("00:00");
-            onEndRound(); // timer expired — end the round
         } else {
             const minutes = Math.floor(diff / 60000);
             const seconds = Math.floor((diff % 60000) / 1000);
@@ -128,7 +127,7 @@ export default function RedirectionToRoomScreen() {
 
   const [roundEndTime, setRoundEndTime] = useState<number | null>(null);
   const [roundStarted, setRoundStarted] = useState(false);
-  const [roundReady, setRoundReady] = useState(false); // true when a round has been created and is ready to start
+
 
   const [nextProblem, setNextProblem] = useState<string | null>(null);
 
@@ -279,7 +278,7 @@ export default function RedirectionToRoomScreen() {
     } else if (lastGameEvent.type === 'round-end') {
         // Stay in the room — just exit round view, clear round chat and state
         setRoundStarted(false);
-        setRoundReady(false);
+
         setNextProblem(null);
         clearMessages();
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -366,7 +365,7 @@ export default function RedirectionToRoomScreen() {
 
         // 4. Update state and join WebSocket room
         setCurrentRoom({ code: roomId, options: { ...options, adminId, shortCode } });
-        setRoundReady(true);
+
 
         // Start room-level countdown from TTL
         const ttlMs = (options.duration || 30) * 60 * 1000;
@@ -388,8 +387,14 @@ export default function RedirectionToRoomScreen() {
   const handleStartRound = async () => {
       if (!currentRoom) return;
       try {
-          // If no round is ready (e.g. after ending a previous round), create one first
-          if (!roundReady) {
+          // Try to start the round directly
+          let res = await fetch(`${API_URL}/rooms/${currentRoom.code}/start`, {
+              method: 'POST',
+              credentials: 'include'
+          });
+
+          if (res.status === 404) {
+              // No CREATED round — try creating one
               const opts = currentRoom.options || {};
               const roundParams = {
                   duration: opts.duration || 30,
@@ -404,18 +409,33 @@ export default function RedirectionToRoomScreen() {
                   credentials: 'include'
               });
               if (!createRes.ok) {
-                  const data = await createRes.json();
-                  throw new Error(data.error || `Failed to create round: ${createRes.status}`);
+                  const createData = await createRes.json();
+                  const msg = createData.message || createData.error || '';
+                  // "Round limit exceeded" means a non-ENDED round already exists — sync state from backend
+                  if (createRes.status === 400 && msg.includes('limit exceeded')) {
+                      const roomRes = await fetch(`${API_URL}/rooms/${currentRoom.code}`, { credentials: 'include' });
+                      if (roomRes.ok) {
+                          const roomData = await roomRes.json();
+                          const rounds: any[] = roomData.data?.rounds || roomData.data?.Rounds || [];
+                          const startedRound = rounds.find((r: any) => (r.Status || r.status) === 'started');
+                          if (startedRound) {
+                              // Round is already running — sync frontend state
+                              setRoundStarted(true);
+                              return;
+                          }
+                      }
+                  }
+                  throw new Error(msg || `Failed to create round: ${createRes.status}`);
               }
-              setRoundReady(true);
+              res = await fetch(`${API_URL}/rooms/${currentRoom.code}/start`, {
+                  method: 'POST',
+                  credentials: 'include'
+              });
           }
-          const res = await fetch(`${API_URL}/rooms/${currentRoom.code}/start`, {
-              method: 'POST',
-              credentials: 'include'
-          });
+
           if (!res.ok) {
               const data = await res.json();
-              throw new Error(data.error || `Failed to start round: ${res.status}`);
+              throw new Error(data.message || data.error || `Failed to start round: ${res.status}`);
           }
       } catch (e: any) {
           console.error("Failed to start round", e);
@@ -439,7 +459,7 @@ export default function RedirectionToRoomScreen() {
               // 200: round ended normally. 404: room already gone (TTL fired) — leave room.
               console.log('End round response:', res.status, data);
               setRoundStarted(false);
-              setRoundReady(false);
+      
               setNextProblem(null);
               if (res.status === 404) {
                   // Room deleted by TTL — fully reset
@@ -517,15 +537,18 @@ export default function RedirectionToRoomScreen() {
                       // Check for active round
                       console.log("CheckActiveRoom: Rounds:", room.rounds);
                       if (room.rounds && room.rounds.length > 0) {
-                          const lastRound = room.rounds[room.rounds.length - 1];
-                          const status = lastRound.Status || lastRound.status;
-                          console.log("CheckActiveRoom: Last round status:", status);
-                          // ROUND_STARTED = "started" (need to verify constant value, assuming string)
-                          if (status === "started") { 
+                          // Find the most relevant round: prefer started > created > ended
+                          const startedRound = room.rounds.find((r: any) => (r.Status || r.status) === "started");
+                          const createdRound = room.rounds.find((r: any) => (r.Status || r.status) === "created");
+                          const activeRound = startedRound || createdRound;
+                          const status = activeRound ? (activeRound.Status || activeRound.status) : null;
+                          console.log("CheckActiveRoom: Active round status:", status);
+                          if (status === "started") {
                               setRoundStarted(true);
-                              const startTimeStr = lastRound.LastUpdatedTime || lastRound.lastUpdatedTime;
+                      
+                              const startTimeStr = activeRound.LastUpdatedTime || activeRound.lastUpdatedTime;
                               const startTime = new Date(startTimeStr).getTime();
-                              const duration = lastRound.duration || lastRound.Duration;
+                              const duration = activeRound.duration || activeRound.Duration;
                               const endTime = startTime + (duration * 60 * 1000);
                               if (endTime > Date.now()) {
                                   setRoundEndTime(endTime);
@@ -533,6 +556,8 @@ export default function RedirectionToRoomScreen() {
                                       chrome.storage.local.set({ roundEndTime: endTime });
                                   }
                               }
+                          } else if (status === "created") {
+                      
                           }
                       }
                   }

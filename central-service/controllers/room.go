@@ -107,8 +107,11 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 	newRound, err := controller.roomService.CreateRound(&roundCreationParams, roomID)
 	if err != nil {
 		log.Printf("Failed to create new round: %v\n", err)
-		if err, ok := err.(*services.BSGError); ok {
-			return echo.NewHTTPError(err.StatusCode, "Failed to create round. "+err.Message)
+		if bsgErr, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to create round. "+bsgErr.Message)
+		}
+		if bsgErr, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to create round. "+bsgErr.Message)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create round. Please try again later")
 	}
@@ -123,8 +126,11 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	roundStartTime, problems, err := controller.roomService.StartRoundByRoomID(targetRoomID, userAuthID)
 	if err != nil {
 		log.Printf("Failed to start round for room with id %s: %v\n", targetRoomID, err)
-		if err, ok := err.(*services.BSGError); ok {
-			return echo.NewHTTPError(err.StatusCode, "Failed to start round. "+err.Message)
+		if bsgErr, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to start round. "+bsgErr.Message)
+		}
+		if bsgErr, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to start round. "+bsgErr.Message)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to start round. Please try again later")
 	}
