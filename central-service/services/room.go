@@ -250,6 +250,11 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			}
 		}
 	}
+	// If the admin leaves, delete the room entirely
+	if room.Admin == userID {
+		service.cancelRoomExpiry(roomID)
+		return service.deleteRoom(*room)
+	}
 	if users, err := service.FindActiveUsers(roomID); err != nil {
 		return err
 	} else if len(users) <= 0 {
@@ -516,12 +521,6 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 		if _, err := service.rtcClient.SendMessage("round-end", req); err != nil {
 			log.Printf("Error sending round-end message: %v", err)
 		}
-	}
-	// cancel TTL timer and delete the room
-	service.cancelRoomExpiry(roomID)
-	if err := service.deleteRoom(*room); err != nil {
-		log.Printf("RoomService: error deleting room %s on round end: %v", roomID, err)
-		return err
 	}
 	return nil
 }
