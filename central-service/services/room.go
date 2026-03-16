@@ -136,17 +136,35 @@ func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 // Deletes room from Postgres
 func (service *RoomService) deleteRoom(room models.Room) error {
 	roomID := room.ID.String()
-	// TODO: notify RTC room is empty
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
 	}
-	// Delete rounds from cascade delete
-	for _, round := range room.Rounds { // Delete round leaderboards
+	for _, round := range room.Rounds {
 		if err := service.roundService.DeleteLeaderboard(round.ID); err != nil {
+			log.Printf("Error deleting leaderboard for round %d: %v", round.ID, err)
+		}
+		// Delete round_submissions first (references round_participants and rounds)
+		if err := service.db.Where("round_id = ?", round.ID).Delete(&models.RoundSubmission{}).Error; err != nil {
+			log.Printf("Error deleting round submissions for round %d: %v", round.ID, err)
+			return err
+		}
+		// Delete round_participants
+		if err := service.db.Where("round_id = ?", round.ID).Delete(&models.RoundParticipant{}).Error; err != nil {
+			log.Printf("Error deleting round participants for round %d: %v", round.ID, err)
+			return err
+		}
+		// Delete round_problems join table entries
+		if err := service.db.Exec("DELETE FROM round_problems WHERE round_id = ?", round.ID).Error; err != nil {
+			log.Printf("Error deleting round_problems for round %d: %v", round.ID, err)
+			return err
+		}
+		// Delete the round itself
+		if err := service.db.Delete(&models.Round{}, round.ID).Error; err != nil {
+			log.Printf("Error deleting round %d: %v", round.ID, err)
 			return err
 		}
 	}
-	if err := service.db.Delete(room).Error; err != nil {
+	if err := service.db.Delete(&room).Error; err != nil {
 		log.Printf("Error deleting room %s: %v\n", roomID, err)
 		return err
 	}
@@ -250,16 +268,14 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			}
 		}
 	}
-	// If the admin leaves, delete the room entirely
-	if room.Admin == userID {
+	// Delete room if creator leaves or room is now empty
+	users, err := service.FindActiveUsers(roomID)
+	if err != nil {
+		return err
+	}
+	if room.Admin == userID || len(users) == 0 {
 		service.cancelRoomExpiry(roomID)
 		return service.deleteRoom(*room)
-	}
-	if users, err := service.FindActiveUsers(roomID); err != nil {
-		return err
-	} else if len(users) <= 0 {
-		service.deleteRoom(*room)
-		return nil
 	}
 	if wasAdmin, err := service.IsRoomAdmin(roomID, userID); err != nil {
 		return err
