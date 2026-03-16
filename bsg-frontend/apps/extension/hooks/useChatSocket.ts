@@ -298,6 +298,10 @@ export const useChatSocket = () => {
         chat.scrollTop = chat.scrollHeight;
     };
 
+    const clearMessages = useCallback(() => {
+        setMessages([]);
+    }, []);
+
     return {
         joinChatRoom,
         handleChange,
@@ -311,6 +315,7 @@ export const useChatSocket = () => {
         containerRef,
         counterRef,
         atLimit,
-        MAX_CHARS
+        MAX_CHARS,
+        clearMessages,
     };
 };
