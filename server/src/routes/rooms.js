@@ -141,6 +141,26 @@ router.get('/:id', ensureAuth, async (req, res) => {
     }
 });
 
+// Leave Room
+router.post('/:id/leave', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/leave`, {
+            method: 'POST',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Error leaving room:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // End Round
 router.post('/:id/end', ensureAuth, async (req, res) => {
     const authID = req.user.id;
