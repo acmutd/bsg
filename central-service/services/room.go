@@ -366,11 +366,18 @@ func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 }
 
 // Removes all user join timestamps for a given room in the Redis cache
+// Also clears each user's active_room pointer so stale state doesn't persist after room deletion
 func (service *RoomService) deleteJoinMembers(roomID string) error {
 	joinKey := roomID + "_joinTimestamp"
+	// First collect all members so we can clear their active_room keys
+	members, _ := service.rdb.ZRange(context.Background(), joinKey, 0, -1).Result()
 	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
 		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
 		return resultCmd.Err()
+	}
+	for _, userID := range members {
+		activeRoomKey := fmt.Sprintf("user:%s:active_room", userID)
+		service.rdb.Del(context.Background(), activeRoomKey)
 	}
 	return nil
 }
@@ -451,12 +458,14 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 }
 
 func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, error) {
-	var rounds []models.Round
-	if err := service.db.Model(room).Association("Rounds").Find(&rounds); err != nil {
+	var count int64
+	if err := service.db.Model(&models.Round{}).
+		Where("room_id = ? AND status != ?", room.ID, constants.ROUND_END).
+		Count(&count).Error; err != nil {
 		log.Printf("Error checking round limit: %v\n", err)
 		return true, err
 	}
-	return len(rounds) >= service.MaxNumRoundsPerRoom, nil
+	return count >= int64(service.MaxNumRoundsPerRoom), nil
 }
 
 func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*time.Time, []models.Problem, error) {
@@ -468,17 +477,24 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 	if room.Admin != userID { // check if user is room admin
 		return nil, nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
 	}
-	if len(room.Rounds) <= 0 {
-		log.Printf("Error initiating round start: Round has not been created")
-		return nil, nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
+	var round *models.Round
+	for i := range room.Rounds {
+		if room.Rounds[i].Status == constants.ROUND_CREATED {
+			round = &room.Rounds[i]
+			break
+		}
 	}
-	round := room.Rounds[len(room.Rounds)-1]
+	if round == nil {
+		log.Printf("Error initiating round start: no round in CREATED state")
+		return nil, nil, BSGError{http.StatusNotFound, "No round ready to start. Create a round first."}
+	}
 	activeUsers, err := service.FindActiveUsers(roomID)
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, nil, err
 	}
-	roundStartTime, problems, err := service.roundService.InitiateRoundStart(&round, activeUsers)
+	roundStartTime, problems, err := service.roundService.InitiateRoundStart(round, activeUsers)
+
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, nil, err
@@ -521,14 +537,17 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 	if room.Admin != userID {
 		return BSGError{http.StatusUnauthorized, "only the room admin can end the round"}
 	}
-	if len(room.Rounds) <= 0 {
-		return BSGError{http.StatusNotFound, "no round found"}
+	var round *models.Round
+	for i := range room.Rounds {
+		if room.Rounds[i].Status == constants.ROUND_STARTED {
+			round = &room.Rounds[i]
+			break
+		}
 	}
-	round := room.Rounds[len(room.Rounds)-1]
-	if round.Status == constants.ROUND_END {
-		return nil // already ended, idempotent
+	if round == nil {
+		return nil // no active round — idempotent
 	}
-	if err := service.db.Model(&round).Updates(models.Round{Status: constants.ROUND_END}).Error; err != nil {
+	if err := service.db.Model(round).Updates(models.Round{Status: constants.ROUND_END}).Error; err != nil {
 		return err
 	}
 	// notify clients via RTC
