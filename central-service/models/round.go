@@ -12,6 +12,6 @@ type Round struct {
 	Duration         int       `json:"duration"` // Duration in minutes
 	RoomID           uuid.UUID `json:"roomID"`
 	Status           string
-	ProblemSet       []Problem `gorm:"many2many:round_problems;" json:"problems"`
+	ProblemSet       []Problem `gorm:"many2many:round_problems;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"problems"`
 	RoundSubmissions []RoundSubmission
 }
