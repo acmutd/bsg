@@ -124,10 +124,11 @@ export default function RedirectionToRoomScreen() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Initialize WebSocket Hook
-  const { messages, isConnected, joinRoom, sendChatMessage, lastGameEvent } = useChatSocket(userProfile?.id);
+  const { messages, isConnected, joinRoom, sendChatMessage, clearMessages, lastGameEvent } = useChatSocket(userProfile?.id);
 
   const [roundEndTime, setRoundEndTime] = useState<number | null>(null);
   const [roundStarted, setRoundStarted] = useState(false);
+  const [roundReady, setRoundReady] = useState(false); // true when a round has been created and is ready to start
 
   const [nextProblem, setNextProblem] = useState<string | null>(null);
 
@@ -230,27 +231,16 @@ export default function RedirectionToRoomScreen() {
     if (lastGameEvent.type === 'round-start') {
        const data = lastGameEvent.data;
        let problems: string[] = [];
-       let endTime: number;
 
        if (data && typeof data === 'object' && data.startTime) {
-           // new format: { startTime (unix seconds), duration (minutes), problems }
            problems = data.problems || [];
-           endTime = (data.startTime * 1000) + (data.duration * 60 * 1000);
        } else {
-           // legacy fallback: comma-separated slugs
            const slugs = typeof data === 'string' ? data.split(',') : [];
            problems = slugs;
-           const duration = currentRoom?.options?.duration || 30;
-           endTime = Date.now() + duration * 60 * 1000;
        }
 
-       setRoundEndTime(endTime);
+       // Timer is room-based (already set on room create/restore) — don't reset it
        setRoundStarted(true);
-
-       // Store for background script TTL check
-       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-           chrome.storage.local.set({ roundEndTime: endTime });
-       }
 
        // Clear stale nextProblem state
        setNextProblem(null);
@@ -287,15 +277,13 @@ export default function RedirectionToRoomScreen() {
              });
         }
     } else if (lastGameEvent.type === 'round-end') {
-        setRoundEndTime(null);
+        // Stay in the room — just exit round view, clear round chat and state
         setRoundStarted(false);
-        setCurrentRoom(null);
-
-        // Clear nextProblem and TTL state on round end
+        setRoundReady(false);
         setNextProblem(null);
+        clearMessages();
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
             chrome.storage.local.remove('nextProblem');
-            chrome.storage.local.remove('roundEndTime');
             if (chrome.action) chrome.action.setBadgeText({ text: "" });
         }
     }
@@ -378,6 +366,7 @@ export default function RedirectionToRoomScreen() {
 
         // 4. Update state and join WebSocket room
         setCurrentRoom({ code: roomId, options: { ...options, adminId, shortCode } });
+        setRoundReady(true);
 
         // Start room-level countdown from TTL
         const ttlMs = (options.duration || 30) * 60 * 1000;
@@ -399,6 +388,27 @@ export default function RedirectionToRoomScreen() {
   const handleStartRound = async () => {
       if (!currentRoom) return;
       try {
+          // If no round is ready (e.g. after ending a previous round), create one first
+          if (!roundReady) {
+              const opts = currentRoom.options || {};
+              const roundParams = {
+                  duration: opts.duration || 30,
+                  numEasyProblems: opts.easy || 1,
+                  numMediumProblems: opts.medium || 0,
+                  numHardProblems: opts.hard || 0,
+              };
+              const createRes = await fetch(`${API_URL}/rooms/${currentRoom.code}/rounds/create`, {
+                  method: 'POST',
+                  body: JSON.stringify(roundParams),
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include'
+              });
+              if (!createRes.ok) {
+                  const data = await createRes.json();
+                  throw new Error(data.error || `Failed to create round: ${createRes.status}`);
+              }
+              setRoundReady(true);
+          }
           const res = await fetch(`${API_URL}/rooms/${currentRoom.code}/start`, {
               method: 'POST',
               credentials: 'include'
@@ -426,14 +436,20 @@ export default function RedirectionToRoomScreen() {
               console.error('Failed to end round:', res.status, data);
               alert(`Failed to end round: ${data.error || res.status}`);
           } else {
-              // 200: round ended. 404: room already deleted (e.g. TTL fired) — either way reset UI.
+              // 200: round ended normally. 404: room already gone (TTL fired) — leave room.
               console.log('End round response:', res.status, data);
               setRoundStarted(false);
-              setRoundEndTime(null);
-              setCurrentRoom(null);
-              if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                  chrome.storage.local.remove('roundEndTime');
+              setRoundReady(false);
+              setNextProblem(null);
+              if (res.status === 404) {
+                  // Room deleted by TTL — fully reset
+                  setRoundEndTime(null);
+                  setCurrentRoom(null);
+                  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                      chrome.storage.local.remove('roundEndTime');
+                  }
               }
+              // On success (200), stay in room — WS round-end event will clear messages
           }
       } catch (e: any) {
           console.error('Failed to end round (network error):', e);
@@ -547,6 +563,26 @@ export default function RedirectionToRoomScreen() {
 //       )
 //     }
 
+  const handleLeaveRoom = async () => {
+      if (currentRoom) {
+          try {
+              await fetch(`${API_URL}/rooms/${currentRoom.code}/leave`, {
+                  method: 'POST',
+                  credentials: 'include'
+              });
+          } catch (e) {
+              console.error('Error leaving room:', e);
+          }
+      }
+      setCurrentRoom(null);
+      setRoundStarted(false);
+      setRoundEndTime(null);
+      setNextProblem(null);
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.remove(['activeRoomId', 'roundEndTime', 'nextProblem']);
+      }
+  }
+
       if(currentRoom){
         
         const participants: User[] = currentRoom.options?.participants || []
@@ -559,7 +595,7 @@ export default function RedirectionToRoomScreen() {
             roomCode={currentRoom.options?.shortCode || currentRoom.code.substring(0, 8)} 
             roundEndTime={roundEndTime} 
             onEndRound={handleEndRound}
-            onLogout={() => { setCurrentRoom(null); setLoggedIn(false) }}
+            onLogout={handleLeaveRoom}
             onCopy={copyRoomCode}
           />
           

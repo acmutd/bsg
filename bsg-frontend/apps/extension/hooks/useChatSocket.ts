@@ -136,11 +136,16 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         }
     }, [userEmail]);
 
+    const clearMessages = useCallback(() => {
+        setMessages([]);
+    }, []);
+
     return {
         messages,
         isConnected,
         joinRoom,
         sendChatMessage,
+        clearMessages,
         lastGameEvent
     };
 };
