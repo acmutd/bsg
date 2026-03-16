@@ -7,6 +7,7 @@ import { useRoomUser } from '@/hooks/useRoomUser';
 export const Footer = () => {
     
     const isInRoom = useRoomStore(s => s.isInRoom);
+    const isConnected = useRoomStore(s => s.isConnected);
     const roomCode = useRoomStore(s => s.roomCode);
     const { copyRoomCode } = useRoomUser();
 
@@ -18,7 +19,7 @@ export const Footer = () => {
                     onClick={() => copyRoomCode(roomCode)}
                     className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
                 >
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`}/>
 
                     <div className="flex gap-1.5 items-center text-foreground/60 text-sm font-medium">
                         {roomCode}

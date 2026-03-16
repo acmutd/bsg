@@ -2,7 +2,6 @@ package requests
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
@@ -12,6 +11,8 @@ import (
 type RoundStartRequest struct {
 	RoomID      string   `json:"roomID" validate:"required"`
 	ProblemList []string `json:"problemList" validate:"required"`
+	StartTime   int64    `json:"startTime"`  // Unix seconds when the round starts
+	Duration    int      `json:"duration"`   // Duration in minutes
 }
 
 func init() {
@@ -35,7 +36,14 @@ func (r *RoundStartRequest) validate() error {
 
 // Returns the response type for the request.
 func (r *RoundStartRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
+	return response.ROUND_START
+}
+
+// roundStartBroadcast is the data broadcast to all room members on round start.
+type roundStartBroadcast struct {
+	StartTime int64    `json:"startTime"` // Unix seconds
+	Duration  int      `json:"duration"`  // Minutes
+	Problems  []string `json:"problems"`
 }
 
 // Handles the request and returns a response.
@@ -52,6 +60,14 @@ func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, s
 		return r.responseType(), "", r.RoomID, err
 	}
 
-	// Sending the problem list to the room will be determined in a later implementation.
-	return r.responseType(), strings.Join(r.ProblemList, ","), r.RoomID, nil
+	broadcast := roundStartBroadcast{
+		StartTime: r.StartTime,
+		Duration:  r.Duration,
+		Problems:  r.ProblemList,
+	}
+	broadcastJSON, err := json.Marshal(broadcast)
+	if err != nil {
+		return r.responseType(), "", r.RoomID, err
+	}
+	return r.responseType(), string(broadcastJSON), r.RoomID, nil
 }

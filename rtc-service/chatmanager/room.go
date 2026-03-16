@@ -33,12 +33,12 @@ func (r *Room) AddUser(user *User) {
 	defer r.Unlock()
 
 	// Check user already exists
-	if _, ok := r.Users[user]; ok {
+	if _, ok := r.Users[user.Handle]; ok {
 		logging.Error("User already exists")
 		return
 	}
 
-	r.Users[user] = true
+	r.Users[user.Handle] = user
 
 	logging.Info("Added: ", user.Handle, " to room: ", r.RoomID)
 }
@@ -48,8 +48,8 @@ func (r *Room) RemoveUser(user *User) {
 	defer r.Unlock()
 
 	// Only remove a client if they exist.
-	if _, ok := r.Users[user]; ok {
-		delete(r.Users, user)
+	if _, ok := r.Users[user.Handle]; ok {
+		delete(r.Users, user.Handle)
 		logging.Info("User removed: ", user.Handle, " from room: ", r.RoomID)
 		return
 	}
@@ -61,10 +61,8 @@ func (r *Room) GetUser(userHandle string) *User {
 	r.RLock()
 	defer r.RUnlock()
 
-	for user := range r.Users {
-		if user.Handle == userHandle {
-			return user
-		}
+	if user, ok := r.Users[userHandle]; ok {
+		return user
 	}
 	return nil
 }

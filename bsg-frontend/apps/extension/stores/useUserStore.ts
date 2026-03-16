@@ -5,7 +5,7 @@ interface userStoreState {
   isLoggedIn: boolean;
   user: User | null;
 
-  setIsLogedIn: (boolean) => void;
+  setIsLoggedIn: (boolean) => void;
   setUser: (user: User | null) => void;
 }
 
@@ -13,6 +13,6 @@ export const useUserStore = create<userStoreState>((set) => ({
     isLoggedIn: false,
     user: null,
 
-    setIsLogedIn: (isLoggedIn) => set({ isLoggedIn: isLoggedIn }),
+    setIsLoggedIn: (isLoggedIn) => set({ isLoggedIn: isLoggedIn }),
     setUser: (user) => set({ user: user }),
 }));

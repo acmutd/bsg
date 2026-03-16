@@ -24,8 +24,10 @@ func InitializeProblemService(db *gorm.DB) ProblemService {
 func (service *ProblemService) CreateProblem(problemData *models.Problem) (*models.Problem, error) {
 	newProblem := models.Problem{
 		Name:        problemData.Name,
+		Slug:        problemData.Slug,
 		Description: problemData.Description,
 		Hints:       problemData.Hints,
+		Difficulty:  problemData.Difficulty,
 	}
 	result := service.db.Create(&newProblem)
 	if result.Error != nil {
@@ -80,21 +82,21 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_EASY).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
+		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
 			return err
 		}
 		if err := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
+		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
 			return err
 		}
 		if err := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ?", constants.DIFFICULTY_HARD).Limit(params.NumHardProblems).Order(clause.Expr{
+		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false).Limit(params.NumHardProblems).Order(clause.Expr{
 			SQL: "RANDOM()",
 		}).Find(&hardProblems).Error; err != nil {
 			return err
@@ -119,4 +121,16 @@ func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem)
 	}
 
 	return 5
+}
+
+func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, error) {
+	var problem models.Problem
+	result := service.db.Where("slug = ?", slug).Limit(1).Find(&problem)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil // Not found
+	}
+	return &problem, nil
 }

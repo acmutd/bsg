@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
-
-const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+import { RTC_SERVICE_URL } from '../lib/config';
 
 export type Message = {
     userHandle: string;
@@ -17,7 +16,8 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     const messages = useRoomStore(s => s.messages);
     const setMessages = useRoomStore(s => s.setMessages);
     const addMessage = useRoomStore(s => s.addMessage);
-    const [isConnected, setIsConnected] = useState(false);
+    const setIsConnected = useRoomStore(s => s.setIsConnected);
+    const [lastGameEvent, setLastGameEvent] = useState<{ type: 'round-start' | 'next-problem' | 'round-end', data: any, timestamp: number } | null>(null);
 
     useEffect(() => {
         if (!userEmail) return;
@@ -54,6 +54,38 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             roomID: message.roomID,
                             isSystem: true
                         });
+                    } else if (responseType === 'round-start') {
+                        try {
+                            const parsedData = JSON.parse(message.data);
+                            setLastGameEvent({
+                                type: 'round-start',
+                                data: parsedData,
+                                timestamp: Date.now()
+                            });
+                        } catch (e) {
+                            setLastGameEvent({
+                                type: 'round-start',
+                                data: message.data,
+                                timestamp: Date.now()
+                            });
+                        }
+                    } else if (responseType === 'round-end') {
+                        setLastGameEvent({
+                            type: 'round-end',
+                            data: message.data,
+                            timestamp: Date.now()
+                        });
+                    } else if (responseType === 'next-problem') {
+                        try {
+                            const parsedData = JSON.parse(message.data);
+                            setLastGameEvent({
+                                type: 'next-problem',
+                                data: parsedData,
+                                timestamp: Date.now()
+                            });
+                        } catch (e) {
+                            console.error('Failed to parse next-problem data', e);
+                        }
                     }
                 } else if (response.status === 'error') {
                     console.error('RTC Error:', response.message);
@@ -75,6 +107,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
     const joinRoom = useCallback((roomID: string) => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
+        setLastGameEvent(null);
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
@@ -108,8 +141,9 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
 
     return {
         messages,
-        isConnected,
+        //isConnected,
         joinRoom,
-        sendChatMessage
+        sendChatMessage,
+        lastGameEvent
     };
 };

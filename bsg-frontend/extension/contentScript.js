@@ -1,27 +1,27 @@
 (function () {
-    if (!/\/problems\//.test(location.pathname)) return;
+  if (!/\/problems\//.test(location.pathname)) return;
 
-    function waitForQDContent() {
-        return new Promise(function (resolve) {
-            const existing = document.querySelector('#qd-content');
-            if (existing) return resolve(existing);
-            const obs = new MutationObserver(function (_, o) {
-                const el = document.querySelector('#qd-content');
-                if (el) {
-                    o.disconnect();
-                    resolve(el);
-                }
-            });
-            obs.observe(document.documentElement, {childList: true, subtree: true});
-        });
-    }
-
-    waitForQDContent().then(function (qd) {
-        const wrapper = qd.parentElement;
-        if (!wrapper) {
-            console.warn('where parent');
-            return;
+  function waitForQDContent() {
+    return new Promise(function (resolve) {
+      const existing = document.querySelector('#qd-content');
+      if (existing) return resolve(existing);
+      const obs = new MutationObserver(function (_, o) {
+        const el = document.querySelector('#qd-content');
+        if (el) {
+          o.disconnect();
+          resolve(el);
         }
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+    });
+  }
+
+  waitForQDContent().then(function (qd) {
+    const wrapper = qd.parentElement;
+    if (!wrapper) {
+      console.warn('where parent');
+      return;
+    }
 
         Object.assign(wrapper.style, {
             display: 'flex',
@@ -97,6 +97,7 @@
         handle.appendChild(handleBar);
 
 
+
         // Assemble the components
         panel.appendChild(iframe);
         // Insert handle between the page content (qd) and the injected panel
@@ -126,97 +127,91 @@
             document.body.style.userSelect = 'none';
             e.preventDefault && e.preventDefault();
 
-            // Immediately align panel left boundary with pointer so the visible bar is under cursor
-            try {
-                const rightEdge = panelWrapper.getBoundingClientRect().right;
-                let newWidth = rightEdge - e.clientX;
-                newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
-                panel.style.width = `${newWidth}px`;
-            } catch (err) {
-                // ignore
-            }
-        }
+      // Immediately align panel left boundary with pointer so the visible bar is under cursor
+      try {
+        const rightEdge = panelWrapper.getBoundingClientRect().right;
+        panel.style.width = `${rightEdge - e.clientX}px`;
+      } catch (err) {
+        // ignore
+      }
+    }
 
-        function endDrag(e) {
-            if (!isDragging) return;
-            try {
-                handle.releasePointerCapture && handle.releasePointerCapture(e.pointerId);
-            } catch (err) {
-                // ignore
-            }
-            isDragging = false;
-            iframe.style.pointerEvents = 'auto';
-            handleBar.style.backgroundColor = '#343434';
-            handleBar.style.height = '20px';
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        }
+    function endDrag(e) {
+      if (!isDragging) return;
+      try {
+        handle.releasePointerCapture && handle.releasePointerCapture(e.pointerId);
+      } catch (err) {
+        // ignore
+      }
+      isDragging = false;
+      iframe.style.pointerEvents = 'auto';
+      handleBar.style.backgroundColor = '#343434';
+      handleBar.style.height = '20px';
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
 
-        handle.addEventListener('pointerdown', beginDrag);
+    handle.addEventListener('pointerdown', beginDrag);
 
-        // hover: show blue line while hovering (if not dragging)
-        handle.addEventListener('pointerenter', () => {
-            if (!isDragging) {
-                handleBar.style.backgroundColor = '#3b82f6';
-                handleBar.style.height = '100%';
-            }
-        });
-        handle.addEventListener('pointerleave', () => {
-            if (!isDragging) {
-                handleBar.style.backgroundColor = '#343434';
-                handleBar.style.height = '20px';
-            }
-        });
+    // hover: show blue line while hovering (if not dragging)
+    handle.addEventListener('pointerenter', () => {
+      if (!isDragging) {
+        handleBar.style.backgroundColor = '#3b82f6';
+        handleBar.style.height = '100%';
+      }
+    });
+    handle.addEventListener('pointerleave', () => {
+      if (!isDragging) {
+        handleBar.style.backgroundColor = '#343434';
+        handleBar.style.height = '20px';
+      }
+    });
 
-        // Use pointermove on window to follow pointer regardless of element under cursor
-        window.addEventListener('pointermove', (e) => {
-            if (!isDragging) return;
+    // Use pointermove on window to follow pointer regardless of element under cursor
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const rightEdge = panelWrapper.getBoundingClientRect().right;
+      // left boundary = pointer x, width = rightEdge - pointerX
+      panel.style.width = `${rightEdge - e.clientX}px`;
+    });
 
-            const rightEdge = panelWrapper.getBoundingClientRect().right;
-            let newWidth = rightEdge - e.clientX;
+    // End drag on pointerup or when pointer leaves
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
 
-            // Clamp width
-            newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+    // Keep handle height in sync with the content area (qd)
+    function syncHandleHeight() {
+      try {
+        const rect = qd.getBoundingClientRect();
+        handle.style.height = rect.height + 'px';
+        handle.style.alignSelf = 'stretch';
+      } catch (err) {
+        // ignore
+      }
+    }
 
-            panel.style.width = `${newWidth}px`;
-        });
+    // Initial sync
+    syncHandleHeight();
 
-        // End drag on pointerup or when pointer leaves
-        window.addEventListener('pointerup', endDrag);
-        window.addEventListener('pointercancel', endDrag);
+    // Observe qd for size changes
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(syncHandleHeight);
+      ro.observe(qd);
+    }
 
-        // Keep handle height in sync with the content area (qd)
-        function syncHandleHeight() {
-            try {
-                const rect = qd.getBoundingClientRect();
-                handle.style.height = rect.height + 'px';
-                handle.style.alignSelf = 'stretch';
-            } catch (err) {
-                // ignore
-            }
-        }
+    // Also sync on window resize
+    window.addEventListener('resize', syncHandleHeight);
 
-        // Initial sync
-        syncHandleHeight();
+    // append handle between existing page content and the panel wrapper
+    wrapper.appendChild(handle);
+    wrapper.appendChild(panelWrapper);
+    console.log('panel injected with resize handle (handle placed between content and panel)');
 
-        // Observe qd for size changes
-        if (window.ResizeObserver) {
-            const ro = new ResizeObserver(syncHandleHeight);
-            ro.observe(qd);
-        }
-
-        // Also sync on window resize
-        window.addEventListener('resize', syncHandleHeight);
-
-        // append handle between existing page content and the panel wrapper
-        wrapper.appendChild(handle);
-        wrapper.appendChild(panelWrapper);
-
-        // Listen for auth state changes from extension
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-            if (message.type === 'AUTH_STATE_CHANGED') {
-                // Refresh the iframe to reflect new auth state
-                iframe.src = iframe.src;
+          // Listen for auth state changes from extension
+          chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+              if (message.type === 'AUTH_STATE_CHANGED') {
+                    // Refresh the iframe to reflect new auth state
+                  iframe.src = iframe.src;
 
                 sendResponse({success: true});
             }
@@ -232,7 +227,35 @@
             if (message.type === "MAXIMIZE") {
                 panel.style.width = window.innerWidth;
             }
-        });
     });
+    // Inject interception script
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('injected.js');
+    (document.head || document.documentElement).appendChild(script);
+    script.onload = function () {
+      script.remove();
+    };
+
+    // Listen for messages from injected script
+    window.addEventListener('message', function (event) {
+      // We only accept messages from ourselves
+      if (event.source !== window || !event.data.type) return;
+
+      if (event.data.type === 'BSG_LEETCODE_SUBMISSION') {
+        chrome.runtime.sendMessage({
+          type: 'SUBMISSION_PENDING',
+          data: event.data.payload
+        });
+      }
+
+      if (event.data.type === 'BSG_LEETCODE_RESULT') {
+        chrome.runtime.sendMessage({
+          type: 'SUBMISSION_RESULT',
+          data: event.data.payload
+        });
+      }
+    });
+
+  });
 })();
 

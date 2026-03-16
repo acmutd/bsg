@@ -46,7 +46,7 @@ func TestUpdateUserData(t *testing.T) {
 	userService := InitializeUserService(db)
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
-		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	userService.CreateUser("abc12345", &UserModifiableData{
@@ -83,7 +83,7 @@ func TestFindUserByAuthID(t *testing.T) {
 	userService := InitializeUserService(db)
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
-		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
@@ -122,7 +122,7 @@ func TestFindUserByUserID(t *testing.T) {
 	userService := InitializeUserService(db)
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
-		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE ID =(.+)").WillReturnRows(

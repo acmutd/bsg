@@ -1,9 +1,7 @@
 const cors = require('cors')
 
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001'
-];
+const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
+const allowedOrigins = [...new Set([serverUrl, 'http://localhost:3000'])];
 
 const corsMiddleware = cors({
     origin: function(origin, callback){

@@ -8,7 +8,8 @@
   "permissions": [
     "tabs",
     "identity",
-    "storage"
+    "storage",
+    "notifications"
   ],
   "oauth2": {
     "client_id": "497587004129-53bvvo3kf0naps52sst90f03fe168dc4.apps.googleusercontent.com",
@@ -36,7 +37,8 @@
       "resources": [
         "defaultPopup.html",
         "next/*",
-        "logIn.html"
+        "logIn.html",
+        "injected.js"
       ],
       "matches": [
         "<all_urls>"

@@ -5,12 +5,14 @@ import { Message } from '@/hooks/useChatSocket';
 
 interface roomStoreState {
   isInRoom: boolean;
+  isConnected: boolean;
   roomCode: string | null;
   participants: User[];
   activeTab: TabName;
   messages: Message[];
 
   setIsInRoom: (isInRoom: boolean) => void;
+  setIsConnected: (isConnected: boolean) => void;
   setRoomCode: (roomCode: string | null) => void;
   setParticipants: (participants: User[]) => void;
   setActiveTab: (activeTab: TabName) => void;
@@ -21,12 +23,14 @@ interface roomStoreState {
 
 export const useRoomStore = create<roomStoreState>((set) => ({
     isInRoom: false,
+    isConnected: false,
     roomCode: null,
     participants: [],
     activeTab: 'chat',
     messages: [],
 
     setIsInRoom: (isInRoom) => set({ isInRoom: isInRoom }),
+    setIsConnected: (isConnected) => set({ isConnected: isConnected }),
     setRoomCode: (roomCode) => set({ roomCode: roomCode }),
     setParticipants: (participants) => set({ participants: participants }),
     setActiveTab: (activeTab) => set({ activeTab: activeTab }),
