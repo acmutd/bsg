@@ -34,10 +34,11 @@ type RoomService struct {
 	rtcClient           *RTCClient
 	roomScheduler       *tasks.Scheduler
 	MaxNumRoundsPerRoom int
+	ttlTaskIDs          map[string]string // roomID -> scheduler task ID
 }
 
 func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, roomScheduler *tasks.Scheduler, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom}
+	return RoomService{db, rdb, roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom, make(map[string]string)}
 }
 
 type RoomDTO struct {
@@ -86,11 +87,19 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	return &newRoom, nil
 }
 
+// cancelRoomExpiry cancels the TTL expiry task for a room if one exists.
+func (service *RoomService) cancelRoomExpiry(roomID string) {
+	if taskID, ok := service.ttlTaskIDs[roomID]; ok {
+		service.roomScheduler.Del(taskID)
+		delete(service.ttlTaskIDs, roomID)
+	}
+}
+
 // scheduleRoomExpiry schedules a task to delete the room after its TTL expires.
 func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 	ttl := time.Duration(room.TTL) * time.Minute
 	roomID := room.ID.String()
-	_, err := service.roomScheduler.Add(&tasks.Task{
+	taskID, err := service.roomScheduler.Add(&tasks.Task{
 		Interval: ttl,
 		RunOnce:  true,
 		TaskFunc: func() error {
@@ -118,6 +127,8 @@ func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 	})
 	if err != nil {
 		log.Printf("RoomService: failed to schedule TTL expiry for room %s: %v", roomID, err)
+	} else {
+		service.ttlTaskIDs[roomID] = taskID
 	}
 }
 
@@ -505,6 +516,12 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 		if _, err := service.rtcClient.SendMessage("round-end", req); err != nil {
 			log.Printf("Error sending round-end message: %v", err)
 		}
+	}
+	// cancel TTL timer and delete the room
+	service.cancelRoomExpiry(roomID)
+	if err := service.deleteRoom(*room); err != nil {
+		log.Printf("RoomService: error deleting room %s on round end: %v", roomID, err)
+		return err
 	}
 	return nil
 }
