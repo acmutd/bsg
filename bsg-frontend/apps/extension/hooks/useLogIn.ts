@@ -29,13 +29,13 @@ export const useLogIn = () => {
         try {
 
             //Open the OAuth Window
-            const popup = window.open(`http://localhost:3001/auth/${Provider}`)
+            const popup = window.open(`http://localhost:3000/auth/${Provider}`)
 
             //Keep polling to see if auth is done or not
             const checkAuth = async () => {
 
                 //wait for response from the server
-                const response = await fetch(`http://localhost:3001/auth/user`, {
+                const response = await fetch(`http://localhost:3000/auth/user`, {
                     method: "GET",
                     credentials: "include"
                 });

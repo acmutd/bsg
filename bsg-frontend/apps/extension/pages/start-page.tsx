@@ -17,6 +17,7 @@ import LiveStatistics from "@bsg/components/liveStatistics/liveStatistics";
 import RoomChoice from "@/pages/room-choice-page";
 import {useRoomUser} from "@/hooks/useRoomUser";
 import {User} from "@bsg/models/User";
+import { useRoomStore } from '@/stores/useRoomStore'
 
 export default function RedirectionToRoomScreen() {
     const {
@@ -36,9 +37,10 @@ export default function RedirectionToRoomScreen() {
         activeTab,
         setActiveTab,
         currentRoom,
-        isConnected,
         setCurrentRoom
     } = useRoomUser();
+
+    const isConnected = useRoomStore(s => s.isConnected);
 
     if (currentRoom) {
         const participants: User[] = currentRoom.options?.participants || []

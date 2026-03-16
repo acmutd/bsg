@@ -29,7 +29,6 @@ export default function UserLogIn() {
     const navToTab = useTabNavigation();
     const setIsInRoom = useRoomStore(s => s.setIsInRoom);
     const setIsLoggedIn = useUserStore(s => s.setIsLoggedIn);
-    const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const setUser = useUserStore(s => s.setUser);
 
     const mockLogin = () => {
@@ -115,7 +114,7 @@ export default function UserLogIn() {
 
         }
 
-        }, [isLoggedIn, router]); //router because ESlint error nothing to do with re-render 
+        }, []); //router because ESlint error nothing to do with re-render 
 
     return (
         <div className="flex flex-col px-5 pt-8 pb-16 gap-8 items-center">

@@ -37,7 +37,6 @@ export default function ChatPage() {
         activeTab,
         setActiveTab,
         currentRoom,
-        isConnected,
         setCurrentRoom,
     } = useRoomUser();
 

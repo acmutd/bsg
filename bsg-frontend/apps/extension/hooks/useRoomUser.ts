@@ -23,7 +23,7 @@ export const useRoomUser = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     // Initialize WebSocket Hook
-    const {messages, isConnected, joinRoom, sendChatMessage} = useChatSocket(userProfile?.id);
+    const {messages, joinRoom, sendChatMessage} = useChatSocket(userProfile?.id);
 
     const problems = [
         {id: 1, title: "Two Sum", difficulty: 0, tags: ["Array"]},
@@ -151,7 +151,7 @@ export const useRoomUser = () => {
         activeTab,
         setActiveTab,
         currentRoom,
-        isConnected,
+        //isConnected,
         setUserProfile,
         sendChatMessage,
         setCurrentRoom

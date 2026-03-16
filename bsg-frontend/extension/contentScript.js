@@ -78,7 +78,7 @@
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '8px', // smaller hit area
+            minWidth: '0.5rem', // smaller hit area
             cursor: 'ew-resize',
             zIndex: 1000,
             background: 'transparent',
@@ -88,8 +88,8 @@
         // Create visible handle bar centered inside the hit area
         const handleBar = document.createElement('div');
         Object.assign(handleBar.style, {
-            width: '2px',
-            height: '20px',
+            width: '0.125rem',
+            height: '1.25rem',
             backgroundColor: '#343434',
             borderRadius: '1px',
             transition: 'background-color 0.12s ease',
@@ -105,8 +105,11 @@
         panelWrapper.appendChild(panel);
 
         // Add resize functionality using pointer events and pointer capture
-        const MIN_WIDTH = 36;
-        const MAX_WIDTH = 900;
+        function clampWidth(width) {
+          const MIN_WIDTH = 36;
+          const MAX_WIDTH = 900;
+          return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+        }
 
         let isDragging = false;
 
@@ -130,7 +133,7 @@
       // Immediately align panel left boundary with pointer so the visible bar is under cursor
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
-        panel.style.width = `${rightEdge - e.clientX}px`;
+        panel.style.width = `${clampWidth(rightEdge - e.clientX)}px`;
       } catch (err) {
         // ignore
       }
@@ -172,7 +175,7 @@
       if (!isDragging) return;
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
-      panel.style.width = `${rightEdge - e.clientX}px`;
+      panel.style.width = `${clampWidth(rightEdge - e.clientX)}px`;
     });
 
     // End drag on pointerup or when pointer leaves
@@ -225,7 +228,7 @@
             }
 
             if (message.type === "MAXIMIZE") {
-                panel.style.width = window.innerWidth;
+                panel.style.width = `${window.innerWidth}px`;
             }
     });
     // Inject interception script
@@ -258,4 +261,3 @@
 
   });
 })();
-
