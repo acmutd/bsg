@@ -1,8 +1,6 @@
 "use client"
-import '../../../packages/ui-styles/global.css'
 import { useState, useRef, useEffect } from 'react'
 import type { AppProps } from 'next/app'
-import '@bsg/ui-styles/global.css';
 import {Poppins} from 'next/font/google'
 import { Button } from '@bsg/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -340,7 +338,7 @@ export default function RedirectionToRoomScreen() {
         // 1. Create Room
         const res = await fetch(`${API_URL}/rooms`, {
             method: 'POST',
-            body: JSON.stringify({ roomName: roomCode }),
+            body: JSON.stringify({ roomName: roomCode, ttl: options.duration || 30 }),
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include'
         });
@@ -380,13 +378,17 @@ export default function RedirectionToRoomScreen() {
 
         // 4. Update state and join WebSocket room
         setCurrentRoom({ code: roomId, options: { ...options, adminId, shortCode } });
-        
+
+        // Start room-level countdown from TTL
+        const ttlMs = (options.duration || 30) * 60 * 1000;
+        const roomEndTime = Date.now() + ttlMs;
+        setRoundEndTime(roomEndTime);
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-             chrome.storage.local.set({ activeRoomId: roomId });
+             chrome.storage.local.set({ activeRoomId: roomId, roundEndTime: roomEndTime });
              chrome.storage.local.remove('nextProblem');
              if (chrome.action) chrome.action.setBadgeText({ text: "" });
         }
-        
+
         joinRoom(roomId);
     } catch (e) {
         console.error("Failed to create room/round", e);
@@ -420,21 +422,18 @@ export default function RedirectionToRoomScreen() {
               credentials: 'include'
           });
           const data = await res.json();
-          if (!res.ok) {
+          if (!res.ok && res.status !== 404) {
               console.error('Failed to end round:', res.status, data);
               alert(`Failed to end round: ${data.error || res.status}`);
           } else {
-              console.log('End round response:', data);
-              // Wait for round-end WS event to reset state.
-              // As a fallback, reset locally after a short delay.
-              setTimeout(() => {
-                  setRoundStarted(false);
-                  setRoundEndTime(null);
-                  setCurrentRoom(null);
-                  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                      chrome.storage.local.remove('roundEndTime');
-                  }
-              }, 2000);
+              // 200: round ended. 404: room already deleted (e.g. TTL fired) — either way reset UI.
+              console.log('End round response:', res.status, data);
+              setRoundStarted(false);
+              setRoundEndTime(null);
+              setCurrentRoom(null);
+              if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                  chrome.storage.local.remove('roundEndTime');
+              }
           }
       } catch (e: any) {
           console.error('Failed to end round (network error):', e);
@@ -473,9 +472,20 @@ export default function RedirectionToRoomScreen() {
                               adminId: room.adminId,
                               shortCode: room.shortCode,
                               participants: [],
-                              duration: 30
+                              duration: room.ttl || 30
                           }
                       });
+
+                      // Restore room-level timer from expiresAt
+                      if (room.expiresAt) {
+                          const endTime = new Date(room.expiresAt).getTime();
+                          if (endTime > Date.now()) {
+                              setRoundEndTime(endTime);
+                              if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                                  chrome.storage.local.set({ roundEndTime: endTime });
+                              }
+                          }
+                      }
                       
                       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                            console.log("CheckActiveRoom: Saving activeRoomId to storage", room.id);
