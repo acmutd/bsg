@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -10,9 +11,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var (
-	RTCWebSocketURL = "ws://rtc-service:8080/ws"
-)
+func rtcWebSocketURL() string {
+	if url := os.Getenv("RTC_SERVICE_URL"); url != "" {
+		return url
+	}
+	return "ws://rtc-service:8080/ws"
+}
 
 type RTCClient struct {
 	Name            string
@@ -22,7 +26,7 @@ type RTCClient struct {
 }
 
 func InitializeRTCClient(name string) (*RTCClient, error) {
-	conn, _, err := websocket.DefaultDialer.Dial(RTCWebSocketURL, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(rtcWebSocketURL(), nil)
 	if err != nil {
 		return nil, err
 	}

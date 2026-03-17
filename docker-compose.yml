@@ -9,9 +9,10 @@ services:
       - zookeeper
       - db
       - redis-cache
+      - rtc-service
     restart: on-failure
     ports:
-      - 5050:5000
+      - ${PORT_CENTRAL_SERVICE:-5050}:5000
     environment:
       FIREBASE_CREDENTIALS_FILEPATH: '/app/serviceKey.json'
       DB_USER: ${POSTGRES_USER}
@@ -24,12 +25,17 @@ services:
       KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
       KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
       SERVER_SECRET: ${SERVER_SECRET}
+      RTC_SERVICE_URL: ws://rtc-service:8080/ws
+      REDIS_ADDR: redis-cache:6379
     volumes:
       - ./seed-service:/app/seed-service
+      - ./serviceKey.json:/app/serviceKey.json:ro
   rtc-service:
     build: ./rtc-service
     ports:
-      - 5001:8080
+      - ${PORT_RTC_SERVICE:-5001}:8080
+    environment:
+      PORT: 8080
   worker-service:
     build: ./worker-service
     depends_on:
@@ -76,13 +82,13 @@ services:
     image: confluentinc/cp-kafka:7.3.0
     container_name: broker
     ports:
-      - "29092:29092"
+      - "${PORT_KAFKA:-29092}:29092"
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:${PORT_KAFKA:-29092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -94,11 +100,11 @@ services:
     image: adminer
     restart: always
     ports:
-      - 8080:8080
+      - ${PORT_ADMINER:-8080}:8080
   redisinsight:
     image: redislabs/redisinsight:latest
     ports:
-      - 8001:5540
+      - ${PORT_REDIS_INSIGHT:-8001}:5540
     volumes:
       - redisinsight-volume:/data
     restart: always
@@ -107,9 +113,10 @@ services:
     build: ./server
     # image: bsg-server
     ports:
-      - 3001:3000
+      - ${PORT_SERVER:-3000}:3000
     depends_on:
       - redis-cache
+      - central-service
     environment:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -118,12 +125,27 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
       - SERVER_SECRET=${SERVER_SECRET}
       - CENTRAL_SERVICE_URL=http://central-service:5000
-      - REDIS_PASSWORD=${REDIS_PASSWORD}  
-  # tunnel:
-  #   image: cloudflare/cloudflared:latest
-  #   container_name: acm-cloudflare-tunnel
-  #   restart: always
-  #   command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SERVER_URL=${SERVER_URL:-http://localhost:3000}
+  web:
+    build:
+      context: ./bsg-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
+    ports:
+      - ${PORT_WEB:-80}:80
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: acm-cloudflare-tunnel
+    restart: always
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
 
 volumes:
   db-volume:

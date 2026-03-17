@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-
-const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+import { RTC_SERVICE_URL } from '../lib/config';
 
 export type Message = {
     userHandle: string;
@@ -52,11 +51,20 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             isSystem: true
                         }]);
                     } else if (responseType === 'round-start') {
-                        setLastGameEvent({
-                            type: 'round-start',
-                            data: message.data,
-                            timestamp: Date.now()
-                        });
+                        try {
+                            const parsedData = JSON.parse(message.data);
+                            setLastGameEvent({
+                                type: 'round-start',
+                                data: parsedData,
+                                timestamp: Date.now()
+                            });
+                        } catch (e) {
+                            setLastGameEvent({
+                                type: 'round-start',
+                                data: message.data,
+                                timestamp: Date.now()
+                            });
+                        }
                     } else if (responseType === 'round-end') {
                         setLastGameEvent({
                             type: 'round-end',

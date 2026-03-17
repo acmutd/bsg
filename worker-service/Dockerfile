@@ -4,13 +4,11 @@ RUN apk add --no-cache build-base librdkafka-dev pkgconf
 
 WORKDIR /app
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY *.go ./
-
-RUN go mod tidy
+COPY . .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -tags dynamic -o /worker-service
 

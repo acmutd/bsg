@@ -1,3 +1,8 @@
+const CONFIG = {
+  SERVER_URL: 'http://localhost:3000',
+  RTC_SERVICE_URL: 'ws://localhost:5001/ws',
+};
+
 let offscreenCreated = false;
 
 async function ensureOffscreen() {
@@ -67,7 +72,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'CHECK_AUTH') {
     // fetch user data from localhost server
-    fetch('http://localhost:3000/auth/user', {
+    fetch(`${CONFIG.SERVER_URL}/auth/user`, {
       credentials: 'include',
       method: 'GET'
     })
@@ -93,7 +98,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'LOGOUT') {
-    fetch('http://localhost:3000/auth/logout', {
+    fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -127,14 +132,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'SUBMISSION_RESULT') {
     const { submissionId, status_msg } = request.data;
-    chrome.storage.local.get(['pendingSubmissions'], (result) => {
+    chrome.storage.local.get(['pendingSubmissions', 'roundEndTime'], (result) => {
       const pending = result.pendingSubmissions || {};
       const pendingData = pending[submissionId];
 
       if (pendingData) {
         if (status_msg === 'Accepted') {
+          // TTL check: reject if the round timer has already expired
+          const roundEndTime = result.roundEndTime;
+          if (roundEndTime && Date.now() > roundEndTime) {
+            console.log(`Background: Submission ${submissionId} rejected — round TTL exceeded`);
+            delete pending[submissionId];
+            chrome.storage.local.set({ pendingSubmissions: pending });
+            sendResponse({ received: true });
+            return;
+          }
+
           console.log(`Background: Processing Accepted submission ${submissionId} for ${pendingData.problemSlug}`);
-          fetch('http://localhost:3000/submission', {
+          fetch(`${CONFIG.SERVER_URL}/submission`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -161,19 +176,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // cleanup
         delete pending[submissionId];
         chrome.storage.local.set({ pendingSubmissions: pending });
+        sendResponse({ received: true });
       } else {
         console.warn(`Background: No pending submission found for ID ${submissionId}`);
+        sendResponse({ received: true });
       }
     });
 
-    sendResponse({ received: true });
-    return false;
+    return true; // keep message channel open for async sendResponse
   }
 });
 
 
 // redirect logic
-const RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+const RTC_SERVICE_URL = CONFIG.RTC_SERVICE_URL;
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
@@ -236,6 +252,15 @@ function connectWebSocket() {
           console.log("Background: Round ended:", message?.data);
           chrome.storage.local.remove('nextProblem');
           chrome.action.setBadgeText({ text: "" });
+        } else if (responseType === 'room-expired') {
+          console.log("Background: Room expired and deleted:", message?.data);
+          chrome.storage.local.remove(['activeRoomId', 'nextProblem', 'roundEndTime']);
+          chrome.action.setBadgeText({ text: "" });
+          chrome.notifications.create({
+            type: 'basic',
+            title: 'Room Closed',
+            message: 'Your room has expired and been deleted.'
+          });
         }
       }
     } catch (e) {

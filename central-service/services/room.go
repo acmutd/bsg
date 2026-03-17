@@ -12,6 +12,7 @@ import (
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
+	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -31,15 +32,17 @@ type RoomService struct {
 	rdb                 *redis.Client
 	roundService        *RoundService
 	rtcClient           *RTCClient
+	roomScheduler       *tasks.Scheduler
 	MaxNumRoundsPerRoom int
 }
 
-func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, roundService, rtcClient, maxNumRoundsPerRoom}
+func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, roomScheduler *tasks.Scheduler, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, rdb, roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom}
 }
 
 type RoomDTO struct {
 	Name string `json:"roomName"`
+	TTL  int    `json:"ttl"` // TTL in minutes; 0 means no expiry
 }
 
 // Creates a room and persist
@@ -59,18 +62,63 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 			break
 		}
 	}
+	var expiresAt *time.Time
+	if room.TTL > 0 {
+		t := time.Now().Add(time.Duration(room.TTL) * time.Minute)
+		expiresAt = &t
+	}
 	newRoom := models.Room{
-		ID:     uuid.New(),
+		ID:        uuid.New(),
 		ShortCode: shortCode,
-		Name:   room.Name,
-		Admin:  adminID,
-		Rounds: []models.Round{},
+		Name:      room.Name,
+		Admin:     adminID,
+		TTL:       room.TTL,
+		ExpiresAt: expiresAt,
+		Rounds:    []models.Round{},
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
 		return nil, result.Error
 	}
+	if room.TTL > 0 {
+		service.scheduleRoomExpiry(&newRoom)
+	}
 	return &newRoom, nil
+}
+
+// scheduleRoomExpiry schedules a task to delete the room after its TTL expires.
+func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
+	ttl := time.Duration(room.TTL) * time.Minute
+	roomID := room.ID.String()
+	_, err := service.roomScheduler.Add(&tasks.Task{
+		Interval: ttl,
+		RunOnce:  true,
+		TaskFunc: func() error {
+			log.Printf("RoomService: TTL expired for room %s, deleting", roomID)
+			r, err := service.FindRoomByID(roomID)
+			if err != nil {
+				log.Printf("RoomService: room %s not found at TTL expiry: %v", roomID, err)
+				return nil // already gone
+			}
+			if err := service.deleteRoom(*r); err != nil {
+				log.Printf("RoomService: error deleting room %s: %v", roomID, err)
+				return err
+			}
+			if service.rtcClient != nil {
+				req := requests.RoomExpiredRequest{RoomID: roomID}
+				if _, err := service.rtcClient.SendMessage("room-expired", req); err != nil {
+					log.Printf("RoomService: error sending room-expired RTC message: %v", err)
+				}
+			}
+			return nil
+		},
+		ErrFunc: func(e error) {
+			log.Printf("RoomService: error in TTL expiry task for room %s: %v", roomID, e)
+		},
+	})
+	if err != nil {
+		log.Printf("RoomService: failed to schedule TTL expiry for room %s: %v", roomID, err)
+	}
 }
 
 // Deletes leaderboard and join time stamps from Redis
