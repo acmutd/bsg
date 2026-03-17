@@ -28,7 +28,6 @@ export default function RedirectionToRoomScreen() {
         handleCreate,
         setLoggedIn,
         containerRef,
-        messages,
         inputRef,
         handleJoin,
         copied,
@@ -41,6 +40,7 @@ export default function RedirectionToRoomScreen() {
     } = useRoomUser();
 
     const isConnected = useRoomStore(s => s.isConnected);
+    const messages = useRoomStore(s => s.messages);
 
     if (currentRoom) {
         const participants: User[] = currentRoom.options?.participants || []
@@ -51,7 +51,7 @@ export default function RedirectionToRoomScreen() {
                 {/* HEADER */}
                 <header className="bg-inputBackground px-4 py-3 flex items-center justify-between">
                     <div className="flex flex-col">
-                        <div className="text-xs text-gray-300 mb-1">Room Code:</div>
+                        <div className="text-xs text-gray-300 mb-1">Test:</div>
                         <div
                             className="bg-background text-white p-2 rounded-lg font-mono text-lg tracking-widest flex items-center space-x-2">
                             <div className="text-2xl font-semibold">{currentRoom.code}</div>

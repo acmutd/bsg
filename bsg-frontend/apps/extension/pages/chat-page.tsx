@@ -40,34 +40,37 @@ export default function ChatPage() {
         setCurrentRoom,
     } = useRoomUser();
 
+
     const messages = useRoomStore(s => s.messages);
-    console.log('message array: ' + messages);
 
-    const groupedMessages = messages.reduce((groups, msg) => {
-        const lastGroup = groups[groups.length - 1];
+    // console.log('message array: ' + messages);
 
-        if (lastGroup && !msg.isSystem && lastGroup[0].userName === msg.userName) {
-            lastGroup.push(msg);
-        } else {
-            groups.push([msg]);
-        }
+    // const groupedMessages = messages.reduce((groups, msg) => {
+    //     const lastGroup = groups[groups.length - 1];
 
-        return groups;
-    }, [] as typeof messages[]);
+    //     if (lastGroup && !msg.isSystem && lastGroup[0].userName === msg.userName) {
+    //         lastGroup.push(msg);
+    //     } else {
+    //         groups.push([msg]);
+    //     }
+
+    //     return groups;
+    // }, [] as typeof messages[]);
 
     const username = useUserStore(s => s.user?.name);
     const speechBubbles = true;
 
     return (
         <div ref={containerRef} className="h-full flex flex-col relative overflow-y-auto">
-            <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-1'}`}>
+            {/* <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-1'}`}>
                 {groupedMessages.map((group, i) => (
                     <div
                         key={i}
                         className={
                             (group[0].isSystem)
                                 ? 'flex justify-center py-1'
-                                : `flex flex-col w-fit gap-1 ${(!speechBubbles) ? 'px-4 py-2' : `p-2 bg-[#333333] rounded-lg ${(group[0].userName === username) ? 'self-end rounded-br-none' : 'rounded-bl-none'}`}`}
+                                : `flex flex-col w-fit gap-1 ${(!speechBubbles) ? 'px-4 py-2' : `p-2 bg-[#333333] rounded-lg ${(group[0].userName === username) ? 'self-end rounded-br-none' : 'rounded-bl-none'}`}`
+                            }
                     >
                         {!group[0].isSystem && group[0].userName}
 
@@ -76,7 +79,9 @@ export default function ChatPage() {
                         ))}
                     </div>
                 ))}
-            </div>
+            </div> */}
+
+            {messages.map((msg, i) => <div key={i}>{msg.data}</div>)}
 
             <div className="sticky bottom-0 w-full flex items-center p-4 bg-gradient-to-t from-[#262626] to-transparent">
                 <div className="flex w-full bg-[#333333] rounded-full items-center px-4 py-3 gap-4">

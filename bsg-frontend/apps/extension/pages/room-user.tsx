@@ -11,6 +11,7 @@ import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice-page'
 import { useChatSocket } from '../hooks/useChatSocket'
 import { SERVER_URL as API_URL } from '../lib/config'
+import { useRoomStore } from '@/stores/useRoomStore';
 
 interface User {
   id: string,
@@ -123,7 +124,8 @@ export default function RedirectionToRoomScreen() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Initialize WebSocket Hook
-  const { messages, joinRoom, sendChatMessage, lastGameEvent } = useChatSocket(userProfile?.id);
+  const { joinRoom, sendChatMessage, lastGameEvent } = useChatSocket(userProfile?.id);
+  const messages = useRoomStore(s => s.messages);
 
   const [roundEndTime, setRoundEndTime] = useState<number | null>(null);
   const [roundStarted, setRoundStarted] = useState(false);
