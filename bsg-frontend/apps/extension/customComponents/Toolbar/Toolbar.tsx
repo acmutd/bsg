@@ -3,18 +3,18 @@ import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
 import { useTimer } from '@/hooks/useTimer';
 import { useRoomEvents } from '@/hooks/useRoomEvents';
-import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore';
 
 export const Toolbar = () => {
 
-    const [isTimerVisible, setIsTimerVisible] = useState<boolean>(true);
+    const [ isTimerVisible, setIsTimerVisible ] = useState<boolean>(true);
     const { timeRemaining } = useTimer();
 
-    const userId = useUserStore(s => s.userId);
-    const adminId = useRoomStore(s => s.adminId);
+    const isAdmin = useRoomStore(s => s.isAdmin);
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
     const { handleStartRound, handleEndRound } = useRoomEvents();
+
+    // TODO: Move timer into separate iframe
 
     return (
         <div className="flex h-8 px-1 border-b border-white/10 items-center justify-between">
@@ -49,38 +49,46 @@ export const Toolbar = () => {
                     </Button>
                 </TooltipWrapper>
 
-                {userId === adminId &&
+                {isAdmin && (
                     isRoundStarted ?
-                    <TooltipWrapper text="End Round">
-                        <Button
-                            onClick={handleEndRound}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
-                        >
-                            <svg
-                                className="w-[1em] h-[1em] overflow-visible"
-                                viewBox="0 0 36 30"
-                                fill="currentColor"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2 12.728C0.89543 12.728 0 13.6235 0 14.728C0 15.8326 0.89543 16.728 2 16.728V14.728V12.728ZM35.4142 16.1422C36.1953 15.3612 36.1953 14.0949 35.4142 13.3138L22.6863 0.585892C21.9052 -0.195157 20.6389 -0.195157 19.8579 0.585892C19.0768 1.36694 19.0768 2.63327 19.8579 3.41432L31.1716 14.728L19.8579 26.0417C19.0768 26.8228 19.0768 28.0891 19.8579 28.8702C20.6389 29.6512 21.9052 29.6512 22.6863 28.8702L35.4142 16.1422ZM2 14.728V16.728H34V14.728V12.728H2V14.728Z" />
-                            </svg>
-                        </Button>
-                    </TooltipWrapper>
-                    :
-                    <TooltipWrapper text="Start Round">
-                        <Button
-                            onClick={handleStartRound}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
-                        >
-                            <svg
-                                className="w-[1em] h-[1em] overflow-visible"
-                                viewBox="0 0 36 30"
-                                fill="currentColor"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2 12.728C0.89543 12.728 0 13.6235 0 14.728C0 15.8326 0.89543 16.728 2 16.728V14.728V12.728ZM35.4142 16.1422C36.1953 15.3612 36.1953 14.0949 35.4142 13.3138L22.6863 0.585892C21.9052 -0.195157 20.6389 -0.195157 19.8579 0.585892C19.0768 1.36694 19.0768 2.63327 19.8579 3.41432L31.1716 14.728L19.8579 26.0417C19.0768 26.8228 19.0768 28.0891 19.8579 28.8702C20.6389 29.6512 21.9052 29.6512 22.6863 28.8702L35.4142 16.1422ZM2 14.728V16.728H34V14.728V12.728H2V14.728Z" />
-                            </svg>
-                        </Button>
-                    </TooltipWrapper>
-                }
+                        <TooltipWrapper text="End Round">
+                            <Button
+                                onClick={handleEndRound}
+                                className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            >
+                                <svg
+                                    className="w-[1em] h-[1em] overflow-visible"
+                                    viewBox="0 0 40 34"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path 
+                                        stroke-width="4"
+                                        d="M19.6538 16.1257C20.1154 16.5143 20.1154 17.4857 19.6538 17.8743L3.03846 31.8632C2.57692 32.2518 2 31.7661 2 30.9889V3.01107C2 2.2339 2.57692 1.74818 3.03846 2.13676L19.6538 16.1257Z M37.6538 16.1257C38.1154 16.5143 38.1154 17.4857 37.6538 17.8743L21.0385 31.8632C20.5769 32.2518 20 31.7661 20 30.9889V3.01107C20 2.2339 20.5769 1.74818 21.0385 2.13676L37.6538 16.1257Z"
+                                    />
+                                </svg>
+                            </Button>
+                        </TooltipWrapper>
+                        :
+                        <TooltipWrapper text="Start Round">
+                            <Button
+                                onClick={handleStartRound}
+                                className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            >
+                                <svg
+                                    className="w-[1em] h-[1em] overflow-visible"
+                                    viewBox="0 0 30 34"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path 
+                                        stroke-width="3.5"
+                                        d="M27.5 15.9948C28.1667 16.3797 28.1667 17.342 27.5 17.7269L3.5 31.5833C2.83333 31.9682 2 31.487 2 30.7172V3.00443C2 2.23463 2.83333 1.75351 3.5 2.13841L27.5 15.9948Z"
+                                    />
+                                </svg>
+                            </Button>
+                        </TooltipWrapper>
+                )}
             </div>
 
             <div className="flex gap-1">

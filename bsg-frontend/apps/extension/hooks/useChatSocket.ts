@@ -133,7 +133,7 @@ export const useChatSocket = () => {
     }, [userEmail]);
 
     const sendMessage = () => {
-        if (!roomId) return;
+        if (!roomId || !inputText.trim()) return;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {

@@ -20,6 +20,8 @@ export default function App({ Component, pageProps }: AppProps) {
   const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
 
+  // TODO: Make active panel hook to mimic LeetCode panel border on click
+
   // Redirect popup render
   if (isDefaultPopup) {
     return (

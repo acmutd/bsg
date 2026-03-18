@@ -20,7 +20,7 @@ export function useCopyCode() {
     }
 
     // copy room code to clipboard (works in extension and locally)
-    function copyRoomCode(roomCode: string) {
+    function copyRoomCode(roomCode: string | null) {
         if (!roomCode) return;
         try {
             if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {

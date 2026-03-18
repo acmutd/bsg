@@ -16,7 +16,7 @@ export const Footer = () => {
 
             <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
                 <Button
-                    onClick={() => copyRoomCode}
+                    onClick={() => copyRoomCode(roomCode)}
                     className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
                 >
                     <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`}/>
