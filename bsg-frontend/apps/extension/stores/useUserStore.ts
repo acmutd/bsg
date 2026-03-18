@@ -1,5 +1,3 @@
-import { icon } from '@fortawesome/fontawesome-svg-core';
-import { use } from 'react';
 import { create } from 'zustand';
 
 interface userStoreState {

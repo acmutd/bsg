@@ -2,12 +2,14 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
+import { useRoomInit } from "./useRoomInit";
 
 export type AuthProvider = 'google' | 'github';
 
 export const useLogin = () => {
 
     const router = useRouter();
+    const { checkActiveRoom } = useRoomInit();
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const loginUser = useUserStore(s => s.loginUser);
@@ -74,7 +76,8 @@ export const useLogin = () => {
         }
     }
 
-    //check if the user is logged in using the service worker
+    // TODO: Display a loading screen while active room is being checked (start-page will be loaded only after failure)
+    // Check if the user is logged in using the service worker
     useEffect(() => {
         //check if chrome api is available
         if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
@@ -90,6 +93,7 @@ export const useLogin = () => {
                     );
 
                     router.push('/start-page');
+                    checkActiveRoom();
                 }
             })
         }

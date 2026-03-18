@@ -15,6 +15,7 @@ export type Message = {
 export const useChatSocket = () => {
 
     const socketRef = useRef<WebSocket | null>(null);
+    const pendingRoomIDRef = useRef<string | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
 
     const userEmail = useUserStore(s => s.email);
@@ -37,6 +38,20 @@ export const useChatSocket = () => {
 
         ws.onopen = () => {
             setIsConnected(true);
+
+            //race-condition prevention joinRoom was happening before
+            //the wb connection
+            if(userEmail && roomId){
+                const payload ={
+                    name:userEmail,
+                    "request-type": "join-room",
+                    data: JSON.stringify({
+                        userHandle: userEmail,
+                        roomID: pendingRoomIDRef.current
+                    })
+                };
+                ws.send(JSON.stringify(payload));
+            }
         };
 
         ws.onmessage = (event) => {
@@ -47,7 +62,7 @@ export const useChatSocket = () => {
                     const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
-                        console.log('recieved chat message: ' + message)
+                        console.log('recieved chat message: ' + JSON.stringify(message))
                         addMessage({
                             userHandle: message.userHandle,
                             userName: message.userName,
@@ -118,6 +133,7 @@ export const useChatSocket = () => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
+        pendingRoomIDRef.current = roomID;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {

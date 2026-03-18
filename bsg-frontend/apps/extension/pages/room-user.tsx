@@ -53,7 +53,6 @@ export default function RoomUser() {}
 //       return;
 //     }
 
-//     // useTimer
 //     const updateTimer = () => {
 //       const now = Date.now();
 //       const diff = roundEndTime - now;
@@ -227,7 +226,7 @@ export default function RoomUser() {}
 //     }
 //   }, [messages])
 
-//   // useRoomEvents
+//   // useRoomEvents - done
 //   // Handle Game Events
 //   useEffect(() => {
 //     if (!lastGameEvent) return;
@@ -306,7 +305,7 @@ export default function RoomUser() {}
 //     }
 //   }, [lastGameEvent, userProfile, currentRoom]);
 
-//   // useRoomInit
+//   // useRoomInit - done
 //   // join/create handlers
 //   const handleJoin = async (roomCode: string) => {
 //     try {
@@ -339,7 +338,7 @@ export default function RoomUser() {}
 //     }
 //   }
 
-//   // useRoomInit
+//   // useRoomInit - done
 //   const handleCreate = async (roomCode: string, options: any) => {
 //     try {
 //       // 1. Create Room
@@ -399,7 +398,7 @@ export default function RoomUser() {}
 //     }
 //   }
 
-//   // useRoomEvents
+//   // useRoomEvents - done
 //   const handleStartRound = async () => {
 //     if (!currentRoom) return;
 //     try {
@@ -417,7 +416,7 @@ export default function RoomUser() {}
 //     }
 //   }
 
-//   // useRoomEvents
+//   // useRoomEvents - done
 //   const handleEndRound = async () => {
 //     if (!currentRoom) return;
 //     console.log('Ending round for room:', currentRoom.code);
@@ -449,7 +448,7 @@ export default function RoomUser() {}
 //     }
 //   }
 
-//   // useRoomEvents
+//   // useLogin - done
 //   useEffect(() => {
 //     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
 //       chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
@@ -462,7 +461,7 @@ export default function RoomUser() {}
 //     }
 //   }, [])
 
-//   // useRoomEvents
+//   // useRoomInit - done
 //   const checkActiveRoom = async () => {
 //     try {
 //       const res = await fetch(`${API_URL}/rooms/active`, { credentials: 'include' });

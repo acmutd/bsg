@@ -1,4 +1,3 @@
-import { isatty } from 'tty';
 import { create } from 'zustand';
 
 interface panelStoreState {
