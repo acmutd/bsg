@@ -1,10 +1,20 @@
 import { useState } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
+import { useTimer } from '@/hooks/useTimer';
+import { useRoomEvents } from '@/hooks/useRoomEvents';
+import { useUserStore } from '@/stores/useUserStore';
+import { useRoomStore } from '@/stores/useRoomStore';
 
 export const Toolbar = () => {
 
-    const [ isTimerVisible, setIsTimerVisible ] = useState(true);
+    const [isTimerVisible, setIsTimerVisible] = useState<boolean>(true);
+    const { timeRemaining } = useTimer();
+
+    const userId = useUserStore(s => s.userId);
+    const adminId = useRoomStore(s => s.adminId);
+    const isRoundStarted = useRoomStore(s => s.isRoundStarted);
+    const { handleStartRound, handleEndRound } = useRoomEvents();
 
     return (
         <div className="flex h-8 px-1 border-b border-white/10 items-center justify-between">
@@ -38,6 +48,39 @@ export const Toolbar = () => {
                         </svg>
                     </Button>
                 </TooltipWrapper>
+
+                {userId === adminId &&
+                    isRoundStarted ?
+                    <TooltipWrapper text="End Round">
+                        <Button
+                            onClick={handleEndRound}
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        >
+                            <svg
+                                className="w-[1em] h-[1em] overflow-visible"
+                                viewBox="0 0 36 30"
+                                fill="currentColor"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 12.728C0.89543 12.728 0 13.6235 0 14.728C0 15.8326 0.89543 16.728 2 16.728V14.728V12.728ZM35.4142 16.1422C36.1953 15.3612 36.1953 14.0949 35.4142 13.3138L22.6863 0.585892C21.9052 -0.195157 20.6389 -0.195157 19.8579 0.585892C19.0768 1.36694 19.0768 2.63327 19.8579 3.41432L31.1716 14.728L19.8579 26.0417C19.0768 26.8228 19.0768 28.0891 19.8579 28.8702C20.6389 29.6512 21.9052 29.6512 22.6863 28.8702L35.4142 16.1422ZM2 14.728V16.728H34V14.728V12.728H2V14.728Z" />
+                            </svg>
+                        </Button>
+                    </TooltipWrapper>
+                    :
+                    <TooltipWrapper text="Start Round">
+                        <Button
+                            onClick={handleStartRound}
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        >
+                            <svg
+                                className="w-[1em] h-[1em] overflow-visible"
+                                viewBox="0 0 36 30"
+                                fill="currentColor"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 12.728C0.89543 12.728 0 13.6235 0 14.728C0 15.8326 0.89543 16.728 2 16.728V14.728V12.728ZM35.4142 16.1422C36.1953 15.3612 36.1953 14.0949 35.4142 13.3138L22.6863 0.585892C21.9052 -0.195157 20.6389 -0.195157 19.8579 0.585892C19.0768 1.36694 19.0768 2.63327 19.8579 3.41432L31.1716 14.728L19.8579 26.0417C19.0768 26.8228 19.0768 28.0891 19.8579 28.8702C20.6389 29.6512 21.9052 29.6512 22.6863 28.8702L35.4142 16.1422ZM2 14.728V16.728H34V14.728V12.728H2V14.728Z" />
+                            </svg>
+                        </Button>
+                    </TooltipWrapper>
+                }
             </div>
 
             <div className="flex gap-1">
@@ -53,12 +96,12 @@ export const Toolbar = () => {
                                 viewBox="0 0 512 512"
                                 fill="currentColor"
                             >
-                                <path d="M464 256a208 208 0 1 1 -416 0 208 208 0 1 1 416 0zM0 256a256 256 0 1 0 512 0 256 256 0 1 0 -512 0zM232 120l0 136c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2 280 120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"/>
+                                <path d="M464 256a208 208 0 1 1 -416 0 208 208 0 1 1 416 0zM0 256a256 256 0 1 0 512 0 256 256 0 1 0 -512 0zM232 120l0 136c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2 280 120c0-13.3-10.7-24-24-24s-24 10.7-24 24z" />
                             </svg>
                         </Button>
                     </TooltipWrapper>
 
-                    <div className={`flex px-1.5 items-center bg-white/10 text-foreground/60 text-sm ${(isTimerVisible) ? '' : 'hidden'}`}>00:00:00</div>
+                    <div className={`flex px-1.5 items-center bg-white/10 text-foreground/60 text-sm ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
                 </div>
 
                 <TooltipWrapper text="Settings">

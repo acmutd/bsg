@@ -1,28 +1,24 @@
-import {useRouter} from "next/router";
-import {useEffect, useState} from "react";
-import {User} from "@bsg/models/User";
-import { useRoomStore } from "@/stores/useRoomStore";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
 
 export type AuthProvider = 'google' | 'github';
 
 export const useLogIn = () => {
-    const [loggedIn, setLoggedIn] = useState(false);
-    const [userProfile, setUserProfile] = useState<User | null>(null);
-    const [isInTab, setIsInTab] = useState(false);
+
+    const isLoggedIn = useUserStore(s => s.isLoggedIn);
+    const loginUser = useUserStore(s => s.loginUser);
+    const resetUser = useUserStore(s => s.resetUser);
+
     const [credentials, setCredentials] = useState({
         email: '',
         password: ''
     })
-    const [loading, setLoading] = useState(false);
-    const setIsInRoom = useRoomStore(s => s.setIsInRoom);
-
     const router = useRouter()
     const handleChange = (e: { target: { name: any; value: any; }; }) => {
         setCredentials({...credentials, [e.target.name]: e.target.value})
     }
-
-    const setUser = useUserStore(s => s.setUser);
 
     const login = async (Provider: AuthProvider) => {
 
@@ -41,12 +37,15 @@ export const useLogIn = () => {
                 });
 
                 if (response.ok) {
-                    const userObject = await response.json()
-                    setLoggedIn(true)
-                    setUserProfile(userObject)
-                    setUser(userObject);
+                    const userObject: User = await response.json()
+                    loginUser(
+                        userObject.id,
+                        userObject.name,
+                        userObject.email,
+                        userObject.photo
+                    );
+                    
                     popup?.close()
-
                     return userObject;
 
                 } else if (popup && !popup.closed) {
@@ -55,9 +54,7 @@ export const useLogIn = () => {
                 }
             }
 
-
             setTimeout(checkAuth, 5000);
-
 
         } catch (err) {
             window.open("_blank")
@@ -66,18 +63,15 @@ export const useLogIn = () => {
         }
     }
 
-
     const logout = () => {
-
         if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
             chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
                 if (response && response.success) {
-                    setLoggedIn(false)
+                    resetUser();
                 }
             })
         }
     }
-
 
     //check if the user is logged in using the service worker
     useEffect(() => {
@@ -86,20 +80,24 @@ export const useLogIn = () => {
 
             chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
                 if (response && response.success) {
-                    setUserProfile(response.user)
-                    setUser(response.user);
-                    setLoggedIn(true)
+                    const user: User = response.user;
+                    loginUser(
+                        user.id,
+                        user.name,
+                        user.email,
+                        user.photo
+                    );
+
                     router.push('/start-page');
                 }
             })
-
         }
-
-    }, [loggedIn, router]); //router because ESlint error nothing to do with re-render
+    }, [isLoggedIn, router]); //router because ESlint error nothing to do with re-render
 
     return {
         credentials,
         handleChange,
-        login
+        login,
+        logout
     }
 }

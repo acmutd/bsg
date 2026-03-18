@@ -1,68 +1,22 @@
 import '@bsg/ui-styles'
 import { Button } from '@bsg/ui/button'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircle, faCopy, faEllipsisVertical, faPaperPlane, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@bsg/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@bsg/ui/avatar";
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
-import LiveStatistics from "@bsg/components/liveStatistics/liveStatistics";
-import RoomChoice from "@/pages/room-choice-page";
-import { useRoomUser } from "@/hooks/useRoomUser";
-import { User } from "@bsg/models/User";
 import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore'
+import { useChatSocket } from '@/hooks/useChatSocket'
 
 export default function ChatPage() {
-    const {
-        problems,
-        participants2,
-        copyRoomCode,
-        sendMessage,
-        handleCreate,
-        setLoggedIn,
-        containerRef,
-        inputRef,
-        handleJoin,
-        copied,
-        isMenuOpen,
-        setIsMenuOpen,
-        activeTab,
-        setActiveTab,
-        currentRoom,
-        setCurrentRoom,
-    } = useRoomUser();
 
+    const { sendMessage, chatRef, groupedMessages } = useChatSocket();
 
-    const messages = useRoomStore(s => s.messages);
-
-    // console.log('message array: ' + messages);
-
-    // const groupedMessages = messages.reduce((groups, msg) => {
-    //     const lastGroup = groups[groups.length - 1];
-
-    //     if (lastGroup && !msg.isSystem && lastGroup[0].userName === msg.userName) {
-    //         lastGroup.push(msg);
-    //     } else {
-    //         groups.push([msg]);
-    //     }
-
-    //     return groups;
-    // }, [] as typeof messages[]);
-
-    const username = useUserStore(s => s.user?.name);
+    const inputText = useRoomStore(s => s.inputText);
+    const setInputText = useRoomStore(s => s.setInputText);
+    const username = useUserStore(s => s.username);
     const speechBubbles = true;
 
     return (
-        <div ref={containerRef} className="h-full flex flex-col relative overflow-y-auto">
-            {/* <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-1'}`}>
+        <div ref={chatRef} className="h-full flex flex-col relative overflow-y-auto">
+            <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-1'}`}>
                 {groupedMessages.map((group, i) => (
                     <div
                         key={i}
@@ -79,15 +33,16 @@ export default function ChatPage() {
                         ))}
                     </div>
                 ))}
-            </div> */}
+            </div>
 
-            {messages.map((msg, i) => <div key={i}>{msg.data}</div>)}
+            {/* {messages.map((msg, i) => <div key={i}>{msg.data}</div>)} */}
 
             <div className="sticky bottom-0 w-full flex items-center p-4 bg-gradient-to-t from-[#262626] to-transparent">
                 <div className="flex w-full bg-[#333333] rounded-full items-center px-4 py-3 gap-4">
                     <input
-                        ref={inputRef}
                         className="outline-none bg-transparent text-foreground placeholder-foreground/60 w-full"
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
                         placeholder="Type a message..."
                         onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                     />

@@ -1,120 +1,16 @@
-import {Button} from "@bsg/ui/button";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {faEnvelope} from "@fortawesome/free-solid-svg-icons";
-import {useLogIn} from "@/hooks/useLogIn";
-import { useTabNavigation } from "@/customComponents/TabBar/useTabNavigation";
-import { useRoomStore } from "@/stores/useRoomStore";
-import { useUserStore } from "@/stores/useUserStore";
-import Logo from "@bsg/components/Logo";
-import { useEffect, useState } from 'react';
-import {Poppins} from 'next/font/google';
-import { useRouter } from 'next/router';
-import { SERVER_URL } from '../lib/config';
-
+import { Button } from "@bsg/ui/button";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { useLogIn } from "@/hooks/useLogIn";
+import { Poppins } from 'next/font/google';
 
 type AuthProvider = 'google' | 'github';
 
-interface User  {
-        id: string,
-        name: string,
-        email: string,
-        photo: string
-}
-
 const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
-export default function UserLogIn() {
+export default function LoginPage() {
 
     const { credentials, handleChange, login } = useLogIn()
-    const navToTab = useTabNavigation();
-    const setIsInRoom = useRoomStore(s => s.setIsInRoom);
-    const setIsLoggedIn = useUserStore(s => s.setIsLoggedIn);
-    const setUser = useUserStore(s => s.setUser);
-
-    const mockLogin = () => {
-        navToTab('chat');
-        setIsInRoom(true);
-    };
-    const router = useRouter()
-
-    const Login = async (Provider: AuthProvider) => {
-        
-        try{
-            
-            //Open the OAuth Window
-            const popup = window.open(`${SERVER_URL}/auth/${Provider}`)
-
-            //Keep polling to see if auth is done or not
-            const checkAuth = async () => {
-                    
-                    //wait for response from the server
-                    const response = await fetch(`${SERVER_URL}/auth/user`, {
-                                                method: "GET",
-                                                credentials: "include"
-                    });
-
-                    if(response.ok){
-                        const userObject = await response.json()
-                        setIsLoggedIn(true)
-                        setUser(userObject)
-                        popup?.close()
-
-                        return userObject;
-
-                    }else if (popup && !popup.closed){
-                        //Not Authenticated yet
-                        setTimeout(checkAuth, 1000);
-
-                    }
-                }
-
-                setTimeout(checkAuth, 5000);
-            }
-
-
-         catch (err) {
-            window.open("_blank")
-            console.warn("Authentication failed")
-
-        }
-    }
-
-    const Logout = () => {
-        console.log("Got inside of the logout function ")
-
-        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined' ){
-            chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
-                if(response && response.success){
-                    setIsLoggedIn(false)
-                }
-            })
-        }
-    }
-
-    //check if the user is logged in using the service worker
-    useEffect(() => {
-        console.log("useEffect running on mount");
-
-        //check if chrome api is available
-        if(typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined'){
-                console.log("Sending CHECK_AUTH message");
-
-                chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
-                    console.log("Received response from background:", response);
-                    if(response && response.success){
-                    console.log("Auth successful, setting user:", response.user);
-                    setUser(response.user)
-                    setIsLoggedIn(true)
-                    router.push('/room-user')
-                    } else {
-                    console.log("Auth failed or no session");
-                    }
-
-                })
-
-        }
-
-        }, []); //router because ESlint error nothing to do with re-render 
 
     return (
         <div className="flex flex-col px-5 pt-8 pb-16 gap-8 items-center">
@@ -197,7 +93,7 @@ export default function UserLogIn() {
                         className="w-full rounded-lg"
                         type="submit"
                         form="createAccount"
-                        onClick={() => mockLogin()} // TEMPORARY
+                        //onClick={} // TEMPORARY
                     >
                         Create Acount
                     </Button>

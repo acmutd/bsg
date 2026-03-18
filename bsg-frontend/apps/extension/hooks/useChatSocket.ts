@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
+import { useUserStore } from '@/stores/useUserStore';
 
 export type Message = {
     userHandle: string;
@@ -11,13 +12,22 @@ export type Message = {
     isSystem?: boolean;
 }
 
-export const useChatSocket = (userEmail: string | null | undefined) => {
+export const useChatSocket = () => {
+
     const socketRef = useRef<WebSocket | null>(null);
+    const chatRef = useRef<HTMLDivElement | null>(null);
+
+    const userEmail = useUserStore(s => s.email);
+    const username = useUserStore(s => s.username);
+    const iconUrl = useUserStore(s => s.iconUrl);
+    const inputText = useRoomStore(s => s.inputText);
+    const roomCode = useRoomStore(s => s.roomCode);
     const messages = useRoomStore(s => s.messages);
+    const setInputText = useRoomStore(s => s.setInputText);
     const setMessages = useRoomStore(s => s.setMessages);
     const addMessage = useRoomStore(s => s.addMessage);
     const setIsConnected = useRoomStore(s => s.setIsConnected);
-    const [lastGameEvent, setLastGameEvent] = useState<{ type: 'round-start' | 'next-problem' | 'round-end', data: any, timestamp: number } | null>(null);
+    const setLastGameEvent = useRoomStore(s => s.setLastGameEvent);
 
     useEffect(() => {
         if (!userEmail) return;
@@ -34,7 +44,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                 const response = JSON.parse(event.data);
 
                 if (response.status === 'ok') {
-                    const {message, responseType} = response;
+                    const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
                         console.log('recieved chat message: ' + message)
@@ -104,7 +114,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         };
     }, [userEmail]);
 
-    const joinRoom = useCallback((roomID: string) => {
+    const joinChatRoom = useCallback((roomID: string) => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
@@ -122,28 +132,52 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         }
     }, [userEmail]);
 
-    const sendChatMessage = useCallback((roomID: string, message: string, user?: { name: string, photo?: string }) => {
+    const sendMessage = () => {
+        if (!roomCode) return;
+
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
                 name: userEmail,
                 "request-type": "chat-message",
                 data: JSON.stringify({
                     userHandle: userEmail,
-                    userName: user?.name,
-                    userPhoto: user?.photo,
-                    roomID: roomID,
-                    message: message
+                    userName: username,
+                    userPhoto: iconUrl,
+                    roomID: roomCode,
+                    message: inputText
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
-        }
-    }, [userEmail]);
 
-    return {
-        messages,
-        //isConnected,
-        joinRoom,
-        sendChatMessage,
-        lastGameEvent
+            setInputText('');
+        }
     };
+
+    // Derived from messages so will persist as well
+    // TODO: make O(1) by only adding messages
+    const groupedMessages = useMemo(() => {
+        return messages.reduce((groups, msg) => {
+            const lastGroup = groups[groups.length - 1];
+
+            if (
+                lastGroup &&
+                !msg.isSystem &&
+                lastGroup[0].userName === msg.userName
+            ) {
+                lastGroup.push(msg);
+            } else {
+                groups.push([msg]);
+            }
+
+            return groups;
+        }, [] as typeof messages[]);
+    }, [messages]);
+
+    useEffect(() => {
+        if (chatRef.current) {
+            chatRef.current.scrollTop = chatRef.current.scrollHeight
+        }
+    }, [messages])
+
+    return { joinChatRoom, sendMessage, chatRef, groupedMessages };
 };

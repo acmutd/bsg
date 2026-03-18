@@ -1,159 +1,158 @@
-import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
-import { useChatSocket } from "@/hooks/useChatSocket";
-import { User } from "@bsg/models/User";
-import { useRoomStore } from '@/stores/useRoomStore';
+// import { useRouter } from "next/router";
+// import { useEffect, useRef, useState } from "react";
+// import { useChatSocket } from "@/hooks/useChatSocket";
+// import { User } from "@bsg/models/User";
+// import { useRoomStore } from '@/stores/useRoomStore';
 
-export const useRoomUser = () => {
-    const router = useRouter();
+// export const useRoomUser = () => {
+//     const router = useRouter();
 
-    const [loggedIn, setLoggedIn] = useState(false)
-    const [currentRoom, setCurrentRoom] = useState<{ code: string, options?: any } | null>(null)
-    const [copied, setCopied] = useState(false)
-    const [user, setUser] = useState(false)
-    const [userProfile, setUserProfile] = useState<User | null>(null)
-    const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
-    const [activeTab, setActiveTab] = useState<'chat' | 'live'>('chat')
+//     const [loggedIn, setLoggedIn] = useState(false)
+//     const [currentRoom, setCurrentRoom] = useState<{ code: string, options?: any } | null>(null)
+//     const [copied, setCopied] = useState(false)
+//     const [user, setUser] = useState(false)
+//     const [userProfile, setUserProfile] = useState<User | null>(null)
+//     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
+//     const [activeTab, setActiveTab] = useState<'chat' | 'live'>('chat')
 
-    const roomCode = useRoomStore(s => s.roomCode);
-    const setRoomCode = useRoomStore(s => s.setRoomCode);
-    const setIsInRoom = useRoomStore(s => s.setIsInRoom);
+//     const roomCode = useRoomStore(s => s.roomCode);
+//     const setRoomCode = useRoomStore(s => s.setRoomCode);
+//     const setIsInRoom = useRoomStore(s => s.setIsInRoom);
 
-    const inputRef = useRef<HTMLInputElement | null>(null)
-    const containerRef = useRef<HTMLDivElement | null>(null);
+//     const inputRef = useRef<HTMLInputElement | null>(null)
+//     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    // Initialize WebSocket Hook
-    const {messages, joinRoom, sendChatMessage} = useChatSocket(userProfile?.id);
+//     // Initialize WebSocket Hook
+//     const { messages, joinChatRoom, sendChatMessage } = useChatSocket();
 
-    const problems = [
-        {id: 1, title: "Two Sum", difficulty: 0, tags: ["Array"]},
-        {id: 2, title: "Add Two Numbers", difficulty: 1, tags: ["Linked List"]},
-    ]
+//     const problems = [
+//         { id: 1, title: "Two Sum", difficulty: 0, tags: ["Array"] },
+//         { id: 2, title: "Add Two Numbers", difficulty: 1, tags: ["Linked List"] },
+//     ]
 
-    const participants2 = [
-        {id: "1", username: "player1", defaultColor: "red", currentProblemIndex: 3, score: 9293},
-        {id: "2", username: "player2", defaultColor: "orange", currentProblemIndex: 3, score: 8700},
-    ]
+//     const participants2 = [
+//         { id: "1", username: "player1", defaultColor: "red", currentProblemIndex: 3, score: 9293 },
+//         { id: "2", username: "player2", defaultColor: "orange", currentProblemIndex: 3, score: 8700 },
+//     ]
+
+//     // copy room code to clipboard (works in extension and locally)
+//     function copyRoomCode(roomCode: string | null) {
+//         if (!roomCode) return
+//         try {
+//             if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+//                 chrome.runtime.sendMessage({ type: 'COPY_TO_CLIPBOARD', text: roomCode }, (resp) => {
+//                     const ok = resp && resp.ok
+//                     if (ok) {
+//                         setCopied(true)
+//                         setTimeout(() => setCopied(false), 2000)
+//                         return
+//                     }
+//                     doLocalCopy(roomCode)
+//                 })
+//                 return
+//             }
+//         } catch (e) {
+//             // fallback
+//         }
+//         doLocalCopy(roomCode)
+//     }
+
+//     function doLocalCopy(roomCode: string) {
+//         const ta = document.createElement('textarea')
+//         ta.value = roomCode
+//         ta.style.position = 'fixed'
+//         ta.style.left = '-9999px'
+//         document.body.appendChild(ta)
+//         ta.select()
+//         try {
+//             document.execCommand('copy')
+//         } catch {
+//         }
+//         ta.remove()
+//         setCopied(true)
+//         setTimeout(() => setCopied(false), 2000)
+//     }
+
+//     function sendMessage() {
+//         const text = inputRef.current?.value.trim()
+//         if (!text || !roomCode) return
+
+//         // Send message via WebSocket
+//         sendChatMessage(roomCode, text, {
+//             name: userProfile?.name || 'Unknown',
+//             photo: userProfile?.photo
+//         });
+
+//         // REMOVED: Optimistic update.
+//         // The server will echo the message back to us, so we don't need to add it manually here.
+//         // This prevents the "double message" issue for the sender.
+
+//         inputRef.current!.value = ''
+//     }
 
 
-    // copy room code to clipboard (works in extension and locally)
-    function copyRoomCode(roomCode: string | null) {
-        if (!roomCode) return
-        try {
-            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                chrome.runtime.sendMessage({type: 'COPY_TO_CLIPBOARD', text: roomCode}, (resp) => {
-                    const ok = resp && resp.ok
-                    if (ok) {
-                        setCopied(true)
-                        setTimeout(() => setCopied(false), 2000)
-                        return
-                    }
-                    doLocalCopy(roomCode)
-                })
-                return
-            }
-        } catch (e) {
-            // fallback
-        }
-        doLocalCopy(roomCode)
-    }
+//     useEffect(() => {
+//         if (containerRef.current) {
+//             containerRef.current.scrollTop = containerRef.current.scrollHeight
+//         }
+//     }, [messages])
 
-    function doLocalCopy(roomCode: string) {
-        const ta = document.createElement('textarea')
-        ta.value = roomCode
-        ta.style.position = 'fixed'
-        ta.style.left = '-9999px'
-        document.body.appendChild(ta)
-        ta.select()
-        try {
-            document.execCommand('copy')
-        } catch {
-        }
-        ta.remove()
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-    }
+//     // join/create handlers
+//     const handleJoin = (roomCode: string) => {
+//         setCurrentRoom({ code: roomCode, options: {} })
+//         joinRoom(roomCode);
 
-    function sendMessage() {
-        const text = inputRef.current?.value.trim()
-        if (!text || !roomCode) return
+//         setRoomCode(roomCode);
+//         setIsInRoom(true);
+//         router.push('/chat-page')
+//     }
 
-        // Send message via WebSocket
-        sendChatMessage(roomCode, text, {
-            name: userProfile?.name || 'Unknown',
-            photo: userProfile?.photo
-        });
+//     const handleCreate = (roomCode: string, options: any) => {
+//         setCurrentRoom({ code: roomCode, options: { ...options } })
+//         // Currently just joins the room code generated.
+//         // Future: Send 'create-room' request if backend distinguishes it.
+//         joinRoom(roomCode);
 
-        // REMOVED: Optimistic update.
-        // The server will echo the message back to us, so we don't need to add it manually here.
-        // This prevents the "double message" issue for the sender.
+//         setRoomCode(roomCode);
+//         setIsInRoom(true);
+//         router.push('/chat-page')
+//     }
 
-        inputRef.current!.value = ''
-    }
+//     useEffect(() => {
+//         if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+//             chrome.runtime.sendMessage({ type: 'CHECK_AUTH' }, (response) => {
+//                 if (response?.success) {
+//                     setUserProfile(response.user)
+//                     setLoggedIn(true)
+//                 }
+//             })
+//         }
+//     }, [])
 
-
-    useEffect(() => {
-        if (containerRef.current) {
-            containerRef.current.scrollTop = containerRef.current.scrollHeight
-        }
-    }, [messages])
-
-    // join/create handlers
-    const handleJoin = (roomCode: string) => {
-        setCurrentRoom({code: roomCode, options: {}})
-        joinRoom(roomCode);
-
-        setRoomCode(roomCode);
-        setIsInRoom(true);
-        router.push('/chat-page')
-    }
-
-    const handleCreate = (roomCode: string, options: any) => {
-        setCurrentRoom({code: roomCode, options: {...options}})
-        // Currently just joins the room code generated.
-        // Future: Send 'create-room' request if backend distinguishes it.
-        joinRoom(roomCode);
-        
-        setRoomCode(roomCode);
-        setIsInRoom(true);
-        router.push('/chat-page')
-    }
-
-    useEffect(() => {
-        if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
-            chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
-                if (response?.success) {
-                    setUserProfile(response.user)
-                    setLoggedIn(true)
-                }
-            })
-        }
-    }, [])
-
-    return {
-        problems,
-        setLoggedIn,
-        containerRef,
-        messages,
-        inputRef,
-        participants2,
-        copyRoomCode,
-        sendMessage,
-        handleCreate,
-        handleJoin,
-        loggedIn,
-        copied,
-        setCopied,
-        user,
-        setUser,
-        isMenuOpen,
-        setIsMenuOpen,
-        activeTab,
-        setActiveTab,
-        currentRoom,
-        //isConnected,
-        setUserProfile,
-        sendChatMessage,
-        setCurrentRoom
-    }
-}
+//     return {
+//         problems,
+//         setLoggedIn,
+//         containerRef,
+//         messages,
+//         inputRef,
+//         participants2,
+//         copyRoomCode,
+//         sendMessage,
+//         handleCreate,
+//         handleJoin,
+//         loggedIn,
+//         copied,
+//         setCopied,
+//         user,
+//         setUser,
+//         isMenuOpen,
+//         setIsMenuOpen,
+//         activeTab,
+//         setActiveTab,
+//         currentRoom,
+//         //isConnected,
+//         setUserProfile,
+//         sendChatMessage,
+//         setCurrentRoom
+//     }
+// }
