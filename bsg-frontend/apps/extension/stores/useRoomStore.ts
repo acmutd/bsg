@@ -3,17 +3,14 @@ import { TabName } from '@bsg/models/TabName';
 import { User } from '@bsg/models/User';
 import { Message } from '@/hooks/useChatSocket';
 import { GameEvent } from '@bsg/models/GameEvent';
-import { Asterisk } from 'lucide-react';
-import { InputType } from 'zlib';
-import { group } from 'console';
 
 interface roomStoreState {
   isInRoom: boolean;
+  roomId: string | null;
   isConnected: boolean;
   isAdmin: boolean;
   adminId: string | null;
   roomCode: string | null;
-  shortCode: string | null;
   participants: User[];
   activeTab: TabName;
   inputText: string;
@@ -24,11 +21,11 @@ interface roomStoreState {
   lastGameEvent: GameEvent | null;
 
   setIsInRoom: (isInRoom: boolean) => void;
+  setRoomId: (roomId: string | null) => void;
   setIsConnected: (isConnected: boolean) => void;
   setIsAdmin: (isAdmin: boolean) => void;
   setAdminId: (adminId: string) => void;
   setRoomCode: (roomCode: string | null) => void;
-  setShortCode: (shortCode: string | null) => void;
   setParticipants: (participants: User[]) => void;
   setActiveTab: (activeTab: TabName) => void;
   setInputText: (inputText: string) => void;
@@ -40,21 +37,21 @@ interface roomStoreState {
 
   addMessage: (message: Message) => void;
   initRoom: (
+    roomId: string,
     roomCode: string,
     adminId: string,
-    isAdmin: boolean,
-    shortCode: string
+    isAdmin: boolean
   ) => void;
   resetRoom: () => void;
 }
 
 const roomStoreInit = {
   isInRoom: false,
+  roomId: null,
   isConnected: false,
   isAdmin: false,
   adminId: null,
   roomCode: null,
-  shortCode: null,
   duration: 30,
   participants: [],
   activeTab: 'chat' as TabName,
@@ -70,11 +67,11 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   ...roomStoreInit,
 
   setIsInRoom: (isInRoom) => set({ isInRoom }),
+  setRoomId: (roomId) => set({ roomId: roomId }),
   setIsConnected: (isConnected) => set({ isConnected: isConnected }),
   setIsAdmin: (isAdmin) => set({ isAdmin: isAdmin }),
   setAdminId: (adminId) => set({ adminId: adminId }),
   setRoomCode: (roomCode) => set({ roomCode: roomCode }),
-  setShortCode: (shortCode) => set({ shortCode: shortCode }),
   setParticipants: (participants) => set({ participants: participants }),
   setActiveTab: (activeTab) => set({ activeTab: activeTab }),
   setInputText: (inputText) => set({ inputText: inputText }),
@@ -86,15 +83,15 @@ export const useRoomStore = create<roomStoreState>((set) => ({
 
   addMessage: (message) => set(s => ({ messages: [...s.messages, message] })),
   initRoom: (
+    roomId,
     roomCode,
     adminId,
-    isAdmin,
-    shortCode
+    isAdmin
   ) => set({ 
+    roomId: roomId,
     roomCode: roomCode,
     adminId: adminId,
     isAdmin: isAdmin,
-    shortCode: shortCode,
     isInRoom: true
   }),
   resetRoom: () => set(roomStoreInit)

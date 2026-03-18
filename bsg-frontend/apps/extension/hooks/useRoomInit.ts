@@ -2,14 +2,17 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { SERVER_URL } from '../lib/config'
 import { useChatSocket } from './useChatSocket'
 import { useUserStore } from '@/stores/useUserStore';
+import { useRouter } from 'next/router';
 
 export const useRoomInit = () => {
+
+    const router = useRouter();
 
     const { joinChatRoom } = useChatSocket();
     const initRoom = useRoomStore(s => s.initRoom);
     const userId = useUserStore(s => s.userId);
 
-    const handleJoinRoom = async (roomCode: string) => {
+    const joinRoom = async (roomCode: string) => {
         try {
             const res = await fetch(`${SERVER_URL}/rooms/${roomCode}/join`, {
                 method: 'POST',
@@ -22,25 +25,27 @@ export const useRoomInit = () => {
 
             initRoom(
                 room.id,
+                room.shortCode,
                 room.adminId,
                 userId === room.adminId,
-                room.shortCode
             );
 
             joinChatRoom(room.id);
+            router.push('/chat-page');
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: room.id });
                 chrome.storage.local.remove('nextProblem');
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
+
         } catch (e) {
             console.error(e);
             alert("Failed to join room. Please check the ID.");
         }
     }
 
-    const handleCreateRoom = async (roomCode: string, options: any) => {
+    const createRoom = async (roomCode: string, options: any) => {
         try {
             // 1. Create Room
             const res = await fetch(`${SERVER_URL}/rooms`, {
@@ -86,9 +91,9 @@ export const useRoomInit = () => {
             // 4. Update state and join WebSocket room
             initRoom(
                 roomId,
+                shortCode,
                 adminId,
-                userId === adminId,
-                shortCode
+                userId === adminId
             );
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -98,11 +103,13 @@ export const useRoomInit = () => {
             }
 
             joinChatRoom(roomId);
+            router.push('/chat-page');
+
         } catch (e) {
             console.error("Failed to create room/round", e);
             alert("Failed to create room. Please try again.");
         }
     }
 
-    return { handleJoinRoom, handleCreateRoom };
+    return { joinRoom, createRoom };
 }

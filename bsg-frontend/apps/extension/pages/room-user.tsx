@@ -1,3 +1,5 @@
+export default function RoomUser() {}
+
 // "use client"
 // import '../../../packages/ui-styles/global.css'
 // import { useState, useRef, useEffect } from 'react'

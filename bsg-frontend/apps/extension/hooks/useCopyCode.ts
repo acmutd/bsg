@@ -1,11 +1,11 @@
 import { useState } from "react";
 
-export function useCopyRoomCode() {
-    const [copied, setCopied] = useState<boolean>(false);
+export function useCopyCode() {
+    const [isCopied, setIsCopied] = useState<boolean>(false);
 
     function markCopied() {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
     }
 
     function doLocalCopy(roomCode: string) {
@@ -34,5 +34,5 @@ export function useCopyRoomCode() {
         doLocalCopy(roomCode);
     }
 
-    return { copyRoomCode, copied };
+    return { copyRoomCode, isCopied };
 }

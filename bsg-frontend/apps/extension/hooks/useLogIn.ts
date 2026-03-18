@@ -5,7 +5,9 @@ import { useUserStore } from "@/stores/useUserStore";
 
 export type AuthProvider = 'google' | 'github';
 
-export const useLogIn = () => {
+export const useLogin = () => {
+
+    const router = useRouter();
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const loginUser = useUserStore(s => s.loginUser);
@@ -15,7 +17,6 @@ export const useLogIn = () => {
         email: '',
         password: ''
     })
-    const router = useRouter()
     const handleChange = (e: { target: { name: any; value: any; }; }) => {
         setCredentials({...credentials, [e.target.name]: e.target.value})
     }

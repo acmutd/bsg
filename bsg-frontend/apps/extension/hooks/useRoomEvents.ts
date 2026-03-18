@@ -11,7 +11,7 @@ export function useRoomEvents() {
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const isInRoom = useRoomStore(s => s.isInRoom);
     const userId = useUserStore(s => s.userId);
-    const roomCode = useRoomStore(s => s.roomCode);
+    const roomId = useRoomStore(s => s.roomId);
     const nextProblem = useRoomStore(s => s.nextProblem);
     const lastGameEvent = useRoomStore(s => s.lastGameEvent);
     const setNextProblem = useRoomStore(s => s.setNextProblem);
@@ -137,9 +137,9 @@ export function useRoomEvents() {
     }, [nextProblem]);
 
     const handleStartRound = async () => {
-        if (!roomCode) return;
+        if (!roomId) return;
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomCode}/start`, {
+            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/start`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -154,10 +154,10 @@ export function useRoomEvents() {
     }
 
     const handleEndRound = async () => {
-        if (!roomCode) return;
-        console.log('Ending round for room:', roomCode);
+        if (!roomId) return;
+        console.log('Ending round for room:', roomId);
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomCode}/end`, {
+            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/end`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -217,9 +217,9 @@ export function useRoomEvents() {
                         console.log("CheckActiveRoom: Fetched room details", room);
                         initRoom(
                             room.id,
+                            room.shortCode,
                             room.adminId,
-                            userId === room.adminId,
-                            room.shortCode
+                            userId === room.adminId
                         );
 
                         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {

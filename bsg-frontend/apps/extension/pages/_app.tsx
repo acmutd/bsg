@@ -6,7 +6,7 @@ import DefaultPopup from './defaultPopup';
 import { HeaderBar } from '@/customComponents/TabBar/HeaderBar';
 import { Sidebar } from '@/customComponents/TabBar/Sidebar';
 import { useIsFolded } from '@/hooks/useIsFolded';
-import { useIsPanelHovered } from '@/hooks/useIsPanelHovered';
+import { usePanelStore } from '@/stores/usePanelStore';
 import { Toolbar } from '@/customComponents/Toolbar/Toolbar';
 import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
@@ -17,8 +17,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   const isDefaultPopup = (Component === DefaultPopup);
   const isFolded = useIsFolded();
-  const setIsPanelHovered = useIsPanelHovered(s => s.setIsPanelHovered);
-
+  const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
 
   // Redirect popup render

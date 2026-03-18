@@ -1,7 +1,7 @@
 import { Button } from "@bsg/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
-import { useLogIn } from "@/hooks/useLogIn";
+import { useLogin } from "@/hooks/useLogin";
 import { Poppins } from 'next/font/google';
 
 type AuthProvider = 'google' | 'github';
@@ -10,7 +10,7 @@ const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
 export default function LoginPage() {
 
-    const { credentials, handleChange, login } = useLogIn()
+    const { credentials, handleChange, login } = useLogin()
 
     return (
         <div className="flex flex-col px-5 pt-8 pb-16 gap-8 items-center">

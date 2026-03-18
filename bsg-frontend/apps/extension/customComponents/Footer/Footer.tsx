@@ -2,21 +2,21 @@ import { useRoomStore } from '@/stores/useRoomStore';
 
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button';
-import { useRoomUser } from '@/hooks/useRoomUser';
+import { useCopyCode } from '@/hooks/useCopyCode';
 
 export const Footer = () => {
     
+    const { copyRoomCode, isCopied } = useCopyCode();
     const isInRoom = useRoomStore(s => s.isInRoom);
     const isConnected = useRoomStore(s => s.isConnected);
     const roomCode = useRoomStore(s => s.roomCode);
-    const { copyRoomCode } = useRoomUser();
-
+    
     return (
         <div className="flex p-1 items-center justify-between">
 
-            <TooltipWrapper text="Copy room code">
+            <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
                 <Button
-                    onClick={() => copyRoomCode(roomCode)}
+                    onClick={() => copyRoomCode}
                     className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
                 >
                     <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`}/>

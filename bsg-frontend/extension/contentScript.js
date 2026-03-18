@@ -61,7 +61,7 @@
         // Create and style iframe early so handlers can reference it
         const iframe = document.createElement('iframe');
         iframe.id = 'bsg-extension-iframe';
-        iframe.src = chrome.runtime.getURL('logIn.html');
+        iframe.src = chrome.runtime.getURL('login-page.html');
         Object.assign(iframe.style, {
             width: '100%',
             height: '100%',

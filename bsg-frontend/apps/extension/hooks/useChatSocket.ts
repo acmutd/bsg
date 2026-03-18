@@ -21,7 +21,7 @@ export const useChatSocket = () => {
     const username = useUserStore(s => s.username);
     const iconUrl = useUserStore(s => s.iconUrl);
     const inputText = useRoomStore(s => s.inputText);
-    const roomCode = useRoomStore(s => s.roomCode);
+    const roomId = useRoomStore(s => s.roomId);
     const messages = useRoomStore(s => s.messages);
     const setInputText = useRoomStore(s => s.setInputText);
     const setMessages = useRoomStore(s => s.setMessages);
@@ -133,7 +133,7 @@ export const useChatSocket = () => {
     }, [userEmail]);
 
     const sendMessage = () => {
-        if (!roomCode) return;
+        if (!roomId) return;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
@@ -143,7 +143,7 @@ export const useChatSocket = () => {
                     userHandle: userEmail,
                     userName: username,
                     userPhoto: iconUrl,
-                    roomID: roomCode,
+                    roomID: roomId,
                     message: inputText
                 })
             };

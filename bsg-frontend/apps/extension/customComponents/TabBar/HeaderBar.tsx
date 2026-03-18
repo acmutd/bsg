@@ -6,7 +6,7 @@ import { fold, maximize } from './panelResize';
 import { TabName } from '@bsg/models/TabName';
 import { useIsScrolled } from './useIsScrolled';
 import { useTabNavigation } from './useTabNavigation';
-import { useIsPanelHovered } from '@/hooks/useIsPanelHovered';
+import { usePanelStore } from '@/stores/usePanelStore';
 import { useRoomStore } from '@/stores/useRoomStore';
 
 export const HeaderBar = () => {
@@ -14,7 +14,7 @@ export const HeaderBar = () => {
     const navToTab = useTabNavigation();
     const activeTab = useRoomStore(s => s.activeTab);
     const isInRoom = useRoomStore(s => s.isInRoom);
-    const isPanelHovered = useIsPanelHovered(s => s.isPanelHovered);
+    const isPanelHovered = usePanelStore(s => s.isPanelHovered);
     const [ hoveredTab, setHoveredTab ] = useState<TabName | null>(null);
     const { scrollRef, isScrolledX } = useIsScrolled<HTMLDivElement>();
 

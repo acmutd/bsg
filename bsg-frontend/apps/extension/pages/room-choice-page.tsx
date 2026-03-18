@@ -11,7 +11,6 @@ import {IncDecButtons} from "@/customComponents/inc-dec-buttons";
 import {useRoomChoice} from "@/hooks/useRoomChoice";
 import {TopicComponent} from "@/customComponents/topic-component";
 import {NumberOfProblemsWithDifficultyLabel} from "@/customComponents/number-of-problems-with-difficulty-label";
-import { useRoomUser } from '@/hooks/useRoomUser';
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -27,8 +26,6 @@ interface RoomChoiceProps {
 }
 
 export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
-
-    const { handleJoin, handleCreate } = useRoomUser();
 
     const {
         setShowCreateOptions,
