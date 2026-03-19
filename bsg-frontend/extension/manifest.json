@@ -8,8 +8,7 @@
   "permissions": [
     "tabs",
     "identity",
-    "storage",
-    "notifications"
+    "storage"
   ],
   "oauth2": {
     "client_id": "497587004129-53bvvo3kf0naps52sst90f03fe168dc4.apps.googleusercontent.com",

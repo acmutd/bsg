@@ -10,7 +10,6 @@ import { faPaperPlane, faSmile, faCopy } from '@fortawesome/free-solid-svg-icons
 import { faGoogle } from '@fortawesome/free-brands-svg-icons'
 import RoomChoice from './room-choice'
 import { useChatSocket } from '../hooks/useChatSocket'
-import { SERVER_URL as API_URL } from '../lib/config'
 
 
 
@@ -111,6 +110,7 @@ const RoomHeader = ({
 };
 
 
+const API_URL = 'http://localhost:3000';
 
 export default function RedirectionToRoomScreen() {
 
@@ -230,39 +230,22 @@ export default function RedirectionToRoomScreen() {
     if (!lastGameEvent) return;
 
     if (lastGameEvent.type === 'round-start') {
-       const data = lastGameEvent.data;
-       let problems: string[] = [];
-       let endTime: number;
-
-       if (data && typeof data === 'object' && data.startTime) {
-           // new format: { startTime (unix seconds), duration (minutes), problems }
-           problems = data.problems || [];
-           endTime = (data.startTime * 1000) + (data.duration * 60 * 1000);
-       } else {
-           // legacy fallback: comma-separated slugs
-           const slugs = typeof data === 'string' ? data.split(',') : [];
-           problems = slugs;
+       const data = lastGameEvent.data as string;
+       const slugs = data ? data.split(',') : [];
+       if (slugs.length > 0) {
+           const firstProblem = slugs[0];
            const duration = currentRoom?.options?.duration || 30;
-           endTime = Date.now() + duration * 60 * 1000;
-       }
+           setRoundEndTime(Date.now() + duration * 60 * 1000);
+           setRoundStarted(true);
+           
+           // Clear stale nextProblem state
+           setNextProblem(null);
+           if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+               chrome.storage.local.remove('nextProblem');
+               if (chrome.action) chrome.action.setBadgeText({ text: "" });
+           }
 
-       setRoundEndTime(endTime);
-       setRoundStarted(true);
-
-       // Store for background script TTL check
-       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-           chrome.storage.local.set({ roundEndTime: endTime });
-       }
-
-       // Clear stale nextProblem state
-       setNextProblem(null);
-       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-           chrome.storage.local.remove('nextProblem');
-           if (chrome.action) chrome.action.setBadgeText({ text: "" });
-       }
-
-       if (problems.length > 0) {
-           window.open(`https://leetcode.com/problems/${problems[0]}/`, '_top');
+           window.open(`https://leetcode.com/problems/${firstProblem}/`, '_top');
        }
     } else if (lastGameEvent.type === 'next-problem') {
         let eventData = lastGameEvent.data;
@@ -292,16 +275,15 @@ export default function RedirectionToRoomScreen() {
         setRoundEndTime(null);
         setRoundStarted(false);
         setCurrentRoom(null);
-
-        // Clear nextProblem and TTL state on round end
+        
+        // Clear nextProblem state on round end
         setNextProblem(null);
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
             chrome.storage.local.remove('nextProblem');
-            chrome.storage.local.remove('roundEndTime');
             if (chrome.action) chrome.action.setBadgeText({ text: "" });
         }
     }
-  }, [lastGameEvent, userProfile, currentRoom]);
+  }, [lastGameEvent, userProfile]);
 
   // join/create handlers
   const handleJoin = async (roomCode: string) => {
@@ -431,9 +413,6 @@ export default function RedirectionToRoomScreen() {
                   setRoundStarted(false);
                   setRoundEndTime(null);
                   setCurrentRoom(null);
-                  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                      chrome.storage.local.remove('roundEndTime');
-                  }
               }, 2000);
           }
       } catch (e: any) {
@@ -503,9 +482,6 @@ export default function RedirectionToRoomScreen() {
                               const endTime = startTime + (duration * 60 * 1000);
                               if (endTime > Date.now()) {
                                   setRoundEndTime(endTime);
-                                  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                                      chrome.storage.local.set({ roundEndTime: endTime });
-                                  }
                               }
                           }
                       }
@@ -655,5 +631,3 @@ export default function RedirectionToRoomScreen() {
 
 
     }
-
-
