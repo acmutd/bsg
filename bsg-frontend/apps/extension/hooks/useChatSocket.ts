@@ -61,7 +61,7 @@ export const useChatSocket = () => {
 
                     if (responseType === 'chat-message') {
                         console.log('recieved chat message: ' + JSON.stringify(message))
-                        setMessages([...messages, {
+                        setMessages( prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
@@ -71,7 +71,7 @@ export const useChatSocket = () => {
                         }]);
                     } else if (responseType === 'system-announcement') {
                         console.log('recieved system message: ' + message);
-                        setMessages([...messages, {
+                        setMessages(prev => [...prev, {
                             userHandle: 'System',
                             data: message.data,
                             roomID: message.roomID,
@@ -167,7 +167,7 @@ export const useChatSocket = () => {
         }
     };
 
-    // Derived from messages so will persist as well
+    // Derived from messages so will persist between tabs as well
     // TODO: make O(1) by only adding messages
     const groupedMessages = useMemo(() => {
         return messages.reduce((groups, msg) => {

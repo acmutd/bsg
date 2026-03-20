@@ -242,6 +242,9 @@
       }
 
       if (message.type === "ACTIVE") {
+        if (panelActive) return;
+        panelActive = true;
+
         const activeTabset = tabsetLayout.querySelector('.flexlayout__tabset-active');
 
         if (!activeTabset) {
@@ -293,11 +296,14 @@
 
     // Handle LeetCode's Active Tab - Start
 
+    let panelActive = false;
+
     // Parent of all tabsets and tabs
     const tabsetLayout = document.querySelector('.flexlayout__layout');
     if (!tabsetLayout) console.log("tabset layout not found");
 
     const removeActive = () => {
+      panelActive = false;
       activeTabsetObserver.disconnect();
       panel.style.removeProperty('outline');
       panel.style.removeProperty('outline-offset');
