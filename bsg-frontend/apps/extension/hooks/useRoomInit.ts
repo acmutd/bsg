@@ -33,7 +33,7 @@ export const useRoomInit = () => {
             );
 
             joinChatRoom(room.id);
-            router.push('/chat-page');
+            router.push('/room-page');
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: room.id });
@@ -105,7 +105,7 @@ export const useRoomInit = () => {
             }
 
             joinChatRoom(roomId);
-            router.push('/chat-page');
+            router.push('/room-page');
 
         } catch (e) {
             console.error("Failed to create room/round", e);
@@ -144,7 +144,7 @@ export const useRoomInit = () => {
                         }
 
                         joinChatRoom(room.id);
-                        router.push('/chat-page');
+                        router.push('/room-page');
 
                         // Check for active round
                         console.log("CheckActiveRoom: Rounds:", room.rounds);

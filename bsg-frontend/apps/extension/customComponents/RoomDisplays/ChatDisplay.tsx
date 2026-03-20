@@ -2,40 +2,51 @@ import '@bsg/ui-styles'
 import { Button } from '@bsg/ui/button'
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useUserStore } from '@/stores/useUserStore';
-import { useRoomStore } from '@/stores/useRoomStore'
 import { useChatSocket } from '@/hooks/useChatSocket'
 
-export default function ChatPage() {
+export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
-    const { sendMessage, chatRef, groupedMessages } = useChatSocket();
+    const {
+        inputText,
+        setInputText,
+        sendMessage,
+        chatRef,
+        groupedMessages
+    } = useChatSocket();
 
-    const inputText = useRoomStore(s => s.inputText);
-    const setInputText = useRoomStore(s => s.setInputText);
     const username = useUserStore(s => s.username);
     const speechBubbles = true;
 
     return (
-        <div ref={chatRef} className="h-full flex flex-col relative overflow-y-auto">
-            <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-1'}`}>
+        <div ref={chatRef} className={`h-full flex flex-col relative overflow-y-auto ${(isActive) ? '' : 'hidden'}`}>
+            <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-2'}`}>
                 {groupedMessages.map((group, i) => (
-                    <div
-                        key={i}
-                        className={
-                            (group[0].isSystem)
-                                ? 'flex justify-center py-1'
-                                : `flex flex-col w-fit gap-1 ${(!speechBubbles) ? 'px-4 py-2' : `p-2 bg-[#333333] rounded-lg ${(group[0].userName === username) ? 'self-end rounded-br-none' : 'rounded-bl-none'}`}`
-                            }
-                    >
-                        {!group[0].isSystem && group[0].userName}
+                    <>
+                        {(group[0].isSystem) ?
+                            <div className="flex justify-center p-2">
+                                {group[0].data}
+                            </div>
+                            :
+                            <div
+                                key={i}
+                                className={(group[0].userName === username) ? 'flex gap-4 items-end justify-end' : 'items-end flex gap-4'}
+                            >
+                                {(group[0].userName !== username) && <img src={group[0].userPhoto} alt={group[0].userName} className="w-6 h-6 rounded-full" />}
 
-                        {group.map((msg, j) => (
-                            <div key={j}>{msg.data}</div>
-                        ))}
-                    </div>
+                                <div className={`flex flex-col w-fit gap-1 ${(!speechBubbles) ? 'px-4 py-2' : `p-3 bg-[#333333] rounded-2xl ${(group[0].userName === username) ? 'rounded-br-none' : 'rounded-bl-none'}`}`}>
+                                    {group[0].userName}
+
+                                    {group.map((msg, j) => (
+                                        <div key={j}>{msg.data}</div>
+                                    ))}
+                                </div>
+
+                                {(group[0].userName === username) && <img src={group[0].userPhoto} alt={group[0].userName} className="w-6 h-6 rounded-full" />}
+                            </div>
+                        }
+                    </>
                 ))}
             </div>
-
-            {/* {messages.map((msg, i) => <div key={i}>{msg.data}</div>)} */}
 
             <div className="sticky bottom-0 w-full flex items-center p-4 bg-gradient-to-t from-[#262626] to-transparent">
                 <div className="flex w-full bg-[#333333] rounded-full items-center px-4 py-3 gap-4">
@@ -82,4 +93,4 @@ export default function ChatPage() {
             </div>
         </div>
     )
-}
+};
