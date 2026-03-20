@@ -21,8 +21,6 @@ export default function App({ Component, pageProps }: AppProps) {
   const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
 
-  // TODO: Make active panel hook to mimic LeetCode panel border on click
-
   // Redirect popup render
   if (isDefaultPopup) {
     return (
@@ -34,7 +32,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // On Leetcode extension render
   return (
-    //<div className={poppins.className}>
     <div
       onMouseEnter={() => setIsPanelHovered(true)}
       onMouseLeave={() => setIsPanelHovered(false)}
@@ -43,19 +40,19 @@ export default function App({ Component, pageProps }: AppProps) {
     >
       {/* Sidebar */}
       <div className={isFolded ? 'flex h-screen' : 'hidden'}>
-        <Sidebar/>
+        <Sidebar isInRoom={isInRoom}/>
       </div>
 
       {/* Main Layout */}
       <div className={isFolded ? 'hidden' : 'flex flex-col h-screen'}>
-        <HeaderBar/>
+        <HeaderBar isInRoom={isInRoom}/>
         <div className="flex-1 flex overflow-x-auto">
           <div className="flex-1 flex flex-col min-w-[24rem]">
             {isInRoom && <Toolbar/>}
             <div className="flex-1 overflow-y-auto">
               <Component {...pageProps}/>
             </div>
-            <Footer/>
+            <Footer isInRoom={isInRoom}/>
           </div>
         </div>
       </div>

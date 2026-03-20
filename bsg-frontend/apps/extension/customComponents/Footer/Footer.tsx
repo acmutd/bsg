@@ -4,10 +4,9 @@ import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button';
 import { useCopyCode } from '@/hooks/useCopyCode';
 
-export const Footer = () => {
+export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
     
     const { copyRoomCode, isCopied } = useCopyCode();
-    const isInRoom = useRoomStore(s => s.isInRoom);
     const isConnected = useRoomStore(s => s.isConnected);
     const roomCode = useRoomStore(s => s.roomCode);
     

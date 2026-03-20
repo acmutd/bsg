@@ -7,14 +7,13 @@ import { useIsScrolled } from './useIsScrolled';
 import { usePanelStore } from '@/stores/usePanelStore';
 import { useRoomStore } from '@/stores/useRoomStore';
 
-export const HeaderBar = () => {
+export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
 
     const [ hoveredTab, setHoveredTab ] = useState<TabName | null>(null);
     const { scrollRef, isScrolledX } = useIsScrolled<HTMLDivElement>();
 
     const activeTab = useRoomStore(s => s.activeTab);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
-    const isInRoom = useRoomStore(s => s.isInRoom);
     const isPanelHovered = usePanelStore(s => s.isPanelHovered);
 
     return (
