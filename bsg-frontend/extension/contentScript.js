@@ -88,7 +88,7 @@
     Object.assign(handleBar.style, {
       width: '0.125rem',
       height: '1.25rem',
-      backgroundColor: '#343434',
+      backgroundColor: 'rgba(255, 255, 255, 0.14) #ffffff24',
       borderRadius: '1px',
       transition: 'background-color 0.12s ease',
     });
@@ -114,6 +114,8 @@
     panel.appendChild(iframe);
     panelWrapper.appendChild(panel);
     wrapper.appendChild(panelWrapper);
+
+    // TODO: Handle window size change (vertical/horizontal)
 
     // Add resize functionality using pointer events and pointer capture
     function clampWidth(width) {
