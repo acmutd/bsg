@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { TabName } from '@bsg/models/TabName';
 import { User } from '@bsg/models/User';
-import { Message } from '@/hooks/useChatSocket';
 import { GameEvent } from '@bsg/models/GameEvent';
 
 interface roomStoreState {
@@ -13,11 +12,8 @@ interface roomStoreState {
   roomCode: string | null;
   participants: User[];
   activeTab: TabName;
-  inputText: string;
-  messages: Message[];
   isRoundStarted: boolean;
   roundEndTime: number | null;
-  nextProblem: string | null;
   lastGameEvent: GameEvent | null;
 
   setIsInRoom: (isInRoom: boolean) => void;
@@ -28,14 +24,10 @@ interface roomStoreState {
   setRoomCode: (roomCode: string | null) => void;
   setParticipants: (participants: User[]) => void;
   setActiveTab: (activeTab: TabName) => void;
-  setInputText: (inputText: string) => void;
-  setMessages: (messages: Message[]) => void;
   setIsRoundStarted: (isRoundStarted: boolean) => void;
   setRoundEndTime: (roundEndTime: number | null) => void;
-  setNextProblem: (nextProblem: string | null) => void;
   setLastGameEvent: (lastGameEvent: GameEvent | null) => void;
 
-  addMessage: (message: Message) => void;
   initRoom: (
     roomId: string,
     roomCode: string,
@@ -52,14 +44,10 @@ const roomStoreInit = {
   isAdmin: false,
   adminId: null,
   roomCode: null,
-  duration: 30,
   participants: [],
   activeTab: 'chat' as TabName,
-  inputText: '',
-  messages: [],
   isRoundStarted: false,
   roundEndTime: null,
-  nextProblem: null,
   lastGameEvent: null
 };
 
@@ -74,14 +62,10 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setRoomCode: (roomCode) => set({ roomCode: roomCode }),
   setParticipants: (participants) => set({ participants: participants }),
   setActiveTab: (activeTab) => set({ activeTab: activeTab }),
-  setInputText: (inputText) => set({ inputText: inputText }),
-  setMessages: (messages) => set({ messages: messages }),
   setIsRoundStarted: (isRoundStarted) => set({ isRoundStarted: isRoundStarted }),
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
-  setNextProblem: (nextProblem) => set({ nextProblem: nextProblem }),
   setLastGameEvent: (lastGameEvent) => set({ lastGameEvent: lastGameEvent }),
 
-  addMessage: (message) => set(s => ({ messages: [...s.messages, message] })),
   initRoom: (
     roomId,
     roomCode,

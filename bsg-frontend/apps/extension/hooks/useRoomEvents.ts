@@ -1,17 +1,17 @@
+import { useEffect, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { SERVER_URL } from '../lib/config'
-import { useEffect } from "react";
 import { useUserStore } from "@/stores/useUserStore";
 
 export function useRoomEvents() {
+
+    const [ nextProblem, setNextProblem ] = useState<string | null>(null);
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const isInRoom = useRoomStore(s => s.isInRoom);
     const userId = useUserStore(s => s.userId);
     const roomId = useRoomStore(s => s.roomId);
-    const nextProblem = useRoomStore(s => s.nextProblem);
     const lastGameEvent = useRoomStore(s => s.lastGameEvent);
-    const setNextProblem = useRoomStore(s => s.setNextProblem);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const resetRoom = useRoomStore(s => s.resetRoom);

@@ -10,6 +10,7 @@ import { usePanelStore } from '@/stores/usePanelStore';
 import { Toolbar } from '@/customComponents/Toolbar/Toolbar';
 import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { messageScript } from '@/utils/messageScript';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
@@ -37,7 +38,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <div
       onMouseEnter={() => setIsPanelHovered(true)}
       onMouseLeave={() => setIsPanelHovered(false)}
-      onClick={() => {console.log("panel clicked")}}
+      onMouseDown={() => messageScript('ACTIVE')}
       className="overflow-hidden"
     >
       {/* Sidebar */}

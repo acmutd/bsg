@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
@@ -18,15 +18,13 @@ export const useChatSocket = () => {
     const pendingRoomIDRef = useRef<string | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
 
+    const [ messages, setMessages ] = useState<Message[]>([]);
+    const [ inputText, setInputText ] = useState<string>('');
+
     const userEmail = useUserStore(s => s.email);
     const username = useUserStore(s => s.username);
     const iconUrl = useUserStore(s => s.iconUrl);
-    const inputText = useRoomStore(s => s.inputText);
     const roomId = useRoomStore(s => s.roomId);
-    const messages = useRoomStore(s => s.messages);
-    const setInputText = useRoomStore(s => s.setInputText);
-    const setMessages = useRoomStore(s => s.setMessages);
-    const addMessage = useRoomStore(s => s.addMessage);
     const setIsConnected = useRoomStore(s => s.setIsConnected);
     const setLastGameEvent = useRoomStore(s => s.setLastGameEvent);
 
@@ -63,22 +61,22 @@ export const useChatSocket = () => {
 
                     if (responseType === 'chat-message') {
                         console.log('recieved chat message: ' + JSON.stringify(message))
-                        addMessage({
+                        setMessages([...messages, {
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
                             data: message.message || message.data,
                             roomID: message.roomID,
                             isSystem: false
-                        });
+                        }]);
                     } else if (responseType === 'system-announcement') {
                         console.log('recieved system message: ' + message);
-                        addMessage({
+                        setMessages([...messages, {
                             userHandle: 'System',
                             data: message.data,
                             roomID: message.roomID,
                             isSystem: true
-                        });
+                        }]);
                     } else if (responseType === 'round-start') {
                         try {
                             const parsedData = JSON.parse(message.data);
@@ -195,5 +193,12 @@ export const useChatSocket = () => {
         }
     }, [messages])
 
-    return { joinChatRoom, sendMessage, chatRef, groupedMessages };
+    return {
+        inputText,
+        setInputText,
+        joinChatRoom,
+        sendMessage,
+        chatRef,
+        groupedMessages
+    };
 };
