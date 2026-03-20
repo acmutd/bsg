@@ -240,9 +240,22 @@
       }
 
       if (message.type === "ACTIVE") {
-        const prevActive = document.querySelector(".flexlayout__tabset-active");
-        if (prevActive) prevActive.classList.remove("flexlayout__tabset-active");
+        const activeTabset = tabsetLayout.querySelector('.flexlayout__tabset-active');
 
+        if (!activeTabset) {
+          console.log("active tabset not found");
+          return;
+        }
+
+        // Remove active class and attach observer (changes to active tabset only)
+        activeTabset.classList.remove("flexlayout__tabset-active");
+        activeTabsetObserver.observe(activeTabset, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+        console.log("attatched activeTabsetObserver to: ", activeTabset);
+
+        // Style panel
         panel.style.outline = "1px solid rgba(255, 255, 255, 0.22)";
         panel.style.outlineOffset = "-1px";
       }
@@ -278,67 +291,68 @@
 
     // Handle LeetCode's Active Tab - Start
 
-    // Handle mouseDown on tabset
-    const attachTabsetListener = (tabset) => {
-      tabset.addEventListener('mousedown', (e) => {
-        panel.style.removeProperty('outline');
-        panel.style.removeProperty('outline-offset');
+    // Parent of all tabsets and tabs
+    const tabsetLayout = document.querySelector('.flexlayout__layout');
+    if (!tabsetLayout) console.log("tabset layout not found");
 
-        tabset.classList.add('flexlayout__tabset-active');
-      });
-    };
+    const removeActive = () => {
+      activeTabsetObserver.disconnect();
+      panel.style.removeProperty('outline');
+      panel.style.removeProperty('outline-offset');
+    }
 
-    // Handle mouseDown on tabset content
-    const attachTabListener = (tab) => {
-      tab.addEventListener('mousedown', (e) => {
-        panel.style.removeProperty('outline');
-        panel.style.removeProperty('outline-offset');
-
-        // Find matching tabset with corresponding data-layout-path
+    tabsetLayout.addEventListener('mousedown', (e) => {
+      let tabset;
+      const tab = e.target.closest('.flexlayout__tab');
+      
+      // Find matching tabset with corresponding data-layout-path
+      if (tab) {
         const tabPath = tab.dataset.layoutPath;
         const tabsetPath = tabPath?.split('/').slice(0, -1).join('/');
-
-        const tabset = document.querySelector(
+        tabset = tabsetLayout.querySelector(
           `.flexlayout__tabset[data-layout-path="${tabsetPath}"]`
         );
+      } else {
+        tabset = e.target.closest('.flexlayout__tabset');
+      }
+      
+      if (tabset) {
+        removeActive();
+        tabset.classList.add('flexlayout__tabset-active');
+      }
+    });
 
-        if (tabset) {
-          tabset.classList.add('flexlayout__tabset-active');
-        }
-      });
-    };
-
-    // Attach to any already in the DOM
-    document.querySelectorAll('.flexlayout__tabset').forEach(attachTabsetListener);
-    document.querySelectorAll('.flexlayout__tab').forEach(attachTabListener);
-
-    // Watch for new ones being added
+    // Watch for new tabsets being added
     const newTabsetObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-          // Check if the node itself is a tabset
-          if (node.classList.contains('flexlayout__tabset')) {
-            attachTabsetListener(node);
+          
+          if (node.matches('.flexlayout__tabset, .flexlayout__tab')) {
+            removeActive();
           }
-          if (node.classList.contains('flexlayout__tab')) {
-            attachTabListener(node);
-          }
-
-          // Check children of the added node
-          node.querySelectorAll?.('.flexlayout__tabset').forEach(attachTabsetListener);
-          node.querySelectorAll?.('.flexlayout__tab').forEach(attachTabListener);
         });
       });
     });
 
-    // Only observe added and removed nodes
-    newTabsetObserver.observe(document.body, {
+    // Only observe added and removed nodes from LeetCode tabset layout
+    newTabsetObserver.observe(tabsetLayout, {
       childList: true,
-      subtree: true,
       attributes: false,
       characterData: false
+    });
+
+    // Watch for LeetCode re-adding active class to tabsets
+    const activeTabsetObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'class' &&
+          mutation.target.classList.contains('flexlayout__tabset-active')
+        ) {
+          mutation.target.classList.remove('flexlayout__tabset-active');
+        }
+      });
     });
 
     // Handle LeetCode's Active Tab - End
