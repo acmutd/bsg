@@ -23,112 +23,123 @@
       return;
     }
 
-        Object.assign(wrapper.style, {
-            display: 'flex',
-            alignItems: 'flex-start',
-            boxSizing: 'border-box',
-        });
+    Object.assign(wrapper.style, {
+      display: 'flex',
+      alignItems: 'flex-start',
+      boxSizing: 'border-box',
+    });
 
-        Object.assign(qd.style, {
-            flex: '1 1 auto',
-            minWidth: '0',
-        });
+    Object.assign(qd.style, {
+      flex: '1 1 auto',
+      minWidth: '0',
+    });
 
-        // Create wrapper for panel + resize handle
-        const panelWrapper = document.createElement('div');
-        panelWrapper.id = 'bsg-extension-wrapper';
-        Object.assign(panelWrapper.style, {
-            display: 'flex',
-            alignItems: 'stretch',
-            position: 'relative',
-        });
+    // Create wrapper for panel + resize handle
+    const panelWrapper = document.createElement('div');
+    panelWrapper.id = 'bsg-extension-wrapper';
+    Object.assign(panelWrapper.style, {
+      display: 'flex',
+      alignItems: 'stretch',
+      position: 'relative',
+    });
 
-        // Create the main panel
-        const panel = document.createElement('div');
-        panel.id = 'bsg-extension-panel';
-        Object.assign(panel.style, {
-            width: '24rem',
-            height: `${qd.getBoundingClientRect().height}px`,
-            backgroundColor: '#262626',
-            //border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            //boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-            transition: 'width 0.05s ease-out',
-        });
+    // Create the main panel
+    const panel = document.createElement('div');
+    panel.id = 'bsg-extension-panel';
+    Object.assign(panel.style, {
+      width: '24rem',
+      height: `${qd.getBoundingClientRect().height}px`,
+      backgroundColor: '#262626',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      boxSizing: 'border-box',
+      transition: 'width 0.05s ease-out',
+    });
 
-        // Create and style iframe early so handlers can reference it
-        const iframe = document.createElement('iframe');
-        iframe.id = 'bsg-extension-iframe';
-        iframe.src = chrome.runtime.getURL('login-page.html');
-        Object.assign(iframe.style, {
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            display: 'block',
-            borderRadius: '8px',
-        });
+    // Create and style iframe early so handlers can reference it
+    const iframe = document.createElement('iframe');
+    iframe.id = 'bsg-extension-iframe';
+    iframe.src = chrome.runtime.getURL('login-page.html');
+    Object.assign(iframe.style, {
+      width: '100%',
+      height: '100%',
+      border: 'none',
+      display: 'block',
+      borderRadius: '8px',
+    });
 
-        // Create resize handle with larger hit area (we'll insert it between page content and panel)
-        const handle = document.createElement('div');
-        handle.id = 'bsg-extension-resize-handle';
-        Object.assign(handle.style, {
-            // keep handle in normal flow between qd and panelWrapper
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minWidth: '0.5rem', // smaller hit area
-            cursor: 'ew-resize',
-            zIndex: 1000,
-            background: 'transparent',
-            padding: '0',
-        });
+    // Create resize handle with larger hit area (we'll insert it between page content and panel)
+    const handle = document.createElement('div');
+    handle.id = 'bsg-extension-resize-handle';
+    Object.assign(handle.style, {
+      // keep handle in normal flow between qd and panel
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: '0.5rem', // smaller hit area
+      cursor: 'ew-resize',
+      zIndex: 1000,
+      background: 'transparent',
+      padding: '0',
+    });
 
-        // Create visible handle bar centered inside the hit area
-        const handleBar = document.createElement('div');
-        Object.assign(handleBar.style, {
-            width: '0.125rem',
-            height: '1.25rem',
-            backgroundColor: '#343434',
-            borderRadius: '1px',
-            transition: 'background-color 0.12s ease',
-        });
-        handle.appendChild(handleBar);
+    // Create visible handle bar centered inside the hit area
+    const handleBar = document.createElement('div');
+    Object.assign(handleBar.style, {
+      width: '0.125rem',
+      height: '1.25rem',
+      backgroundColor: '#343434',
+      borderRadius: '1px',
+      transition: 'background-color 0.12s ease',
+    });
 
+    /* Layout:
+     * 
+     * <wrapper>
+     *     <qd/>
+     *     <handle>
+     *         <handleBar/>
+     *     </handle>
+     *     <panelWrapper>
+     *         <panel>
+     *             <iframe>
+     *         </panel>
+     *     </panelWrapper>
+     * </wrapper>
+     * 
+     */
 
+    handle.appendChild(handleBar);
+    wrapper.appendChild(handle);
+    panel.appendChild(iframe);
+    panelWrapper.appendChild(panel);
+    wrapper.appendChild(panelWrapper);
 
-        // Assemble the components
-        panel.appendChild(iframe);
-        // Insert handle between the page content (qd) and the injected panel
-        // wrapper currently contains qd; append handle then panelWrapper so the order is: qd, handle, panel
-        panelWrapper.appendChild(panel);
+    // Add resize functionality using pointer events and pointer capture
+    function clampWidth(width) {
+      const MIN_WIDTH = 36;
+      const MAX_WIDTH = 900;
+      return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+    }
 
-        // Add resize functionality using pointer events and pointer capture
-        function clampWidth(width) {
-          const MIN_WIDTH = 36;
-          const MAX_WIDTH = 900;
-          return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
-        }
+    let isDragging = false;
 
-        let isDragging = false;
-
-        function beginDrag(e) {
-            // Capture the pointer so we keep receiving events even if cursor leaves element
-            try {
-                handle.setPointerCapture && handle.setPointerCapture(e.pointerId);
-            } catch (err) {
-                // ignore
-            }
-            isDragging = true;
-            // disable pointer events on iframe so parent receives pointer events while over iframe
-            iframe.style.pointerEvents = 'none';
-            // show blue line when dragging/selected and expand height
-            handleBar.style.backgroundColor = '#3b82f6';
-            handleBar.style.height = '100%';
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-            e.preventDefault && e.preventDefault();
+    function beginDrag(e) {
+      // Capture the pointer so we keep receiving events even if cursor leaves element
+      try {
+        handle.setPointerCapture && handle.setPointerCapture(e.pointerId);
+      } catch (err) {
+        // ignore
+      }
+      isDragging = true;
+      // disable pointer events on iframe so parent receives pointer events while over iframe
+      iframe.style.pointerEvents = 'none';
+      // show blue line when dragging/selected and expand height
+      handleBar.style.backgroundColor = '#3b82f6';
+      handleBar.style.height = '100%';
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault && e.preventDefault();
 
       // Immediately align panel left boundary with pointer so the visible bar is under cursor
       try {
@@ -206,31 +217,37 @@
     window.addEventListener('resize', syncHandleHeight);
 
     // append handle between existing page content and the panel wrapper
-    wrapper.appendChild(handle);
-    wrapper.appendChild(panelWrapper);
     console.log('panel injected with resize handle (handle placed between content and panel)');
 
-          // Listen for auth state changes from extension
-          chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-              if (message.type === 'AUTH_STATE_CHANGED') {
-                    // Refresh the iframe to reflect new auth state
-                  iframe.src = iframe.src;
+    // Listen for auth state changes from extension
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'AUTH_STATE_CHANGED') {
+        // Refresh the iframe to reflect new auth state
+        iframe.src = iframe.src;
+        sendResponse({ success: true });
+      }
 
-                sendResponse({success: true});
-            }
+      if (message.type === "FOLD") {
+        panel.style.width = "2.25rem";
+      }
 
-            if (message.type === "FOLD") {
-                panel.style.width = "2.25rem";
-            }
+      if (message.type === "UNFOLD") {
+        panel.style.width = "24rem";
+      }
 
-            if (message.type === "UNFOLD") {
-                panel.style.width = "24rem";
-            }
+      if (message.type === "MAXIMIZE") {
+        panel.style.width = `${window.innerWidth}px`;
+      }
 
-            if (message.type === "MAXIMIZE") {
-                panel.style.width = `${window.innerWidth}px`;
-            }
+      if (message.type === "ACTIVE") {
+        const prevActive = document.querySelector(".flexlayout__tabset-active");
+        if (prevActive) prevActive.classList.remove("flexlayout__tabset-active");
+
+        panel.style.outline = "1px solid rgba(255, 255, 255, 0.22)";
+        panel.style.outlineOffset = "-1px";
+      }
     });
+
     // Inject interception script
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('injected.js');
@@ -257,7 +274,74 @@
           data: event.data.payload
         });
       }
+    })
+
+    // Handle LeetCode's Active Tab - Start
+
+    // Handle mouseDown on tabset
+    const attachTabsetListener = (tabset) => {
+      tabset.addEventListener('mousedown', (e) => {
+        panel.style.removeProperty('outline');
+        panel.style.removeProperty('outline-offset');
+
+        tabset.classList.add('flexlayout__tabset-active');
+      });
+    };
+
+    // Handle mouseDown on tabset content
+    const attachTabListener = (tab) => {
+      tab.addEventListener('mousedown', (e) => {
+        panel.style.removeProperty('outline');
+        panel.style.removeProperty('outline-offset');
+
+        // Find matching tabset with corresponding data-layout-path
+        const tabPath = tab.dataset.layoutPath;
+        const tabsetPath = tabPath?.split('/').slice(0, -1).join('/');
+
+        const tabset = document.querySelector(
+          `.flexlayout__tabset[data-layout-path="${tabsetPath}"]`
+        );
+
+        if (tabset) {
+          tabset.classList.add('flexlayout__tabset-active');
+        }
+      });
+    };
+
+    // Attach to any already in the DOM
+    document.querySelectorAll('.flexlayout__tabset').forEach(attachTabsetListener);
+    document.querySelectorAll('.flexlayout__tab').forEach(attachTabListener);
+
+    // Watch for new ones being added
+    const newTabsetObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+          // Check if the node itself is a tabset
+          if (node.classList.contains('flexlayout__tabset')) {
+            attachTabsetListener(node);
+          }
+          if (node.classList.contains('flexlayout__tab')) {
+            attachTabListener(node);
+          }
+
+          // Check children of the added node
+          node.querySelectorAll?.('.flexlayout__tabset').forEach(attachTabsetListener);
+          node.querySelectorAll?.('.flexlayout__tab').forEach(attachTabListener);
+        });
+      });
     });
+
+    // Only observe added and removed nodes
+    newTabsetObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: false,
+      characterData: false
+    });
+
+    // Handle LeetCode's Active Tab - End
 
   });
 })();
