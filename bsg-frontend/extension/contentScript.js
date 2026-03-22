@@ -259,10 +259,6 @@
           attributeFilter: ['class']
         });
         console.log("attatched activeTabsetObserver to: ", activeTabset);
-
-        // Style panel
-        panel.style.outline = "1px solid rgba(255, 255, 255, 0.22)";
-        panel.style.outlineOffset = "-1px";
       }
     });
 
@@ -305,8 +301,7 @@
     const removeActive = () => {
       panelActive = false;
       activeTabsetObserver.disconnect();
-      panel.style.removeProperty('outline');
-      panel.style.removeProperty('outline-offset');
+      chrome.runtime.sendMessage({ type: 'NOT_ACTIVE' });
     }
 
     document.body.addEventListener('mousedown', (e) => {
@@ -320,7 +315,7 @@
         target = document.elementFromPoint(e.clientX, e.clientY);
         popper.style.visibility = 'visible';
       }
-      
+
       // Get tabset from either tab path or direct closest
       const tab = target?.closest('.flexlayout__tab');
       if (tab) {
