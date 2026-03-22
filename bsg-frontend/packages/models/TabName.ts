@@ -1,0 +1,1 @@
+export type TabName = 'roomInfo' | 'chat' | 'leaderboard' | 'statistics';

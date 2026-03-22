@@ -1,4 +1,3 @@
-"use client";
 import SignUpForm from "@bsg/components/signUpForm/signUpForm";
 
 const signUp = () => {

@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import Topic from "@bsg/components/Topic/Topic";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faAnglesDown, faAnglesUp} from "@fortawesome/free-solid-svg-icons";
-import TooltipWrapper from "@bsg/components/TooltipWrapper";
+import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 
 type TopicListProps = {
     topics: Topic[];

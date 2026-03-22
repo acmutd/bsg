@@ -1,7 +1,7 @@
 import {Button} from "@bsg/ui/button";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {faChevronDown, faChevronUp} from "@fortawesome/free-solid-svg-icons";
-import {SetStateAction} from "react";
+import React, {SetStateAction} from "react";
 
 const IncDecButtons = (props: {
     decrementOnClick: (value: SetStateAction<number>) => void,

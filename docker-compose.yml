@@ -141,11 +141,11 @@ services:
     ports:
       - ${PORT_WEB:-80}:80
 
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: acm-cloudflare-tunnel
-    restart: always
-    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+  # tunnel:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: acm-cloudflare-tunnel
+  #   restart: always
+  #   command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
 
 volumes:
   db-volume:

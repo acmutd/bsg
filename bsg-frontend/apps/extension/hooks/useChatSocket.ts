@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
+import { useUserStore } from '@/stores/useUserStore';
 
 export type Message = {
     userHandle: string;
@@ -10,11 +12,21 @@ export type Message = {
     isSystem?: boolean;
 }
 
-export const useChatSocket = (userEmail: string | null | undefined) => {
+export const useChatSocket = () => {
+
     const socketRef = useRef<WebSocket | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
-    const [lastGameEvent, setLastGameEvent] = useState<{ type: 'round-start' | 'next-problem' | 'round-end', data: any, timestamp: number } | null>(null);
+    const pendingRoomIDRef = useRef<string | null>(null);
+    const chatRef = useRef<HTMLDivElement | null>(null);
+
+    const [ messages, setMessages ] = useState<Message[]>([]);
+    const [ inputText, setInputText ] = useState<string>('');
+
+    const userEmail = useUserStore(s => s.email);
+    const username = useUserStore(s => s.username);
+    const iconUrl = useUserStore(s => s.iconUrl);
+    const roomId = useRoomStore(s => s.roomId);
+    const setIsConnected = useRoomStore(s => s.setIsConnected);
+    const setLastGameEvent = useRoomStore(s => s.setLastGameEvent);
 
     useEffect(() => {
         if (!userEmail) return;
@@ -23,8 +35,21 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         socketRef.current = ws;
 
         ws.onopen = () => {
-            console.log('Connected to RTC service');
             setIsConnected(true);
+
+            //race-condition prevention joinRoom was happening before
+            //the wb connection
+            if(userEmail && roomId){
+                const payload ={
+                    name:userEmail,
+                    "request-type": "join-room",
+                    data: JSON.stringify({
+                        userHandle: userEmail,
+                        roomID: pendingRoomIDRef.current
+                    })
+                };
+                ws.send(JSON.stringify(payload));
+            }
         };
 
         ws.onmessage = (event) => {
@@ -35,7 +60,8 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                     const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
-                        setMessages(prev => [...prev, {
+                        console.log('recieved chat message: ' + JSON.stringify(message))
+                        setMessages( prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
@@ -44,6 +70,7 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
+                        console.log('recieved system message: ' + message);
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
                             data: message.data,
@@ -92,7 +119,6 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         };
 
         ws.onclose = () => {
-            console.log('Disconnected from RTC service');
             setIsConnected(false);
         };
 
@@ -101,10 +127,11 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         };
     }, [userEmail]);
 
-    const joinRoom = useCallback((roomID: string) => {
+    const joinChatRoom = useCallback((roomID: string) => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
+        pendingRoomIDRef.current = roomID;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
@@ -119,28 +146,59 @@ export const useChatSocket = (userEmail: string | null | undefined) => {
         }
     }, [userEmail]);
 
-    const sendChatMessage = useCallback((roomID: string, message: string, user?: { name: string, photo?: string }) => {
+    const sendMessage = () => {
+        if (!roomId || !inputText.trim()) return;
+
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
                 name: userEmail,
                 "request-type": "chat-message",
                 data: JSON.stringify({
                     userHandle: userEmail,
-                    userName: user?.name,
-                    userPhoto: user?.photo,
-                    roomID: roomID,
-                    message: message
+                    userName: username,
+                    userPhoto: iconUrl,
+                    roomID: roomId,
+                    message: inputText
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
+
+            setInputText('');
         }
-    }, [userEmail]);
+    };
+
+    // Derived from messages so will persist between tabs as well
+    // TODO: make O(1) by only adding messages
+    const groupedMessages = useMemo(() => {
+        return messages.reduce((groups, msg) => {
+            const lastGroup = groups[groups.length - 1];
+
+            if (
+                lastGroup &&
+                !msg.isSystem &&
+                lastGroup[0].userName === msg.userName
+            ) {
+                lastGroup.push(msg);
+            } else {
+                groups.push([msg]);
+            }
+
+            return groups;
+        }, [] as typeof messages[]);
+    }, [messages]);
+
+    useEffect(() => {
+        if (chatRef.current) {
+            chatRef.current.scrollTop = chatRef.current.scrollHeight
+        }
+    }, [messages])
 
     return {
-        messages,
-        isConnected,
-        joinRoom,
-        sendChatMessage,
-        lastGameEvent
+        inputText,
+        setInputText,
+        joinChatRoom,
+        sendMessage,
+        chatRef,
+        groupedMessages
     };
 };

@@ -37,7 +37,7 @@
       "resources": [
         "defaultPopup.html",
         "next/*",
-        "logIn.html",
+        "login-page.html",
         "injected.js"
       ],
       "matches": [

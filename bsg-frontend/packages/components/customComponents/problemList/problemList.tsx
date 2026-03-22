@@ -3,7 +3,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faAngleLeft, faAngleRight} from '@fortawesome/free-solid-svg-icons';
 import ProblemItem from './problemItem';
 import {Button} from '@bsg/ui/button';
-import TooltipWrapper from "@bsg/components/TooltipWrapper";
+import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 
 interface ProblemListProps {
     problemList: ProblemItem[];
