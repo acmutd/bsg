@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 
-export function useTimer() {
+export function useRoundTimer() {
     
     const roundEndTime = useRoomStore(s => s.roundEndTime);
     const [ timeRemaining, setTimeRemaining ] = useState<String>("00:00:00");

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
-import { useTimer } from '@/hooks/useTimer';
+import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useRoomEvents } from '@/hooks/useRoomEvents';
 import { useRoomStore } from '@/stores/useRoomStore';
 
 export const Toolbar = () => {
 
     const [ isTimerVisible, setIsTimerVisible ] = useState<boolean>(true);
-    const { timeRemaining } = useTimer();
+    const { timeRemaining } = useRoundTimer();
 
     const isAdmin = useRoomStore(s => s.isAdmin);
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
