@@ -4,18 +4,14 @@ import { ReactNode } from "react";
 
 interface TooltipWrapperProps {
     children: ReactNode
-    side?: 'top' | 'bottom' | 'left' | 'right'
-    sideOffset?: number
     text: string
     shortcuts?: string[]
 }
 
 export const TooltipWrapper = ({
     children,
-    side,
-    sideOffset = 6,
     text,
-    shortcuts,
+    shortcuts
 }: TooltipWrapperProps) => {
     return (
         <TooltipProvider>
@@ -23,9 +19,8 @@ export const TooltipWrapper = ({
                 <TooltipTrigger asChild>
                     {children}
                 </TooltipTrigger>
-                <TooltipContent 
-                    side={side}
-                    sideOffset={sideOffset}
+                <TooltipContent
+                    sideOffset={6}
                     className="flex bg-[#333333] border border-[#484848] rounded-lg gap-2 text-[#FAFAFA] items-center"
                 >
                     {text}
