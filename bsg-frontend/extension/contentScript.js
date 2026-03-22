@@ -309,21 +309,29 @@
       panel.style.removeProperty('outline-offset');
     }
 
-    tabsetLayout.addEventListener('mousedown', (e) => {
+    document.body.addEventListener('mousedown', (e) => {
+      let target = e.target;
       let tabset;
-      const tab = e.target.closest('.flexlayout__tab');
-      
-      // Find matching tabset with corresponding data-layout-path
-      if (tab) {
-        const tabPath = tab.dataset.layoutPath;
-        const tabsetPath = tabPath?.split('/').slice(0, -1).join('/');
-        tabset = tabsetLayout.querySelector(
-          `.flexlayout__tabset[data-layout-path="${tabsetPath}"]`
-        );
-      } else {
-        tabset = e.target.closest('.flexlayout__tabset');
+
+      // If click is on a popper, find the element underneath
+      const popper = target.closest('[data-radix-popper-content-wrapper]');
+      if (popper) {
+        popper.style.visibility = 'hidden';
+        target = document.elementFromPoint(e.clientX, e.clientY);
+        popper.style.visibility = 'visible';
       }
       
+      // Get tabset from either tab path or direct closest
+      const tab = target?.closest('.flexlayout__tab');
+      if (tab) {
+        // Find matching tabset with corresponding data-layout-path
+        const tabPath = tab.dataset.layoutPath;
+        const tabsetPath = tabPath?.split('/').slice(0, -1).join('/');
+        tabset = tabsetLayout.querySelector(`.flexlayout__tabset[data-layout-path="${tabsetPath}"]`);
+      } else {
+        tabset = target?.closest('.flexlayout__tabset');
+      }
+
       if (tabset) {
         removeActive();
         tabset.classList.add('flexlayout__tabset-active');
@@ -335,7 +343,7 @@
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
-          
+
           if (node.matches('.flexlayout__tabset, .flexlayout__tab')) {
             removeActive();
           }
