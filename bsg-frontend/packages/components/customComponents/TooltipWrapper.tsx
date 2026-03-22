@@ -29,7 +29,7 @@ export const TooltipWrapper = ({
                             {shortcuts.map((key, index) => (
                                 <div
                                     key={index}
-                                    className="flex min-w-[21px] px-1 py-0.5 rounded-[0.2rem] border border-[#484848] justify-center"
+                                    className="flex items-center h-[20px] min-w-[20px] leading-[20px] px-1 py-0.5 rounded-[0.2rem] border border-[#484848] justify-center"
                                 >
                                     {key}
                                 </div>

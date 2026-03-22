@@ -1,15 +1,16 @@
 import { useRoomStore } from '@/stores/useRoomStore';
-
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
+import { HoverCard, HoverCardTrigger } from '@bsg/ui/hover-card';
+import { HoverCardContent } from '@bsg/components/HoverCardContent';
 import { Button } from '@bsg/ui/button';
 import { useCopyCode } from '@/hooks/useCopyCode';
 
 export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
-    
+
     const { copyRoomCode, isCopied } = useCopyCode();
     const isConnected = useRoomStore(s => s.isConnected);
     const roomCode = useRoomStore(s => s.roomCode);
-    
+
     return (
         <div className="flex p-1 items-center justify-between">
 
@@ -18,7 +19,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                     onClick={() => copyRoomCode(roomCode)}
                     className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
                 >
-                    <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`}/>
+                    <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
 
                     <div className="flex gap-1.5 items-center text-foreground/60 text-sm font-medium">
                         {roomCode}
@@ -52,24 +53,40 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                     </Button>
                 </TooltipWrapper>
 
-                {/* TODO: Wrap with hovercard component with share method icons*/}
-                <Button
-                    //onClick={}
-                    className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
-                >
-                    <svg
-                        className="w-4 h-4 overflow-visible"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 36 32"
-                        fill="none"
-                        stroke="currentColor"
-                    >
-                        <path
-                            stroke-width="3"
-                            d="M22.207 1.55957C22.5016 1.43925 22.827 1.50684 23.042 1.71777L34.29 12.7549C34.5696 13.0292 34.5696 13.464 34.29 13.7383L23.0479 24.7705C22.8251 24.9866 22.4939 25.0517 22.207 24.9346C21.9126 24.8142 21.7471 24.5453 21.7471 24.2803V17.2617H13.498C8.9705 17.2617 5.24902 20.8736 5.24902 25.3848C5.2491 27.6618 6.1307 29.1718 6.96582 30.0723C5.13605 28.8686 1.5 25.744 1.5 19.8584C1.50026 14.0085 6.34143 9.21785 12.373 9.21777H21.7471V2.19922C21.7471 1.97022 21.865 1.74604 22.083 1.60938L22.207 1.55957Z"
-                        />
-                    </svg>
-                </Button>
+                {/* TODO: Add share icons, links, buttons */}
+                <HoverCard openDelay={200} closeDelay={200}>
+                    <HoverCardTrigger>
+                        <Button
+                            //onClick={}
+                            className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        >
+                            <svg
+                                className="w-4 h-4 overflow-visible"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 36 32"
+                                fill="none"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-width="3"
+                                    d="M22.207 1.55957C22.5016 1.43925 22.827 1.50684 23.042 1.71777L34.29 12.7549C34.5696 13.0292 34.5696 13.464 34.29 13.7383L23.0479 24.7705C22.8251 24.9866 22.4939 25.0517 22.207 24.9346C21.9126 24.8142 21.7471 24.5453 21.7471 24.2803V17.2617H13.498C8.9705 17.2617 5.24902 20.8736 5.24902 25.3848C5.2491 27.6618 6.1307 29.1718 6.96582 30.0723C5.13605 28.8686 1.5 25.744 1.5 19.8584C1.50026 14.0085 6.34143 9.21785 12.373 9.21777H21.7471V2.19922C21.7471 1.97022 21.865 1.74604 22.083 1.60938L22.207 1.55957Z"
+                                />
+                            </svg>
+                        </Button>
+                    </HoverCardTrigger>
+
+                    <HoverCardContent className='flex px-4 py-3 gap-4 w-fit'>
+                        <div className='w-6 h-6 rounded-full bg-[#FFFFFF20]'>
+
+                        </div>
+                        <div className='w-6 h-6 rounded-full bg-[#FFFFFF20]'>
+
+                        </div>
+                        <div className='w-6 h-6 rounded-full bg-[#FFFFFF20]'>
+
+                        </div>
+                    </HoverCardContent>
+                </HoverCard>
 
                 <TooltipWrapper text="Rate our extension">
                     <Button
