@@ -15,34 +15,70 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
     } = useChatSocket();
 
     const username = useUserStore(s => s.username);
-    const speechBubbles = true;
 
     return (
-        <div ref={chatRef} className={`h-full flex flex-col relative overflow-y-auto ${(isActive) ? '' : 'hidden'}`}>
-            <div className={`flex-1 flex flex-col ${(!speechBubbles) ? 'pt-2' : 'px-4 pt-4 gap-2'}`}>
+        <div
+            ref={chatRef}
+            className={`h-full flex flex-col relative overflow-y-auto ${(isActive) ? '' : 'hidden'}`}
+        >
+            <div className='flex-1 flex flex-col px-4 pt-4 gap-2'>
                 {groupedMessages.map((group, i) => (
                     <>
                         {(group[0].isSystem) ?
-                            <div className="flex justify-center p-2">
-                                {group[0].data}
-                            </div>
-                            :
+
+                            // System Message
                             <div
                                 key={i}
-                                className={(group[0].userName === username) ? 'flex gap-4 items-end justify-end' : 'items-end flex gap-4'}
+                                className="flex justify-center p-2"
                             >
-                                {(group[0].userName !== username) && <img src={group[0].userPhoto} alt={group[0].userName} className="w-6 h-6 rounded-full" />}
-
-                                <div className={`flex flex-col w-fit gap-1 ${(!speechBubbles) ? 'px-4 py-2' : `p-3 bg-[#333333] rounded-2xl ${(group[0].userName === username) ? 'rounded-br-none' : 'rounded-bl-none'}`}`}>
-                                    {group[0].userName}
-
-                                    {group.map((msg, j) => (
-                                        <div key={j}>{msg.data}</div>
-                                    ))}
-                                </div>
-
-                                {(group[0].userName === username) && <img src={group[0].userPhoto} alt={group[0].userName} className="w-6 h-6 rounded-full" />}
+                                {group[0].data}
                             </div>
+
+                            :
+
+                            <>
+                                {(group[0].userName === username) ?
+
+                                    // User's own message
+                                    <div
+                                        key={i}
+                                        className='flex flex-col gap-2 pr-3 content-end'
+                                    >
+                                        {group.map((msg, j) => (
+                                            <div
+                                                key={j}
+                                                className={`flex w-fit p-3 bg-[#333333] rounded-2xl rounded-br-sm ${(j == 0) ? '' : 'rounded-tr-sm'}`}
+                                            >
+                                                {msg.data}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    :
+
+                                    // Message from other users
+                                    <div
+                                        key={i}
+                                        className='flex flex-col gap-3'
+                                    >
+                                        <div className='flex gap-2 items-center'>
+                                            <img src={group[0].userPhoto} alt={group[0].userName} className="w-6 h-6 rounded-full" />
+                                            {group[0].userName}
+                                        </div>
+
+                                        <div className='flex flex-col pl-3 gap-2'>
+                                            {group.map((msg, j) => (
+                                                <div
+                                                    key={j}
+                                                    className={`flex w-fit p-3 bg-[#333333] rounded-2xl rounded-tl-sm ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
+                                                >
+                                                    {msg.data}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                }
+                            </>
                         }
                     </>
                 ))}
