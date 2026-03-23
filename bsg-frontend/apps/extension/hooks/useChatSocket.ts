@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
+import { text } from 'stream/consumers';
 
 export type Message = {
     userHandle: string;
@@ -16,10 +17,14 @@ export const useChatSocket = () => {
 
     const socketRef = useRef<WebSocket | null>(null);
     const pendingRoomIDRef = useRef<string | null>(null);
+    const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
+    const isAtBottom = useRef<boolean>(true);
 
     const [ messages, setMessages ] = useState<Message[]>([]);
-    const [ inputText, setInputText ] = useState<string>('');
+    const [ charCount, setCharCount ] = useState<number>(0);
+    const [ isMultiline, setIsMultiline ] = useState<boolean>(false);
+    const [ showJump, setShowJump ] = useState<boolean>(false);
 
     const userEmail = useUserStore(s => s.email);
     const username = useUserStore(s => s.username);
@@ -146,8 +151,14 @@ export const useChatSocket = () => {
         }
     }, [userEmail]);
 
-    const sendMessage = () => {
-        if (!roomId || !inputText.trim()) return;
+    const handleSubmit = () => {
+        const chat = chatRef.current;
+        const textArea = inputRef.current;
+        if (!roomId || !chat || !textArea) return;
+
+        // Trim whitespace and squash newlines
+        const text = textArea.value.trim().replace(/\n{3,}/g, '\n\n');
+        if (!text) return;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
@@ -158,14 +169,38 @@ export const useChatSocket = () => {
                     userName: username,
                     userPhoto: iconUrl,
                     roomID: roomId,
-                    message: inputText
+                    message: text
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
 
-            setInputText('');
+            textArea.value = '';
+            textArea.style.height = 'auto';
+            setIsMultiline(false);
+            setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         }
     };
+
+    const handleChange = () => {
+        const chat = chatRef.current;
+        const textArea = inputRef.current;
+        if (!chat || !textArea) return;
+
+        setCharCount(textArea.value.length);
+
+        // Get auto line height
+        textArea.style.height = 'auto';
+        const lineHeight = parseInt(getComputedStyle(textArea).lineHeight);
+
+        // Check multiline before width expansion
+        setIsMultiline(textArea.scrollHeight > lineHeight);
+
+        // Cap text area height at 8 * line height
+        textArea.style.height = `${Math.min(textArea.scrollHeight, 8 * lineHeight)}px`
+        
+        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
+        if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
+    }
 
     // Derived from messages so will persist between tabs as well
     // TODO: make O(1) by only adding messages
@@ -188,17 +223,43 @@ export const useChatSocket = () => {
     }, [messages]);
 
     useEffect(() => {
-        if (chatRef.current) {
-            chatRef.current.scrollTop = chatRef.current.scrollHeight
-        }
-    }, [messages])
+        const chat = chatRef.current;
+        if (!chat) return;
+
+        // Check if scroll is at the bottom
+        const handleScroll = () => {
+            isAtBottom.current = chat.clientHeight + chat.scrollTop === chat.scrollHeight;
+            setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
+        };
+
+        chat.addEventListener('scroll', handleScroll)
+        return () => chat.removeEventListener('scroll', handleScroll);
+    }, [])
+
+    useEffect(() => {
+        const chat = chatRef.current;
+        if (!chat) return;
+
+        if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
+    }, [messages]);
+
+    const jumpToBottom = () => {
+        const chat = chatRef.current;
+        if (!chat) return;
+
+        chat.scrollTop = chat.scrollHeight;
+    };
 
     return {
-        inputText,
-        setInputText,
         joinChatRoom,
-        sendMessage,
+        handleChange,
+        handleSubmit,
         chatRef,
-        groupedMessages
+        groupedMessages,
+        inputRef,
+        charCount,
+        showJump,
+        jumpToBottom,
+        isMultiline
     };
 };
