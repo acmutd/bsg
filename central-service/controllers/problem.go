@@ -2,21 +2,22 @@ package controllers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
+	"github.com/acmutd/bsg/central-service/utils"
 	"github.com/labstack/echo/v4"
 )
 
 type ProblemController struct {
 	problemService *services.ProblemService
+	logger         *utils.StructuredLogger
 }
 
-func InitializeProblemController(service *services.ProblemService) ProblemController {
-	return ProblemController{service}
+func InitializeProblemController(service *services.ProblemService, logger *utils.StructuredLogger) ProblemController {
+	return ProblemController{service, logger}
 }
 
 // An endpoint containing logic used to find problem based on problem id
@@ -31,7 +32,9 @@ func (controller *ProblemController) FindProblemByProblemIDEndpoint(c echo.Conte
 	}
 	searchedProblem, err := controller.problemService.FindProblemByProblemID(uintProblemID)
 	if err != nil {
-		log.Printf("Problem service failed to search for problem %s: %v\n", targetProblemID, err)
+		controller.logger.Error("Failed to search for problem", err, map[string]interface{}{
+			"problem_id": targetProblemID,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	if searchedProblem == nil {
@@ -49,7 +52,10 @@ func (controller *ProblemController) FindProblemsEndpoint(c echo.Context) error 
 	offset := OptionalQueryParamUInt(c, "offset", 0)
 	problems, err := controller.problemService.FindProblems(count, offset)
 	if err != nil {
-		log.Printf("Problem service failed to search for problems: %v\n", err)
+		controller.logger.Error("Failed to search for problems", err, map[string]interface{}{
+			"count":  count,
+			"offset": offset,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	return c.JSON(http.StatusOK, map[string][]models.Problem{
@@ -65,7 +71,9 @@ func (controller *ProblemController) FindProblemBySlugEndpoint(c echo.Context) e
 
 	problem, err := controller.problemService.FindProblemBySlug(slug)
 	if err != nil {
-		log.Printf("Error finding problem by slug %s: %v", slug, err)
+		controller.logger.Error("Error finding problem by slug", err, map[string]interface{}{
+			"slug": slug,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
 	if problem == nil {
