@@ -212,8 +212,8 @@ export const useChatSocket = () => {
         textArea.style.height = `${Math.min(textArea.scrollHeight, 8 * lineHeight)}px`
 
         // Handle scroll changes due to adding/removing lines
-        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
+        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
     }
 
     const handleChange = () => {
@@ -260,7 +260,7 @@ export const useChatSocket = () => {
 
         // Check if scroll is at the bottom
         const handleScroll = () => {
-            isAtBottom.current = chat.clientHeight + chat.scrollTop === chat.scrollHeight;
+            isAtBottom.current = chat.scrollHeight - (chat.clientHeight + chat.scrollTop) <= 4;
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         };
 
@@ -273,6 +273,7 @@ export const useChatSocket = () => {
         if (!chat) return;
 
         if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
+        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
     }, [messages]);
 
     const jumpToBottom = () => {
