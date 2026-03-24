@@ -3,6 +3,7 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
 import { text } from 'stream/consumers';
+import { setMaxListeners } from 'events';
 
 export type Message = {
     userHandle: string;
@@ -18,12 +19,13 @@ export const useChatSocket = () => {
     const socketRef = useRef<WebSocket | null>(null);
     const pendingRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const counterRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
 
     const [ messages, setMessages ] = useState<Message[]>([]);
     const [ charCount, setCharCount ] = useState<number>(0);
-    const [ isMultiline, setIsMultiline ] = useState<boolean>(false);
     const [ showJump, setShowJump ] = useState<boolean>(false);
 
     const userEmail = useUserStore(s => s.email);
@@ -176,31 +178,61 @@ export const useChatSocket = () => {
 
             textArea.value = '';
             textArea.style.height = 'auto';
-            setIsMultiline(false);
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         }
     };
 
-    const handleChange = () => {
+    /*
+     *  Toggles expansion based on pre-expanded line height
+     *  Implementation can't be done using states because calculating the
+     *  pre-expanded height requires bypassing React's render cycle
+     */
+    const handleExpand = () => {
         const chat = chatRef.current;
+        const container = containerRef.current;
         const textArea = inputRef.current;
-        if (!chat || !textArea) return;
+        const counter = counterRef.current;
+        if (!chat || !container || !textArea || !counter) return;
 
-        setCharCount(textArea.value.length);
+        // Collapse container
+        counter.classList.add('hidden');
+        container.classList.remove('flex-col', 'gap-2');
 
-        // Get auto line height
+        // Measure pre-expanded line height
         textArea.style.height = 'auto';
         const lineHeight = parseInt(getComputedStyle(textArea).lineHeight);
+        const isExpanded = textArea.scrollHeight > lineHeight;
 
-        // Check multiline before width expansion
-        setIsMultiline(textArea.scrollHeight > lineHeight);
+        // Toggle expansion based on measurement
+        counter.classList.toggle('hidden', !isExpanded);
+        container.classList.toggle('flex-col', isExpanded);
+        container.classList.toggle('gap-2', isExpanded);
 
         // Cap text area height at 8 * line height
         textArea.style.height = `${Math.min(textArea.scrollHeight, 8 * lineHeight)}px`
-        
+
+        // Handle scroll changes due to adding/removing lines
         setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
     }
+
+    const handleChange = () => {
+        const textArea = inputRef.current;
+        if (!textArea) return;
+
+        setCharCount(textArea.value.length);
+        handleExpand();
+    }
+
+    useEffect(() => {
+        const textArea = inputRef.current;
+        if (!textArea) return;
+
+        const resizeOberserver = new ResizeObserver(handleExpand);
+
+        resizeOberserver.observe(textArea);
+        return () => resizeOberserver.disconnect();
+    }, []);
 
     // Derived from messages so will persist between tabs as well
     // TODO: make O(1) by only adding messages
@@ -232,9 +264,9 @@ export const useChatSocket = () => {
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         };
 
-        chat.addEventListener('scroll', handleScroll)
+        chat.addEventListener('scroll', handleScroll);
         return () => chat.removeEventListener('scroll', handleScroll);
-    }, [])
+    }, []);
 
     useEffect(() => {
         const chat = chatRef.current;
@@ -260,6 +292,7 @@ export const useChatSocket = () => {
         charCount,
         showJump,
         jumpToBottom,
-        isMultiline
+        containerRef,
+        counterRef
     };
 };

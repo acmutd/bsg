@@ -15,7 +15,8 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         showJump,
         jumpToBottom,
         charCount,
-        isMultiline
+        containerRef,
+        counterRef
     } = useChatSocket();
 
     const username = useUserStore(s => s.username);
@@ -51,7 +52,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                         {group.map((msg, j) => (
                                             <div
                                                 key={j}
-                                                className={`whitespace-pre-wrap flex w-fit px-3 py-2 bg-[#333333] rounded-2xl rounded-br-sm  border border-white/10 ${(j == 0) ? '' : 'rounded-tr-sm'}`}
+                                                className={`whitespace-pre-wrap flex w-fit px-3 py-2 bg-[#333333] rounded-2xl border border-white/10 ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
                                             >
                                                 {msg.data}
                                             </div>
@@ -109,7 +110,10 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                     </TooltipWrapper>
                 }
 
-                <div className={`flex w-full bg-[#333333] rounded-[21px] px-4 py-3 shadow-lg border border-white/10 ${(isMultiline) ? 'flex-col gap-2' : 'gap-3'}`}>
+                <div
+                    ref={containerRef}
+                    className='flex w-full bg-[#333333] rounded-[21px] px-4 py-3 gap-3 shadow-lg border border-white/10'
+                >
                     <textarea
                         ref={inputRef}
                         className="resize-none no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 w-full"
@@ -125,7 +129,9 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                     />
 
                     <div className='flex justify-between text-foreground/60'>
-                        {isMultiline && `${charCount}/160`}
+                        <div ref={counterRef}>
+                            {charCount}/160
+                        </div>
 
                         <div className='flex gap-3'>
                             <TooltipWrapper text="Emojis">
