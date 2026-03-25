@@ -180,7 +180,7 @@ export const useChatSocket = () => {
 
             setInputText('');
             textArea.style.height = 'auto';
-            setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
+            setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
         }
     };
 
@@ -215,7 +215,7 @@ export const useChatSocket = () => {
 
         // Handle scroll changes due to adding/removing lines
         if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
-        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
+        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -277,7 +277,7 @@ export const useChatSocket = () => {
         // Check if scroll is at the bottom
         const handleScroll = () => {
             isAtBottom.current = chat.scrollHeight - (chat.clientHeight + chat.scrollTop) <= 4;
-            setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
+            setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
         };
 
         chat.addEventListener('scroll', handleScroll);
@@ -289,7 +289,7 @@ export const useChatSocket = () => {
         if (!chat) return;
 
         if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
-        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
+        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
     }, [messages]);
 
     const jumpToBottom = () => {
