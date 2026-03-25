@@ -1,6 +1,9 @@
 const express = require('express');
 const passport = require('passport');
 const router = express.Router();
+const loggingModule = require('../middleware/logging');
+
+const logger = new loggingModule.StructuredLogger('auth-server');
 
 
 router.get('/google',
@@ -13,10 +16,11 @@ router.get('/google',
 router.get('/google/callback',
     passport.authenticate('google', {failureRedirect: '/auth/google'}),
     (req, res) => {
+        logger.info('User authenticated via Google', {
+            user_id: req.user?.id,
+        });
         res.redirect('/auth/done');
-         
      }
-
 );
 
 
@@ -27,7 +31,10 @@ router.get('/done',(req, res) => {
 
 router.get('/user', (req, res) => {
     if(req.isAuthenticated() && req.user) {
-        //console.log(req.user)
+        logger.info('User info retrieved', {
+            user_id: req.user.id,
+            provider: req.user.provider,
+        });
         return res.json({
             id: req.user.id,
             name: req.user.name,
@@ -36,10 +43,11 @@ router.get('/user', (req, res) => {
         });
     }
     else {
+        logger.warn('Unauthenticated user info request', {
+            path: req.path,
+        });
         res.status(401).json({ error: 'Not authenticated'});
     }
-
-
 });
 
 router.post('/logout', async (req, res) => {
@@ -65,9 +73,16 @@ router.post('/logout', async (req, res) => {
                 });
 
                 if (response.ok) {
-                    console.log("GitHub token revoked successfully");
+                    logger.info("GitHub token revoked", {
+                        provider: 'github',
+                        user_id: req.user?.id,
+                    });
                 } else {
-                    console.error("Failed to revoke GitHub token:", response.status);
+                    logger.warn("Failed to revoke GitHub token", {
+                        provider: 'github',
+                        status: response.status,
+                        user_id: req.user?.id,
+                    });
                 }
             } else if (provider === 'google') {
                 const response = await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
@@ -75,29 +90,47 @@ router.post('/logout', async (req, res) => {
                 });
 
                 if (response.ok) {
-                    console.log("Google token revoked successfully");
+                    logger.info("Google token revoked", {
+                        provider: 'google',
+                        user_id: req.user?.id,
+                    });
                 } else {
-                    console.error("Failed to revoke Google token:", response.status);
+                    logger.warn("Failed to revoke Google token", {
+                        provider: 'google',
+                        status: response.status,
+                        user_id: req.user?.id,
+                    });
                 }
             }
         } catch (error) {
-            console.error("Error revoking OAuth token:", error);
+            logger.error("Error revoking OAuth token", error, {
+                provider: provider || 'unknown',
+                user_id: req.user?.id,
+            });
         }
     }
 
     // Destroy session completely
     req.logout((err) => {
         if (err) {
-            console.error("Error during logout:", err);
+            logger.error("Error during logout", err, {
+                user_id: req.user?.id,
+            });
             return res.status(500).json({ success: false, message: 'Error logging out' });
         }
 
         // Destroy the session entirely
         req.session.destroy((err) => {
             if (err) {
-                console.error("Error destroying session:", err);
+                logger.error("Error destroying session", err, {
+                    user_id: req.user?.id,
+                });
                 return res.status(500).json({ success: false, message: 'Error destroying session' });
             }
+
+            logger.info("User logged out successfully", {
+                user_id: req.user?.id,
+            });
 
             // Clear the session cookie
             res.clearCookie('connect.sid', { path: '/' });
@@ -116,8 +149,10 @@ router.get('/github',
 router.get('/github/callback', 
     passport.authenticate('github', {failureRedirect: '/'}),
     (req, res) => {
+        logger.info('User authenticated via GitHub', {
+            user_id: req.user?.id,
+        });
         res.redirect('/auth/done');
-        //console.log(req.user);
     }
 
 );

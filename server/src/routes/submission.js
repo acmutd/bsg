@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const loggingModule = require('../middleware/logging');
+
+const logger = new loggingModule.StructuredLogger('submission-server');
 
 router.post('/', async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -27,7 +30,11 @@ router.post('/', async (req, res) => {
         });
 
         if (!activeRoomRes.ok) {
-            console.error('Failed to get active room:', activeRoomRes.status, await activeRoomRes.text());
+            const errorText = await activeRoomRes.text();
+            logger.error('Failed to get active room', new Error(errorText), {
+                user_id: authID,
+                status: activeRoomRes.status,
+            });
             return res.status(500).json({ error: 'Failed to check active room' });
         }
 
@@ -45,7 +52,12 @@ router.post('/', async (req, res) => {
             }
         });
         if (!lookupRes.ok) {
-            console.error('Failed to lookup problem:', lookupRes.status, await lookupRes.text());
+            const errorText = await lookupRes.text();
+            logger.error('Failed to lookup problem', new Error(errorText), {
+                user_id: authID,
+                problem_slug: slug,
+                status: lookupRes.status,
+            });
             return res.status(500).json({ error: 'Problem lookup failed' });
         }
 
@@ -67,14 +79,30 @@ router.post('/', async (req, res) => {
         });
 
         if (!submitRes.ok) {
-            console.error('Failed to submit score:', submitRes.status, await submitRes.text());
+            const errorText = await submitRes.text();
+            logger.error('Failed to submit score', new Error(errorText), {
+                user_id: authID,
+                room_id: roomID,
+                problem_id: problemID,
+                status: submitRes.status,
+            });
             return res.status(500).json({ error: 'Failed to submit score' });
         }
+
+        logger.info('Submission processed successfully', {
+            user_id: authID,
+            room_id: roomID,
+            problem_slug: slug,
+            verdict: status,
+            runtime: runtime,
+        });
 
         return res.json({ success: true, message: 'Score submitted' });
 
     } catch (error) {
-        console.error('Error in submission proxy:', error);
+        logger.error('Error in submission proxy', error, {
+            user_id: authID,
+        });
         return res.status(500).json({ error: 'Internal server error' });
     }
 });

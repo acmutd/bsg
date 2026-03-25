@@ -30,15 +30,15 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 	// Set the request headers
 	req.Header.Add("authority", "leetcode.com")
 	req.Header.Add("method", "POST")
-	req.Header.Add("path", "/problems/" + problemSlug + "/submit/")
+	req.Header.Add("path", "/problems/"+problemSlug+"/submit/")
 	req.Header.Add("scheme", "https")
 	req.Header.Add("Accept", "*/*")
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
 	req.Header.Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", "csrftoken=" + CSRF_Token + ";LEETCODE_SESSION=" + LEETCODE_SESSION + ";")
+	req.Header.Add("Cookie", "csrftoken="+CSRF_Token+";LEETCODE_SESSION="+LEETCODE_SESSION+";")
 	req.Header.Add("Origin", "https://leetcode.com")
-	req.Header.Add("Referer", "https://leetcode.com/problems/" + problemSlug + "/")
+	req.Header.Add("Referer", "https://leetcode.com/problems/"+problemSlug+"/")
 	req.Header.Add("X-Csrftoken", CSRF_Token)
 
 	// Perform the HTTP request
@@ -65,7 +65,7 @@ func Submit(LEETCODE_SESSION string, CSRF_Token string, problemSlug string, prob
 		}
 		req.Header.Add("Content-Length", fmt.Sprintf("%d", len(payload)))
 		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Cookie", "csrftoken=" + CSRF_Token + ";LEETCODE_SESSION=" + LEETCODE_SESSION + ";")
+		req.Header.Add("Cookie", "csrftoken="+CSRF_Token+";LEETCODE_SESSION="+LEETCODE_SESSION+";")
 
 		// Perform the HTTP request
 		resp, err := client.Do(req)
@@ -97,7 +97,7 @@ func parseSubmissionID(input string) (string, error) {
 
 	// Find the match in the input string
 	match := regex.FindStringSubmatch(input)
-	if match == nil || len(match) < 2 {
+	if len(match) < 2 {
 		return "", fmt.Errorf("Submission ID not found in the input string")
 	}
 
