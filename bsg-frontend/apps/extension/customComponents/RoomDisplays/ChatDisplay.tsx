@@ -14,9 +14,11 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         inputRef,
         showJump,
         jumpToBottom,
-        charCount,
+        inputText,
         containerRef,
-        counterRef
+        counterRef,
+        atLimit,
+        MAX_CHARS
     } = useChatSocket();
 
     const username = useUserStore(s => s.username);
@@ -26,7 +28,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
             ref={chatRef}
             className={`h-full flex flex-col relative overflow-y-auto ${(isActive) ? '' : 'hidden'}`}
         >
-            <div className='flex-1 flex flex-col px-4 pt-4 gap-2'>
+            <div className='flex-1 flex flex-col px-4 pt-4 gap-3'>
                 {groupedMessages.map((group, i) => (
                     <>
                         {(group[0].isSystem) ?
@@ -34,7 +36,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             // System Message
                             <div
                                 key={i}
-                                className="flex justify-center p-2"
+                                className="flex justify-center p-2 text-foreground/60"
                             >
                                 {group[0].data}
                             </div>
@@ -52,7 +54,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                         {group.map((msg, j) => (
                                             <div
                                                 key={j}
-                                                className={`whitespace-pre-wrap flex w-fit px-3 py-2 bg-[#333333] rounded-2xl border border-white/10 ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
+                                                className={`max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-[#333333] rounded-2xl border border-white/10 ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
                                             >
                                                 {msg.data}
                                             </div>
@@ -75,7 +77,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                             {group.map((msg, j) => (
                                                 <div
                                                     key={j}
-                                                    className={`whitespace-pre-wrap flex w-fit px-3 py-2 bg-[#333333] rounded-2xl rounded-tl-sm border border-white/10 ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
+                                                    className={`w-fit max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-[#333333] rounded-2xl rounded-tl-sm border border-white/10 ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
                                                 >
                                                     {msg.data}
                                                 </div>
@@ -96,7 +98,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                     <TooltipWrapper text="Jump to bottom">
                         <Button
                             onClick={jumpToBottom}
-                            className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-[#333333] hover:bg-[#484848] text-foreground/60 shadow-lg border border-white/10"
+                            className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-[#333333] hover:bg-[#484848] text-foreground/60 border border-white/10 shadow-lg animate-bounce"
                         >
                             <svg
                                 className="w-4 h-4 overflow-visible"
@@ -112,13 +114,14 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
                 <div
                     ref={containerRef}
-                    className='flex w-full bg-[#333333] rounded-[21px] px-4 py-3 gap-3 shadow-lg border border-white/10'
+                    className='flex w-full bg-[#333333] rounded-[21px] px-4 py-3 gap-3 border border-white/10 shadow-lg'
                 >
                     <textarea
                         ref={inputRef}
                         className="resize-none no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 w-full"
                         placeholder="Type a message"
                         rows={1}
+                        value={inputText}
                         onChange={handleChange}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -128,9 +131,12 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                         }}
                     />
 
-                    <div className='flex justify-between text-foreground/60'>
-                        <div ref={counterRef}>
-                            {charCount}/160
+                    <div className='flex justify-between'>
+                        <div
+                            ref={counterRef}
+                            className={`transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}
+                        >
+                            {inputText.length}/{MAX_CHARS}
                         </div>
 
                         <div className='flex gap-3'>

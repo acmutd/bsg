@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
-import { text } from 'stream/consumers';
-import { setMaxListeners } from 'events';
 
 export type Message = {
     userHandle: string;
@@ -16,6 +14,8 @@ export type Message = {
 
 export const useChatSocket = () => {
 
+    const MAX_CHARS = 500;
+
     const socketRef = useRef<WebSocket | null>(null);
     const pendingRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -23,10 +23,12 @@ export const useChatSocket = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
+    const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [ messages, setMessages ] = useState<Message[]>([]);
-    const [ charCount, setCharCount ] = useState<number>(0);
+    const [ inputText, setInputText ] = useState<string>('');
     const [ showJump, setShowJump ] = useState<boolean>(false);
+    const [ atLimit, setAtLimit ] = useState<boolean>(false);
 
     const userEmail = useUserStore(s => s.email);
     const username = useUserStore(s => s.username);
@@ -159,7 +161,7 @@ export const useChatSocket = () => {
         if (!roomId || !chat || !textArea) return;
 
         // Trim whitespace and squash newlines
-        const text = textArea.value.trim().replace(/\n{3,}/g, '\n\n');
+        const text = inputText.trim().replace(/\n{3,}/g, '\n\n');
         if (!text) return;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
@@ -176,7 +178,7 @@ export const useChatSocket = () => {
             };
             socketRef.current.send(JSON.stringify(payload));
 
-            textArea.value = '';
+            setInputText('');
             textArea.style.height = 'auto';
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
         }
@@ -216,12 +218,26 @@ export const useChatSocket = () => {
         setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) > 200);
     }
 
-    const handleChange = () => {
-        const textArea = inputRef.current;
-        if (!textArea) return;
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newText = e.target.value;
 
-        setCharCount(textArea.value.length);
-        handleExpand();
+        if (newText.length <= MAX_CHARS) {
+            setInputText(newText);
+            handleExpand();
+
+        } else if (inputText.length < MAX_CHARS) {
+            setInputText(newText.substring(0, MAX_CHARS));
+            handleExpand();
+
+            setAtLimit(true);
+            if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
+            atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
+
+        } else {
+            setAtLimit(true);
+            if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
+            atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
+        }
     }
 
     useEffect(() => {
@@ -290,10 +306,12 @@ export const useChatSocket = () => {
         chatRef,
         groupedMessages,
         inputRef,
-        charCount,
+        inputText,
         showJump,
         jumpToBottom,
         containerRef,
-        counterRef
+        counterRef,
+        atLimit,
+        MAX_CHARS
     };
 };
