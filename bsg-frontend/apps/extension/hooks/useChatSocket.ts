@@ -159,9 +159,8 @@ export const useChatSocket = () => {
         const chat = chatRef.current;
         const textArea = inputRef.current;
         if (!roomId || !chat || !textArea) return;
-
-        // Trim whitespace and squash newlines
-        const text = inputText.trim().replace(/\n{3,}/g, '\n\n');
+        
+        const text = inputText.trim();
         if (!text) return;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
