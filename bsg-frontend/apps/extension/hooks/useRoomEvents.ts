@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { SERVER_URL } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
+import { useRouter } from 'next/router';
 
 export function useRoomEvents() {
 
     const [ nextProblem, setNextProblem ] = useState<string | null>(null);
+
+    const router = useRouter();
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const isInRoom = useRoomStore(s => s.isInRoom);
@@ -14,7 +17,7 @@ export function useRoomEvents() {
     const lastGameEvent = useRoomStore(s => s.lastGameEvent);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
-    const resetRoom = useRoomStore(s => s.resetRoom);
+    const setResetRoom = useRoomStore(s => s.resetRoom);
 
     // Handle Game Events
     useEffect(() => {
@@ -178,5 +181,28 @@ export function useRoomEvents() {
         }
     }
 
-    return { handleStartRound, handleEndRound };
+    const handleLeaveRoom = async () => {
+
+        if(!roomId && !userId) return;
+
+        try {
+            const response = await fetch(`${SERVER_URL}/rooms/${roomId}/leave`, {
+                    method: 'POST',
+                    credentials: 'include'
+            });
+            const message = await response.json()
+            if(response.ok){
+                setResetRoom();
+                router.push('/room-choice-page')
+            } else{
+                console.error(message)
+            }
+
+        } catch(error){
+            console.warn('Unable to send request to leave room')
+        }
+
+    }
+
+    return { handleStartRound, handleEndRound, handleLeaveRoom };
 }

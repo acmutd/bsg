@@ -184,4 +184,27 @@ router.post('/:id/end', ensureAuth, async (req, res) => {
     }
 });
 
+router.post('/:id/leave', ensureAuth, async (req, res) => {
+    const authId = req.user.id;
+    const { id } = req.params;
+    
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/leave`, {
+            method: 'POST',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authId,
+            }
+        });
+
+        const data = await response.json()
+        res.status(response.status).json(data)
+
+    }catch(error){
+        console.log('Unable to find room to leave')
+        res.status(500).json({error: 'Internal Server Error'})
+
+    }
+})
+
 module.exports = router;
