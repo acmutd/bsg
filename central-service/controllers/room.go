@@ -1,21 +1,22 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
+	"github.com/acmutd/bsg/central-service/utils"
 	"github.com/labstack/echo/v4"
 )
 
 type RoomController struct {
 	roomService *services.RoomService
+	logger      *utils.StructuredLogger
 }
 
-func InitializeRoomController(service *services.RoomService) RoomController {
-	return RoomController{service}
+func InitializeRoomController(service *services.RoomService, logger *utils.StructuredLogger) RoomController {
+	return RoomController{service, logger}
 }
 
 // Endpoint for creating a new room given an admin and a roomName
@@ -27,7 +28,10 @@ func (controller *RoomController) CreateNewRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	newRoom, err := controller.roomService.CreateRoom(&roomDTO, userAuthID)
 	if err != nil {
-		log.Printf("User id: %s failed to create room object: %v\n", userAuthID, err)
+		controller.logger.Error("Failed to create room", err, map[string]interface{}{
+			"user_id":   userAuthID,
+			"room_name": roomDTO.Name,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to create room. "+err.Error())
 		}
@@ -43,7 +47,9 @@ func (controller *RoomController) FindRoomEndpoint(c echo.Context) error {
 	targetRoomID := c.Param("roomID")
 	room, err := controller.roomService.FindRoomByID(targetRoomID)
 	if err != nil {
-		log.Printf("Failed to search for room with id %s: %v\n", targetRoomID, err)
+		controller.logger.Error("Failed to find room", err, map[string]interface{}{
+			"room_id": targetRoomID,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Room not found")
 		}
@@ -70,7 +76,10 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 
 	room, err = controller.roomService.JoinRoom(roomParam, userAuthID)
 	if err != nil {
-		log.Printf("User id: %s failed to join room %s: %v\n", userAuthID, roomParam, err)
+		controller.logger.Error("Failed to join room", err, map[string]interface{}{
+			"user_id": userAuthID,
+			"room_id": roomParam,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to join room. "+err.Error())
 		}
@@ -87,7 +96,10 @@ func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 	roomID := c.Param("roomID")
 	err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
-		log.Printf("User id: %s failed to leave room with id %s: %v\n", userAuthID, roomID, err)
+		controller.logger.Error("Failed to leave room", err, map[string]interface{}{
+			"user_id": userAuthID,
+			"room_id": roomID,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to leave room. "+err.Error())
 		}
@@ -106,12 +118,11 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 	roomID := c.Param("roomID")
 	newRound, err := controller.roomService.CreateRound(&roundCreationParams, roomID)
 	if err != nil {
-		log.Printf("Failed to create new round: %v\n", err)
-		if bsgErr, ok := err.(services.BSGError); ok {
-			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to create round. "+bsgErr.Message)
-		}
-		if bsgErr, ok := err.(*services.BSGError); ok {
-			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to create round. "+bsgErr.Message)
+		controller.logger.Error("Failed to create round", err, map[string]interface{}{
+			"room_id": roomID,
+		})
+		if err, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to create round. "+err.Message)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create round. Please try again later")
 	}
@@ -125,12 +136,12 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	roundStartTime, problems, err := controller.roomService.StartRoundByRoomID(targetRoomID, userAuthID)
 	if err != nil {
-		log.Printf("Failed to start round for room with id %s: %v\n", targetRoomID, err)
-		if bsgErr, ok := err.(services.BSGError); ok {
-			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to start round. "+bsgErr.Message)
-		}
-		if bsgErr, ok := err.(*services.BSGError); ok {
-			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to start round. "+bsgErr.Message)
+		controller.logger.Error("Failed to start round", err, map[string]interface{}{
+			"room_id": targetRoomID,
+			"user_id": userAuthID,
+		})
+		if err, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to start round. "+err.Message)
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to start round. Please try again later")
 	}
@@ -144,7 +155,9 @@ func (controller *RoomController) GetLeaderboardEndpoint(c echo.Context) error {
 	roomID := c.Param("roomID")
 	leaderboard, err := controller.roomService.GetLeaderboard(roomID)
 	if err != nil {
-		log.Printf("Failed to get leaderboard for room with id %s: %v\n", roomID, err)
+		controller.logger.Error("Failed to get leaderboard", err, map[string]interface{}{
+			"room_id": roomID,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to get leaderboard. "+err.Message)
 		}
@@ -170,7 +183,11 @@ func (controller *RoomController) CreateSubmissionEndpoint(c echo.Context) error
 	roundSubmissionParameters.ProblemID = uint(parsedProblemID)
 	result, err := controller.roomService.CreateRoomSubmission(roomID, roundSubmissionParameters, userAuthID)
 	if err != nil {
-		log.Printf("User id: %s failed to create submission: %v\n", userAuthID, err)
+		controller.logger.Error("Failed to create submission", err, map[string]interface{}{
+			"user_id":    userAuthID,
+			"room_id":    roomID,
+			"problem_id": parsedProblemID,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to create submission. "+err.Error())
 		}
@@ -185,7 +202,9 @@ func (controller *RoomController) GetActiveRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	roomID, err := controller.roomService.GetActiveRoomForUser(userAuthID)
 	if err != nil {
-		log.Printf("Failed to get active room for user %s: %v", userAuthID, err)
+		controller.logger.Error("Failed to get active room", err, map[string]interface{}{
+			"user_id": userAuthID,
+		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get active room")
 	}
 	if roomID == "" {
@@ -202,7 +221,10 @@ func (controller *RoomController) EndRoundEndpoint(c echo.Context) error {
 	targetRoomID := c.Param("roomID")
 	userAuthID := c.Get("userAuthID").(string)
 	if err := controller.roomService.EndRoundByRoomID(targetRoomID, userAuthID); err != nil {
-		log.Printf("Failed to end round for room %s: %v\n", targetRoomID, err)
+		controller.logger.Error("Failed to end round", err, map[string]interface{}{
+			"room_id": targetRoomID,
+			"user_id": userAuthID,
+		})
 		if err, ok := err.(services.BSGError); ok {
 			return echo.NewHTTPError(err.StatusCode, "Failed to end round. "+err.Error())
 		}

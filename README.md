@@ -33,3 +33,13 @@ Execute the following command to run the project:
 ```bash
 $ docker compose --env-file ./.env up --build --force-recreate
 ```
+
+## Running Unit Tests
+The makefile allows for all tests to be run automatically with the command:
+```
+make test
+```
+and there are other options like if you only want to test the Go code, or just the express server code, or maybe just a specific service. You can find these commands with:
+```
+make help
+```

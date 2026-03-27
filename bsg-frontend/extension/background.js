@@ -6,52 +6,51 @@ const CONFIG = {
 let offscreenCreated = false;
 
 async function ensureOffscreen() {
-  if (offscreenCreated) return true;
-  if (!chrome.offscreen) return false;
+    if (offscreenCreated) return true;
+    if (!chrome.offscreen) return false;
 
-  try {
-    const exists = await chrome.offscreen.hasDocument();
-    if (!exists) {
-      await chrome.offscreen.createDocument({
-        url: 'offscreen.html',
-        reasons: ['CLIPBOARD'],
-        justification: 'Required to write to clipboard from content scripts'
-      });
+    try {
+        const exists = await chrome.offscreen.hasDocument();
+        if (!exists) {
+            await chrome.offscreen.createDocument({
+                url: 'offscreen.html',
+                reasons: ['CLIPBOARD'],
+                justification: 'Required to write to clipboard from content scripts'
+            });
+        }
+        offscreenCreated = true;
+        return true;
+    } catch (e) {
+        console.error('ensureOffscreen error', e);
+        return false;
     }
-    offscreenCreated = true;
-    return true;
-  } catch (e) {
-    console.error('ensureOffscreen error', e);
-    return false;
-  }
 }
 
 
-
 async function doCopy(text) {
-  // try to use the offscreen document if available
-  const hasOffscreen = await ensureOffscreen().catch(() => false);
-  if (hasOffscreen) {
+    // try to use the offscreen document if available
+    const hasOffscreen = await ensureOffscreen().catch(() => false);
+    if (hasOffscreen) {
+        try {
+            const res = await chrome.runtime.sendMessage({type: 'OFFSCREEN_COPY', text});
+            return res && res.ok;
+        } catch (e) {
+            console.error('sendMessage to offscreen failed', e);
+        }
+    }
+
+    // try the clipboard API in the service worker context
     try {
-      const res = await chrome.runtime.sendMessage({ type: 'OFFSCREEN_COPY', text });
-      return res && res.ok;
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
     } catch (e) {
-      console.error('sendMessage to offscreen failed', e);
+        console.warn('navigator.clipboard.writeText in service worker failed', e);
     }
-  }
 
-  // try the clipboard API in the service worker context
-  try {
-    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (e) {
-    console.warn('navigator.clipboard.writeText in service worker failed', e);
-  }
-
-  // give up
-  return false;
+    // give up
+    return false;
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -218,7 +217,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
   }
 });
-
 
 function connectWebSocket() {
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
