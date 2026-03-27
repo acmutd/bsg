@@ -45,7 +45,7 @@ export const useChatSocket = () => {
                     "request-type": "join-room",
                     data: JSON.stringify({
                         userHandle: userEmail,
-                        roomID: pendingRoomIDRef.current
+                        roomID: roomId
                     })
                 };
                 ws.send(JSON.stringify(payload));
