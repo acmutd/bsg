@@ -47,8 +47,10 @@ export const useLogin = () => {
                         userObject.email,
                         userObject.photo
                     );
-                    
+
                     popup?.close()
+                    router.push('/start-page');
+
                     return userObject;
 
                 } else if (popup && !popup.closed) {
@@ -95,9 +97,9 @@ export const useLogin = () => {
                     router.push('/start-page');
                     checkActiveRoom();
                 }
-            })
+            });
         }
-    }, [isLoggedIn, router]); //router because ESlint error nothing to do with re-render
+    }, []);
 
     return {
         credentials,

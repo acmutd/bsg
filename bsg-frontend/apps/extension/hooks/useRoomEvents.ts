@@ -193,7 +193,7 @@ export function useRoomEvents() {
             const message = await response.json()
             if(response.ok){
                 setResetRoom();
-                router.push('/room-choice-page')
+                router.push('/start-page')
             } else{
                 console.error(message)
             }
