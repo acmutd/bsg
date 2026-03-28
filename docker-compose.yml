@@ -80,6 +80,7 @@ services:
       - zookeeper-log-volume:/var/lib/zookeeper/log
   broker:
     image: confluentinc/cp-kafka:7.3.0
+    restart: always
     container_name: broker
     ports:
       - "${PORT_KAFKA:-29092}:29092"
@@ -96,6 +97,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     volumes:
       - kafka-data-volume:/var/lib/kafka/data
+
   adminer:
     image: adminer
     restart: always
