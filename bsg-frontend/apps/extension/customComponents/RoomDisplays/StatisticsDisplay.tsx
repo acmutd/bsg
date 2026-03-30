@@ -201,7 +201,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                     Room Statistics
                 </div>
 
-                <div className="flex rounded-lg border border-[#454545] overflow-hidden">
+                <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden">
+                    {/* Could move tabs to left or bottom */}
                     <div className="flex items-center p-2 overflow-x-auto no-scrollbar">
                         <Button
                             onMouseEnter={() => setHoveredTab('score')}
