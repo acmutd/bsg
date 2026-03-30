@@ -34,10 +34,11 @@ type RoomService struct {
 	rtcClient           *RTCClient
 	roomScheduler       *tasks.Scheduler
 	MaxNumRoundsPerRoom int
+	ttlTaskIDs          map[string]string // roomID -> scheduler task ID
 }
 
 func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, roomScheduler *tasks.Scheduler, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom}
+	return RoomService{db, rdb, roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom, make(map[string]string)}
 }
 
 type RoomDTO struct {
@@ -86,11 +87,19 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 	return &newRoom, nil
 }
 
+// cancelRoomExpiry cancels the TTL expiry task for a room if one exists.
+func (service *RoomService) cancelRoomExpiry(roomID string) {
+	if taskID, ok := service.ttlTaskIDs[roomID]; ok {
+		service.roomScheduler.Del(taskID)
+		delete(service.ttlTaskIDs, roomID)
+	}
+}
+
 // scheduleRoomExpiry schedules a task to delete the room after its TTL expires.
 func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 	ttl := time.Duration(room.TTL) * time.Minute
 	roomID := room.ID.String()
-	_, err := service.roomScheduler.Add(&tasks.Task{
+	taskID, err := service.roomScheduler.Add(&tasks.Task{
 		Interval: ttl,
 		RunOnce:  true,
 		TaskFunc: func() error {
@@ -118,6 +127,8 @@ func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 	})
 	if err != nil {
 		log.Printf("RoomService: failed to schedule TTL expiry for room %s: %v", roomID, err)
+	} else {
+		service.ttlTaskIDs[roomID] = taskID
 	}
 }
 
@@ -125,17 +136,35 @@ func (service *RoomService) scheduleRoomExpiry(room *models.Room) {
 // Deletes room from Postgres
 func (service *RoomService) deleteRoom(room models.Room) error {
 	roomID := room.ID.String()
-	// TODO: notify RTC room is empty
 	if err := service.deleteJoinMembers(roomID); err != nil {
 		return err
 	}
-	// Delete rounds from cascade delete
-	for _, round := range room.Rounds { // Delete round leaderboards
+	for _, round := range room.Rounds {
 		if err := service.roundService.DeleteLeaderboard(round.ID); err != nil {
+			log.Printf("Error deleting leaderboard for round %d: %v", round.ID, err)
+		}
+		// Delete round_submissions first (references round_participants and rounds)
+		if err := service.db.Where("round_id = ?", round.ID).Delete(&models.RoundSubmission{}).Error; err != nil {
+			log.Printf("Error deleting round submissions for round %d: %v", round.ID, err)
+			return err
+		}
+		// Delete round_participants
+		if err := service.db.Where("round_id = ?", round.ID).Delete(&models.RoundParticipant{}).Error; err != nil {
+			log.Printf("Error deleting round participants for round %d: %v", round.ID, err)
+			return err
+		}
+		// Delete round_problems join table entries
+		if err := service.db.Exec("DELETE FROM round_problems WHERE round_id = ?", round.ID).Error; err != nil {
+			log.Printf("Error deleting round_problems for round %d: %v", round.ID, err)
+			return err
+		}
+		// Delete the round itself
+		if err := service.db.Delete(&models.Round{}, round.ID).Error; err != nil {
+			log.Printf("Error deleting round %d: %v", round.ID, err)
 			return err
 		}
 	}
-	if err := service.db.Delete(room).Error; err != nil {
+	if err := service.db.Delete(&room).Error; err != nil {
 		log.Printf("Error deleting room %s: %v\n", roomID, err)
 		return err
 	}
@@ -239,11 +268,14 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			}
 		}
 	}
-	if users, err := service.FindActiveUsers(roomID); err != nil {
+	// Delete room if creator leaves or room is now empty
+	users, err := service.FindActiveUsers(roomID)
+	if err != nil {
 		return err
-	} else if len(users) <= 0 {
-		service.deleteRoom(*room)
-		return nil
+	}
+	if room.Admin == userID || len(users) == 0 {
+		service.cancelRoomExpiry(roomID)
+		return service.deleteRoom(*room)
 	}
 	if wasAdmin, err := service.IsRoomAdmin(roomID, userID); err != nil {
 		return err
@@ -334,11 +366,18 @@ func (service *RoomService) FindActiveUsers(roomID string) ([]string, error) {
 }
 
 // Removes all user join timestamps for a given room in the Redis cache
+// Also clears each user's active_room pointer so stale state doesn't persist after room deletion
 func (service *RoomService) deleteJoinMembers(roomID string) error {
 	joinKey := roomID + "_joinTimestamp"
+	// First collect all members so we can clear their active_room keys
+	members, _ := service.rdb.ZRange(context.Background(), joinKey, 0, -1).Result()
 	if resultCmd := service.rdb.Del(context.Background(), joinKey); resultCmd.Err() != nil {
 		log.Printf("Error deleting key %s: %v\n", joinKey, resultCmd.Err())
 		return resultCmd.Err()
+	}
+	for _, userID := range members {
+		activeRoomKey := fmt.Sprintf("user:%s:active_room", userID)
+		service.rdb.Del(context.Background(), activeRoomKey)
 	}
 	return nil
 }
@@ -419,12 +458,14 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 }
 
 func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, error) {
-	var rounds []models.Round
-	if err := service.db.Model(room).Association("Rounds").Find(&rounds); err != nil {
+	var count int64
+	if err := service.db.Model(&models.Round{}).
+		Where("room_id = ? AND status != ?", room.ID, constants.ROUND_END).
+		Count(&count).Error; err != nil {
 		log.Printf("Error checking round limit: %v\n", err)
 		return true, err
 	}
-	return len(rounds) >= service.MaxNumRoundsPerRoom, nil
+	return count >= int64(service.MaxNumRoundsPerRoom), nil
 }
 
 func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*time.Time, []models.Problem, error) {
@@ -436,17 +477,24 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 	if room.Admin != userID { // check if user is room admin
 		return nil, nil, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
 	}
-	if len(room.Rounds) <= 0 {
-		log.Printf("Error initiating round start: Round has not been created")
-		return nil, nil, BSGError{http.StatusNotFound, "Round not found. Has not been created?"}
+	var round *models.Round
+	for i := range room.Rounds {
+		if room.Rounds[i].Status == constants.ROUND_CREATED {
+			round = &room.Rounds[i]
+			break
+		}
 	}
-	round := room.Rounds[len(room.Rounds)-1]
+	if round == nil {
+		log.Printf("Error initiating round start: no round in CREATED state")
+		return nil, nil, BSGError{http.StatusNotFound, "No round ready to start. Create a round first."}
+	}
 	activeUsers, err := service.FindActiveUsers(roomID)
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, nil, err
 	}
-	roundStartTime, problems, err := service.roundService.InitiateRoundStart(&round, activeUsers)
+	roundStartTime, problems, err := service.roundService.InitiateRoundStart(round, activeUsers)
+
 	if err != nil {
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, nil, err
@@ -489,14 +537,17 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 	if room.Admin != userID {
 		return BSGError{http.StatusUnauthorized, "only the room admin can end the round"}
 	}
-	if len(room.Rounds) <= 0 {
-		return BSGError{http.StatusNotFound, "no round found"}
+	var round *models.Round
+	for i := range room.Rounds {
+		if room.Rounds[i].Status == constants.ROUND_STARTED {
+			round = &room.Rounds[i]
+			break
+		}
 	}
-	round := room.Rounds[len(room.Rounds)-1]
-	if round.Status == constants.ROUND_END {
-		return nil // already ended, idempotent
+	if round == nil {
+		return nil // no active round — idempotent
 	}
-	if err := service.db.Model(&round).Updates(models.Round{Status: constants.ROUND_END}).Error; err != nil {
+	if err := service.db.Model(round).Updates(models.Round{Status: constants.ROUND_END}).Error; err != nil {
 		return err
 	}
 	// notify clients via RTC
