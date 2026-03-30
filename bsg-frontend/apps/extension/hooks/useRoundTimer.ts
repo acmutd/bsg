@@ -4,7 +4,7 @@ import { useRoomStore } from "@/stores/useRoomStore";
 export function useRoundTimer() {
     
     const roundEndTime = useRoomStore(s => s.roundEndTime);
-    const [ timeRemaining, setTimeRemaining ] = useState<String>("00:00:00");
+    const [ timeRemaining, setTimeRemaining ] = useState<string>("00:00:00");
 
     useEffect(() => {
         if (!roundEndTime) {
