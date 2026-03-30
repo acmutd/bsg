@@ -35,17 +35,18 @@ export default function App({ Component, pageProps }: AppProps) {
   // On Leetcode extension render
   return (
     <div
+      className={(isActive) ? 'active' : ''}
       onMouseEnter={() => setIsPanelHovered(true)}
       onMouseLeave={() => setIsPanelHovered(false)}
       onMouseDown={() => { messageScript('ACTIVE'); setIsActive(true); }}
     >
       {/* Sidebar */}
-      <div className={(isFolded) ? `flex h-screen ${(isActive) ? ' active' : ''}` : 'hidden'}>
+      <div className={(isFolded) ? 'flex h-screen' : 'hidden'}>
         <Sidebar isInRoom={isInRoom}/>
       </div>
 
       {/* Main Layout */}
-      <div className={(isFolded) ? 'hidden' : `flex flex-col h-screen ${(isActive) ? ' active' : ''}`}>
+      <div className={(isFolded) ? 'hidden' : 'flex flex-col h-screen'}>
         <HeaderBar isInRoom={isInRoom}/>
         <div className="flex-1 flex overflow-x-auto">
           <div className="flex-1 flex flex-col min-w-[24rem]">
