@@ -55,7 +55,12 @@ func main() {
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     func() string { if v := os.Getenv("REDIS_ADDR"); v != "" { return v }; return "redis-cache:6379" }(),
+		Addr: func() string {
+			if v := os.Getenv("REDIS_ADDR"); v != "" {
+				return v
+			}
+			return "redis-cache:6379"
+		}(),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
@@ -105,11 +110,18 @@ func main() {
 
 	// seeding Service
 	seedingService := services.InitializeSeedingService(db)
-	if err := seedingService.SeedProblems("../seed-service/problems_data.csv"); err != nil {
-		if err := seedingService.SeedProblems("seed-service/problems_data.csv"); err != nil {
-			logger.Warn("Failed to seed problems", map[string]interface{}{
+	if err := seedingService.SeedProblems("../seed-service/leetcode_problems.csv"); err != nil {
+		if err := seedingService.SeedProblems("seed-service/leetcode_problems.csv"); err != nil {
+			logger.Warn("Failed to seed tags-aware CSV, trying legacy CSV", map[string]interface{}{
 				"error": err.Error(),
 			})
+			if err := seedingService.SeedProblems("../seed-service/problems_data.csv"); err != nil {
+				if err := seedingService.SeedProblems("seed-service/problems_data.csv"); err != nil {
+					logger.Warn("Failed to seed problems", map[string]interface{}{
+						"error": err.Error(),
+					})
+				}
+			}
 		}
 	}
 
@@ -140,7 +152,6 @@ func main() {
 	rateLimitConfig := utils.DefaultRateLimitConfig()
 	rateLimiter := utils.NewDistributedRateLimiter(rdb, rateLimitConfig)
 
-
 	// Add middleware for structured logging and rate limiting
 	loggingMiddleware := utils.NewEchoLoggingMiddleware(logger)
 	rateLimitMiddleware := utils.NewEchoRateLimitMiddleware(utils.NewRateLimiter(rdb, 100, 150))
@@ -151,7 +162,7 @@ func main() {
 
 	userController := controllers.InitializeUserController(&userService, logger)
 	problemController := controllers.InitializeProblemController(&problemService, logger)
-  roomScheduler := tasks.New()
+	roomScheduler := tasks.New()
 	defer roomScheduler.Stop()
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService, logger)

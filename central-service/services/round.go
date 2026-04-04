@@ -26,10 +26,11 @@ type RoundService struct {
 }
 
 type RoundCreationParameters struct {
-	Duration          int `json:"duration"` // Duration in minutes
-	NumEasyProblems   int `json:"numEasyProblems"`
-	NumMediumProblems int `json:"numMediumProblems"`
-	NumHardProblems   int `json:"numHardProblems"`
+	Duration          int      `json:"duration"` // Duration in minutes
+	NumEasyProblems   int      `json:"numEasyProblems"`
+	NumMediumProblems int      `json:"numMediumProblems"`
+	NumHardProblems   int      `json:"numHardProblems"`
+	Tags              []string `json:"tags"`
 }
 
 type RoundSubmissionParameters struct {
@@ -57,6 +58,7 @@ func (service *RoundService) SetDBConnection(db *gorm.DB) {
 }
 
 func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, error) {
+	log.Printf("CreateRound room=%s easy=%d medium=%d hard=%d tags=%v", roomID.String(), params.NumEasyProblems, params.NumMediumProblems, params.NumHardProblems, params.Tags)
 	newRound := models.Round{
 		Duration:        params.Duration,
 		RoomID:          *roomID,
@@ -73,9 +75,13 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 		NumEasyProblems:   params.NumEasyProblems,
 		NumMediumProblems: params.NumMediumProblems,
 		NumHardProblems:   params.NumHardProblems,
+		Tags:              params.Tags,
 	})
 	if err != nil {
 		return nil, err
+	}
+	for _, problem := range problemSet {
+		log.Printf("CreateRound selected slug=%s difficulty=%s tags=%v", problem.Slug, problem.Difficulty, problem.Tags)
 	}
 	err = service.db.Model(&newRound).Association("ProblemSet").Append(problemSet)
 	if err != nil {
@@ -130,6 +136,17 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			StatusCode: 400,
 		}
 	}
+	// fetch problems before starting
+	if err := service.db.Model(round).Association("ProblemSet").Find(&round.ProblemSet); err != nil {
+		return nil, nil, err
+	}
+	if len(round.ProblemSet) == 0 {
+		return nil, nil, BSGError{
+			StatusCode: 400,
+			Message:    "Cannot start round: no problems were generated. Try fewer constraints or different tags.",
+		}
+	}
+
 	roundStartTime := time.Now().Add(time.Second * 10)
 	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
@@ -138,14 +155,9 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	if result.Error != nil {
 		return nil, nil, result.Error
 	}
-
-	// fetch problems before starting
-	if err := service.db.Model(round).Association("ProblemSet").Find(&round.ProblemSet); err != nil {
-		return nil, nil, err
-	}
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
-		var problemList []string
+		problemList := make([]string, 0, len(round.ProblemSet))
 		for _, problem := range round.ProblemSet {
 			problemList = append(problemList, problem.Slug)
 		}
