@@ -133,11 +133,11 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 	warningMessage := ""
 	if fallbackUsed {
 		warningMessage = "Could not satisfy exact difficulty distribution for your filters. A fallback mix was used to fill the round."
- 	}
+	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
-		"data":         *newRound,
-		"usedFallback": fallbackUsed,
+		"data":           *newRound,
+		"usedFallback":   fallbackUsed,
 		"warningMessage": warningMessage,
 	})
 }
