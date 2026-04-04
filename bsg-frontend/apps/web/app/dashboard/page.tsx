@@ -16,6 +16,8 @@ const Dashboard = () => {
         Difficulty.Easy,
     );
     const [problemPage, setProblemPage] = React.useState(0);
+    const [tagsQuery, setTagsQuery] = React.useState("");
+    const [remoteProblemList, setRemoteProblemList] = React.useState<any[] | null>(null);
 
     const topics: Topic[] = [
         {name: "Arrays", numberOfProblems: 214, isSelected: false},
@@ -249,16 +251,96 @@ const Dashboard = () => {
     ];
     // dummy data
 
+    const selectedTags = React.useMemo(
+        () =>
+            tagsQuery
+                .split(",")
+                .map((tag) => tag.trim().toLowerCase())
+                .filter((tag) => tag.length > 0),
+        [tagsQuery],
+    );
+
+    React.useEffect(() => {
+        const controller = new AbortController();
+        const params = new URLSearchParams({count: "100", offset: "0"});
+        if (selectedTags.length > 0) {
+            params.set("tags", selectedTags.join(","));
+        }
+
+        const fetchProblems = async () => {
+            try {
+                const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
+                const response = await fetch(`${serverUrl}/problems?${params.toString()}`, {
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    setRemoteProblemList(null);
+                    return;
+                }
+
+                const payload = await response.json();
+                const remoteProblems = (payload?.data ?? []).map((problem: any) => {
+                    const difficulty =
+                        problem?.difficulty === Difficulty.Easy ||
+                        problem?.difficulty === Difficulty.Medium ||
+                        problem?.difficulty === Difficulty.Hard
+                            ? problem.difficulty
+                            : Difficulty.Medium;
+
+                    return {
+                        id: String(problem?.id ?? ""),
+                        name: String(problem?.name ?? ""),
+                        acceptance: 0,
+                        difficulty,
+                        tags: Array.isArray(problem?.tags) ? problem.tags : [],
+                        topic: Array.isArray(problem?.tags) && problem.tags.length > 0 ? problem.tags[0] : "",
+                        description: "",
+                    };
+                });
+
+                setRemoteProblemList(remoteProblems);
+            } catch {
+                if (!controller.signal.aborted) {
+                    setRemoteProblemList(null);
+                }
+            }
+        };
+
+        fetchProblems();
+        return () => controller.abort();
+    }, [selectedTags]);
+
+    const filteredProblemList = React.useMemo(() => {
+        const list = remoteProblemList ?? problemList;
+
+        if (selectedTags.length === 0) {
+            return list;
+        }
+
+        return list.filter((problem) => {
+            const problemTags = [
+                ...(problem.tags ?? []),
+                ...(problem.topic ? [problem.topic] : []),
+            ].map((tag) => tag.toLowerCase());
+
+            return selectedTags.every((tag) => problemTags.includes(tag));
+        });
+    }, [problemList, remoteProblemList, selectedTags]);
+
     return (
         <div className="flex">
             <div className={"w-fit m-5 flex flex-col space-y-8"}>
                 <div className={"flex row-auto space-x-2"}>
-                    <SearchBar/>
+                    <SearchBar
+                        value={tagsQuery}
+                        onChange={(event) => setTagsQuery(event.target.value)}
+                        placeholder={"Filter by tags (e.g. Array, Hash Table)"}
+                    />
                     <DifficultyDropdown position={difficulty} setPosition={setDifficulty}/>
                     <QuickStart/>
                 </div>
                 <TopicList topics={topics}/>
-                <ProblemList problemList={problemList} page={problemPage}/>
+                <ProblemList problemList={filteredProblemList} page={problemPage}/>
             </div>
             <div className="mr-5 mt-5 mb-5g">
                 <RoomList roomList={roomList}/>

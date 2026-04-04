@@ -1,6 +1,9 @@
 package services
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"gorm.io/gorm"
@@ -15,6 +18,7 @@ type DifficultyParameter struct {
 	NumEasyProblems   int
 	NumMediumProblems int
 	NumHardProblems   int
+	Tags              []string
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -23,11 +27,11 @@ func InitializeProblemService(db *gorm.DB) ProblemService {
 
 func (service *ProblemService) CreateProblem(problemData *models.Problem) (*models.Problem, error) {
 	newProblem := models.Problem{
-		Name:        problemData.Name,
-		Slug:        problemData.Slug,
-		Description: problemData.Description,
-		Hints:       problemData.Hints,
-		Difficulty:  problemData.Difficulty,
+		Name:       problemData.Name,
+		Slug:       problemData.Slug,
+		Tags:       problemData.Tags,
+		Difficulty: problemData.Difficulty,
+		IsPaid:     problemData.IsPaid,
 	}
 	result := service.db.Create(&newProblem)
 	if result.Error != nil {
@@ -65,38 +69,79 @@ func (service *ProblemService) UpdateProblemData(problemId uint, problemData *mo
 	return searchResult, nil
 }
 
-func (service *ProblemService) FindProblems(count uint, offset uint) ([]models.Problem, error) {
+func (service *ProblemService) FindProblems(count uint, offset uint, tags []string) ([]models.Problem, error) {
 	var problems []models.Problem
 	count = min(count, 100) // count should not exceed 100
-	searchResult := service.db.Limit(int(count)).Offset(int(offset)).Find(&problems)
+	query := service.db.Limit(int(count)).Offset(int(offset))
+
+	normalizedTags := normalizeTags(tags)
+	if len(normalizedTags) > 0 {
+		orParts := make([]string, 0, len(normalizedTags))
+		orArgs := make([]interface{}, 0, len(normalizedTags))
+		for _, tag := range normalizedTags {
+			orParts = append(orParts, "LOWER(tags) LIKE ?")
+			orArgs = append(orArgs, "%\""+strings.ToLower(escapeLikePattern(tag))+"\"%")
+		}
+		query = query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
+	}
+
+	searchResult := query.Find(&problems)
 	if searchResult.Error != nil {
 		return nil, searchResult.Error
 	}
 	return problems, nil
 }
 
-func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, error) {
+func normalizeTags(tags []string) []string {
+	normalizedTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		trimmedTag := strings.TrimSpace(tag)
+		if trimmedTag == "" {
+			continue
+		}
+		normalizedTags = append(normalizedTags, trimmedTag)
+	}
+	return normalizedTags
+}
+
+func escapeLikePattern(pattern string) string {
+	replacer := strings.NewReplacer(`\\`, `\\\\`, `%`, `\\%`, `_`, `\\_`)
+	return replacer.Replace(pattern)
+}
+
+func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, bool, error) {
 	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
+	normalizedTags := normalizeTags(params.Tags)
+	requestedTotal := params.NumEasyProblems + params.NumMediumProblems + params.NumHardProblems
+	fallbackUsed := false
 	err := service.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Clauses(clause.OrderBy{
+		easyQuery := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false).Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
+		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false)
+		easyQuery = applyTagFilters(easyQuery, normalizedTags)
+		if err := easyQuery.Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.OrderBy{
+
+		mediumQuery := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false).Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
+		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false)
+		mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
+		if err := mediumQuery.Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
 			return err
 		}
-		if err := tx.Clauses(clause.OrderBy{
+
+		hardQuery := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false).Limit(params.NumHardProblems).Order(clause.Expr{
+		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false)
+		hardQuery = applyTagFilters(hardQuery, normalizedTags)
+		if err := hardQuery.Limit(params.NumHardProblems).Order(clause.Expr{
 			SQL: "RANDOM()",
 		}).Find(&hardProblems).Error; err != nil {
 			return err
@@ -104,11 +149,78 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
+
+	exactDifficultySatisfied :=
+		len(easyProblems) >= params.NumEasyProblems &&
+			len(mediumProblems) >= params.NumMediumProblems &&
+			len(hardProblems) >= params.NumHardProblems
+
 	problems = append(easyProblems, mediumProblems...)
 	problems = append(problems, hardProblems...)
-	return problems, nil
+
+	// If exact per-difficulty selection is not possible, keep tag filter and fill remaining slots from any difficulty.
+	if len(problems) < requestedTotal {
+		fallbackUsed = true
+		missing := requestedTotal - len(problems)
+		selectedIDs := make([]uint, 0, len(problems))
+		for _, problem := range problems {
+			selectedIDs = append(selectedIDs, problem.ID)
+		}
+
+		var fallbackProblems []models.Problem
+		fallbackQuery := service.db.Clauses(clause.OrderBy{
+			Expression: clause.Expr{SQL: "RANDOM()"},
+		}).Where("is_paid = ?", false)
+		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
+		if len(selectedIDs) > 0 {
+			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
+		}
+		if err := fallbackQuery.Limit(missing).Find(&fallbackProblems).Error; err != nil {
+			return nil, false, err
+		}
+		problems = append(problems, fallbackProblems...)
+	}
+
+	if len(problems) < requestedTotal {
+		return nil, false, BSGError{
+			StatusCode: 400,
+			Message: fmt.Sprintf(
+				"Not enough tagged problems found. requested_total=%d found_total=%d requested={easy:%d,medium:%d,hard:%d} found={easy:%d,medium:%d,hard:%d} tags=%v",
+				requestedTotal,
+				len(problems),
+				params.NumEasyProblems,
+				params.NumMediumProblems,
+				params.NumHardProblems,
+				len(easyProblems),
+				len(mediumProblems),
+				len(hardProblems),
+				normalizedTags,
+			),
+		}
+	}
+
+	if !exactDifficultySatisfied {
+		fallbackUsed = true
+	}
+
+	return problems, fallbackUsed, nil
+}
+
+func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
+	if len(tags) == 0 {
+		return query
+	}
+
+	orParts := make([]string, 0, len(tags))
+	orArgs := make([]interface{}, 0, len(tags))
+	for _, tag := range tags {
+		orParts = append(orParts, "LOWER(tags) LIKE ?")
+		orArgs = append(orArgs, "%\""+strings.ToLower(escapeLikePattern(tag))+"\"%")
+	}
+
+	return query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 }
 
 func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem) uint {
@@ -133,4 +245,13 @@ func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, 
 		return nil, nil // Not found
 	}
 	return &problem, nil
+}
+
+func (service *ProblemService) FindProblemTagStats() ([]models.ProblemTagStat, error) {
+	var stats []models.ProblemTagStat
+	result := service.db.Order("total_count DESC").Order("tag ASC").Find(&stats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return stats, nil
 }

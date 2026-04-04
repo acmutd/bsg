@@ -1,6 +1,5 @@
 // Currently does nothing...
 
-import '@bsg/ui-styles';
 import type {Metadata} from 'next'
 
 export const metadata: Metadata = {

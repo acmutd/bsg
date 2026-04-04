@@ -1,7 +1,22 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Topic} from "@/pages/room-choice-page";
+import { SERVER_URL } from '../lib/config';
 
-export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
+type ProblemTagStat = {
+    id: number;
+    tag: string;
+    totalCount: number;
+    easyCount: number;
+    mediumCount: number;
+    hardCount: number;
+}
+
+type RoomActionResult = { success: true } | { success: false; message: string }
+
+export const useRoomChoice = (props: {
+    onJoin: (roomCode: string) => Promise<RoomActionResult>,
+    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[] }) => Promise<RoomActionResult>
+}) => {
     const [joinCode, setJoinCode] = useState('')
     const [showCreateOptions, setShowCreateOptions] = useState(false)
 
@@ -13,20 +28,41 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
     const minNumberOfProblems = 0
     const maxNumberOfProblems = 10
 
-    const [topics, setTopics] = useState<Topic[]>([
-        {name: "Arrays", numberOfProblems: 214, isSelected: false},
-        {name: "Strings", numberOfProblems: 180, isSelected: false},
-        {name: "Hash Tables", numberOfProblems: 156, isSelected: false},
-        {name: "Dynamic Programming", numberOfProblems: 203, isSelected: false},
-        {name: "Trees", numberOfProblems: 175, isSelected: false},
-        {name: "Graphs", numberOfProblems: 142, isSelected: false},
-        {name: "Linked Lists", numberOfProblems: 98, isSelected: false},
-        {name: "Binary Search", numberOfProblems: 87, isSelected: false},
-        {name: "Two Pointers", numberOfProblems: 125, isSelected: false},
-        {name: "Sliding Window", numberOfProblems: 76, isSelected: false},
-        {name: "Backtracking", numberOfProblems: 91, isSelected: false},
-        {name: "Greedy", numberOfProblems: 134, isSelected: false},
-    ])
+    const [topics, setTopics] = useState<Topic[]>([])
+    const [formError, setFormError] = useState<string | null>(null)
+    const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
+    const [isSubmittingJoin, setIsSubmittingJoin] = useState(false)
+
+    useEffect(() => {
+        const loadTopics = async () => {
+            try {
+                const response = await fetch(`${SERVER_URL}/problems/tags`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch topics: ${response.status}`);
+                }
+
+                const payload = await response.json();
+                const stats: ProblemTagStat[] = payload?.data || [];
+
+                setTopics(prevTopics => {
+                    const selected = new Set(prevTopics.filter(t => t.isSelected).map(t => t.name));
+                    return stats.map((stat) => ({
+                        name: stat.tag,
+                        numberOfProblems: stat.totalCount,
+                        isSelected: selected.has(stat.tag),
+                    }));
+                });
+            } catch (error) {
+                console.error('Failed to load tag stats', error);
+                setTopics([]);
+            }
+        };
+
+        loadTopics();
+    }, []);
 
     const decrement = (setter: (v: number) => void, val: number) => {
         if (total <= 1 || val <= minNumberOfProblems) return
@@ -41,21 +77,39 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
     }
 
     const handleCreateRoom = () => {
+        setFormError(null)
+        const selectedTags = topics.filter((topic) => topic.isSelected).map((topic) => topic.name.trim());
         const roomSettings = {
             easy: numberOfEasyProblems,
             medium: numberOfMediumProblems,
             hard: numberOfHardProblems,
-            duration
+            duration,
+            tags: selectedTags,
         }
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
         let code = ''
         for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length))
+        setIsSubmittingCreate(true)
         props.onCreate(code, roomSettings)
+            .then((result) => {
+                if (!result.success) {
+                    setFormError(result.message)
+                }
+            })
+            .finally(() => setIsSubmittingCreate(false))
     }
 
     const handleJoinRoom = () => {
+        setFormError(null)
         if (!joinCode.trim()) return
+        setIsSubmittingJoin(true)
         props.onJoin(joinCode.trim())
+            .then((result) => {
+                if (!result.success) {
+                    setFormError(result.message)
+                }
+            })
+            .finally(() => setIsSubmittingJoin(false))
     }
 
     const toggleTopic = (index: number) => {
@@ -85,5 +139,9 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
         handleJoinRoom,
         joinCode,
         setJoinCode,
+        formError,
+        setFormError,
+        isSubmittingCreate,
+        isSubmittingJoin,
     }
 }
