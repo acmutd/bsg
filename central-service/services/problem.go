@@ -75,8 +75,14 @@ func (service *ProblemService) FindProblems(count uint, offset uint, tags []stri
 	query := service.db.Limit(int(count)).Offset(int(offset))
 
 	normalizedTags := normalizeTags(tags)
-	for _, tag := range normalizedTags {
-		query = query.Where("LOWER(tags) LIKE ?", "%\""+strings.ToLower(escapeLikePattern(tag))+"\"%")
+	if len(normalizedTags) > 0 {
+		orParts := make([]string, 0, len(normalizedTags))
+		orArgs := make([]interface{}, 0, len(normalizedTags))
+		for _, tag := range normalizedTags {
+			orParts = append(orParts, "LOWER(tags) LIKE ?")
+			orArgs = append(orArgs, "%\""+strings.ToLower(escapeLikePattern(tag))+"\"%")
+		}
+		query = query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 	}
 
 	searchResult := query.Find(&problems)
@@ -103,10 +109,11 @@ func escapeLikePattern(pattern string) string {
 	return replacer.Replace(pattern)
 }
 
-func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, error) {
+func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, bool, error) {
 	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
 	normalizedTags := normalizeTags(params.Tags)
 	requestedTotal := params.NumEasyProblems + params.NumMediumProblems + params.NumHardProblems
+	fallbackUsed := false
 	err := service.db.Transaction(func(tx *gorm.DB) error {
 		easyQuery := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
@@ -142,13 +149,20 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
+
+	exactDifficultySatisfied :=
+		len(easyProblems) >= params.NumEasyProblems &&
+			len(mediumProblems) >= params.NumMediumProblems &&
+			len(hardProblems) >= params.NumHardProblems
+
 	problems = append(easyProblems, mediumProblems...)
 	problems = append(problems, hardProblems...)
 
 	// If exact per-difficulty selection is not possible, keep tag filter and fill remaining slots from any difficulty.
 	if len(problems) < requestedTotal {
+		fallbackUsed = true
 		missing := requestedTotal - len(problems)
 		selectedIDs := make([]uint, 0, len(problems))
 		for _, problem := range problems {
@@ -164,13 +178,13 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
 		}
 		if err := fallbackQuery.Limit(missing).Find(&fallbackProblems).Error; err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		problems = append(problems, fallbackProblems...)
 	}
 
 	if len(problems) < requestedTotal {
-		return nil, BSGError{
+		return nil, false, BSGError{
 			StatusCode: 400,
 			Message: fmt.Sprintf(
 				"Not enough tagged problems found. requested_total=%d found_total=%d requested={easy:%d,medium:%d,hard:%d} found={easy:%d,medium:%d,hard:%d} tags=%v",
@@ -187,14 +201,26 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		}
 	}
 
-	return problems, nil
+	if !exactDifficultySatisfied {
+		fallbackUsed = true
+	}
+
+	return problems, fallbackUsed, nil
 }
 
 func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
-	for _, tag := range tags {
-		query = query.Where("LOWER(tags) LIKE ?", "%\""+strings.ToLower(escapeLikePattern(tag))+"\"%")
+	if len(tags) == 0 {
+		return query
 	}
-	return query
+
+	orParts := make([]string, 0, len(tags))
+	orArgs := make([]interface{}, 0, len(tags))
+	for _, tag := range tags {
+		orParts = append(orParts, "LOWER(tags) LIKE ?")
+		orArgs = append(orArgs, "%\""+strings.ToLower(escapeLikePattern(tag))+"\"%")
+	}
+
+	return query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 }
 
 func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem) uint {

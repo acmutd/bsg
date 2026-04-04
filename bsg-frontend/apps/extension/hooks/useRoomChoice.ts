@@ -11,7 +11,12 @@ type ProblemTagStat = {
     hardCount: number;
 }
 
-export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
+type RoomActionResult = { success: true } | { success: false; message: string }
+
+export const useRoomChoice = (props: {
+    onJoin: (roomCode: string) => Promise<RoomActionResult>,
+    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[] }) => Promise<RoomActionResult>
+}) => {
     const [joinCode, setJoinCode] = useState('')
     const [showCreateOptions, setShowCreateOptions] = useState(false)
 
@@ -24,6 +29,9 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
     const maxNumberOfProblems = 10
 
     const [topics, setTopics] = useState<Topic[]>([])
+    const [formError, setFormError] = useState<string | null>(null)
+    const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
+    const [isSubmittingJoin, setIsSubmittingJoin] = useState(false)
 
     useEffect(() => {
         const loadTopics = async () => {
@@ -69,6 +77,7 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
     }
 
     const handleCreateRoom = () => {
+        setFormError(null)
         const selectedTags = topics.filter((topic) => topic.isSelected).map((topic) => topic.name.trim());
         const roomSettings = {
             easy: numberOfEasyProblems,
@@ -80,12 +89,27 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
         let code = ''
         for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length))
+        setIsSubmittingCreate(true)
         props.onCreate(code, roomSettings)
+            .then((result) => {
+                if (!result.success) {
+                    setFormError(result.message)
+                }
+            })
+            .finally(() => setIsSubmittingCreate(false))
     }
 
     const handleJoinRoom = () => {
+        setFormError(null)
         if (!joinCode.trim()) return
+        setIsSubmittingJoin(true)
         props.onJoin(joinCode.trim())
+            .then((result) => {
+                if (!result.success) {
+                    setFormError(result.message)
+                }
+            })
+            .finally(() => setIsSubmittingJoin(false))
     }
 
     const toggleTopic = (index: number) => {
@@ -115,5 +139,9 @@ export const useRoomChoice = (props: { onJoin: any, onCreate: any }) => {
         handleJoinRoom,
         joinCode,
         setJoinCode,
+        formError,
+        setFormError,
+        isSubmittingCreate,
+        isSubmittingJoin,
     }
 }

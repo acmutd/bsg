@@ -57,7 +57,7 @@ func (service *RoundService) SetDBConnection(db *gorm.DB) {
 	service.db = db
 }
 
-func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, error) {
+func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, bool, error) {
 	log.Printf("CreateRound room=%s easy=%d medium=%d hard=%d tags=%v", roomID.String(), params.NumEasyProblems, params.NumMediumProblems, params.NumHardProblems, params.Tags)
 	newRound := models.Round{
 		Duration:        params.Duration,
@@ -68,33 +68,33 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 	result := service.db.Create(&newRound)
 	if result.Error != nil {
 		log.Printf("Error creating new round: %v\n", result.Error)
-		return nil, result.Error
+		return nil, false, result.Error
 	}
 	// TODO: Add logic for problem generation
-	problemSet, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+	problemSet, fallbackUsed, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
 		NumEasyProblems:   params.NumEasyProblems,
 		NumMediumProblems: params.NumMediumProblems,
 		NumHardProblems:   params.NumHardProblems,
 		Tags:              params.Tags,
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	for _, problem := range problemSet {
 		log.Printf("CreateRound selected slug=%s difficulty=%s tags=%v", problem.Slug, problem.Difficulty, problem.Tags)
 	}
 	err = service.db.Model(&newRound).Association("ProblemSet").Append(problemSet)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
 		log.Printf("Error setting value in redis instance: %v\n", err)
-		return nil, err
+		return nil, false, err
 	}
 	newRound.ProblemSet = []models.Problem{}
-	return &newRound, nil
+	return &newRound, fallbackUsed, nil
 }
 
 func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) {

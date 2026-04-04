@@ -431,30 +431,30 @@ func validateRoomName(name string) error {
 	return nil
 }
 
-func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, error) {
+func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID string) (*models.Round, bool, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
 		log.Printf("Error finding room by ID: %v\n", err)
-		return nil, err
+		return nil, false, err
 	}
 	roundLimitExceeded, err := service.CheckRoundLimitExceeded(room)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if roundLimitExceeded {
-		return nil, &BSGError{
+		return nil, false, &BSGError{
 			StatusCode: 400,
 			Message:    "Round limit exceeded",
 		}
 	}
-	round, err := service.roundService.CreateRound(params, &room.ID)
+	round, fallbackUsed, err := service.roundService.CreateRound(params, &room.ID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if err := service.db.Model(&room).Association("Rounds").Append(round); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return round, nil
+	return round, fallbackUsed, nil
 }
 
 func (service *RoomService) CheckRoundLimitExceeded(room *models.Room) (bool, error) {

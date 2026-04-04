@@ -116,7 +116,7 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
 	}
 	roomID := c.Param("roomID")
-	newRound, err := controller.roomService.CreateRound(&roundCreationParams, roomID)
+	newRound, fallbackUsed, err := controller.roomService.CreateRound(&roundCreationParams, roomID)
 	if err != nil {
 		controller.logger.Error("Failed to create round", err, map[string]interface{}{
 			"room_id": roomID,
@@ -129,8 +129,16 @@ func (controller *RoomController) CreateNewRoundEndpoint(c echo.Context) error {
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create round. Please try again later")
 	}
-	return c.JSON(http.StatusCreated, map[string]models.Round{
-		"data": *newRound,
+
+	warningMessage := ""
+	if fallbackUsed {
+		warningMessage = "Could not satisfy exact difficulty distribution for your filters. A fallback mix was used to fill the round."
+ 	}
+
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"data":         *newRound,
+		"usedFallback": fallbackUsed,
+		"warningMessage": warningMessage,
 	})
 }
 

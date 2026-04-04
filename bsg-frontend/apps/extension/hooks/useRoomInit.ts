@@ -10,16 +10,44 @@ export const useRoomInit = () => {
     const initRoom = useRoomStore(s => s.initRoom);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
+    const setRoomNotice = useRoomStore(s => s.setRoomNotice);
     const userId = useUserStore(s => s.userId);
 
-    const joinRoom = async (roomCode: string) => {
+    const parseJsonSafe = async (res: Response): Promise<any | null> => {
+        try {
+            return await res.json();
+        } catch {
+            return null;
+        }
+    };
+
+    const extractErrorMessage = (payload: any, fallback: string): string => {
+        if (!payload) return fallback;
+        if (typeof payload === 'string' && payload.trim()) return payload;
+        if (typeof payload.error === 'string' && payload.error.trim()) return payload.error;
+        if (typeof payload.message === 'string' && payload.message.trim()) return payload.message;
+        if (typeof payload.details === 'string' && payload.details.trim()) return payload.details;
+        return fallback;
+    };
+
+    const sanitizeRoundCreationError = (message: string): string => {
+        if (!message) return 'Failed to create round.';
+        if (message.includes('Not enough tagged problems found.')) {
+            return 'Failed to create round. Not enough tagged problems found.';
+        }
+        return message;
+    };
+
+    const joinRoom = async (roomCode: string): Promise<{ success: true } | { success: false; message: string }> => {
         try {
             const res = await fetch(`${SERVER_URL}/rooms/${roomCode}/join`, {
                 method: 'POST',
                 credentials: 'include'
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to join');
+            const data = await parseJsonSafe(res);
+            if (!res.ok) {
+                return { success: false, message: extractErrorMessage(data, 'Failed to join room.') };
+            }
 
             const room = data.data;
 
@@ -30,6 +58,8 @@ export const useRoomInit = () => {
                 userId === room.adminId,
             );
 
+            setRoomNotice(null);
+
             router.push('/room-page');
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -38,13 +68,15 @@ export const useRoomInit = () => {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
+            return { success: true };
+
         } catch (e) {
             console.error(e);
-            alert("Failed to join room. Please check the ID.");
+            return { success: false, message: 'Failed to join room. Please try again.' };
         }
     }
 
-    const createRoom = async (roomCode: string, options: any) => {
+    const createRoom = async (roomCode: string, options: any): Promise<{ success: true } | { success: false; message: string }> => {
         try {
             // 1. Create Room
             const res = await fetch(`${SERVER_URL}/rooms`, {
@@ -53,8 +85,10 @@ export const useRoomInit = () => {
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            const data = await parseJsonSafe(res);
+            if (!res.ok) {
+                return { success: false, message: extractErrorMessage(data, 'Failed to create room.') };
+            }
             const roomId = data.data.id;
             const adminId = data.data.adminId;
             const shortCode = data.data.shortCode;
@@ -74,9 +108,10 @@ export const useRoomInit = () => {
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
+            const roundData = await parseJsonSafe(roundRes);
             if (!roundRes.ok) {
-                const roundData = await roundRes.json();
-                throw new Error(roundData.error || roundData.message || 'Failed to create round');
+                const rawMessage = extractErrorMessage(roundData, 'Failed to create round.');
+                return { success: false, message: sanitizeRoundCreationError(rawMessage) };
             }
 
             // 3. Join the room (so creator is in active users list)
@@ -85,8 +120,8 @@ export const useRoomInit = () => {
                 credentials: 'include'
             });
             if (!joinRes.ok) {
-                const joinData = await joinRes.json();
-                throw new Error(joinData.error || 'Failed to join room');
+                const joinData = await parseJsonSafe(joinRes);
+                return { success: false, message: extractErrorMessage(joinData, 'Room was created, but failed to join.') };
             }
 
             // 4. Update state and join WebSocket room
@@ -97,6 +132,9 @@ export const useRoomInit = () => {
                 userId === adminId
             );
 
+            const warningMessage = roundData?.warningMessage;
+            setRoomNotice(typeof warningMessage === 'string' && warningMessage.trim() ? warningMessage : null);
+
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: roomId });
                 chrome.storage.local.remove('nextProblem');
@@ -104,10 +142,11 @@ export const useRoomInit = () => {
             }
 
             router.push('/room-page');
+            return { success: true };
 
         } catch (e) {
             console.error("Failed to create room/round", e);
-            alert("Failed to create room. Please try again.");
+            return { success: false, message: 'Failed to create room. Please try again.' };
         }
     }
 
@@ -131,6 +170,7 @@ export const useRoomInit = () => {
                             room.adminId,
                             userId === room.adminId
                         );
+                        setRoomNotice(null);
 
                         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                             console.log("CheckActiveRoom: Saving activeRoomId to storage", room.id);
