@@ -123,6 +123,72 @@ func (service *SeedingService) SeedProblems(filePath string) error {
 			log.Printf("Failed to seed problem %s: %v", title, err)
 		}
 	}
+	if err := service.RebuildTagStats(); err != nil {
+		return fmt.Errorf("failed rebuilding tag stats: %w", err)
+	}
 	log.Println("seeding completed")
 	return nil
+}
+
+func (service *SeedingService) RebuildTagStats() error {
+	type tagCounter struct {
+		total  int
+		easy   int
+		medium int
+		hard   int
+	}
+
+	var problems []models.Problem
+	if err := service.db.Find(&problems).Error; err != nil {
+		return err
+	}
+
+	statsMap := make(map[string]*tagCounter)
+	for _, problem := range problems {
+		seen := map[string]bool{}
+		for _, rawTag := range problem.Tags {
+			tag := strings.TrimSpace(rawTag)
+			if tag == "" || seen[tag] {
+				continue
+			}
+			seen[tag] = true
+
+			counter, ok := statsMap[tag]
+			if !ok {
+				counter = &tagCounter{}
+				statsMap[tag] = counter
+			}
+
+			counter.total++
+			switch problem.Difficulty {
+			case constants.DIFFICULTY_EASY:
+				counter.easy++
+			case constants.DIFFICULTY_MEDIUM:
+				counter.medium++
+			case constants.DIFFICULTY_HARD:
+				counter.hard++
+			}
+		}
+	}
+
+	if err := service.db.Where("1 = 1").Delete(&models.ProblemTagStat{}).Error; err != nil {
+		return err
+	}
+
+	stats := make([]models.ProblemTagStat, 0, len(statsMap))
+	for tag, count := range statsMap {
+		stats = append(stats, models.ProblemTagStat{
+			Tag:         tag,
+			TotalCount:  count.total,
+			EasyCount:   count.easy,
+			MediumCount: count.medium,
+			HardCount:   count.hard,
+		})
+	}
+
+	if len(stats) == 0 {
+		return nil
+	}
+
+	return service.db.Create(&stats).Error
 }

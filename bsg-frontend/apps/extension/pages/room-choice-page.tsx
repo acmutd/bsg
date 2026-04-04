@@ -22,7 +22,7 @@ export interface Topic {
 
 interface RoomChoiceProps {
     onJoin: (roomCode: string) => void
-    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number }) => void
+    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[] }) => void
 }
 
 export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {

@@ -93,7 +93,20 @@ func (controller *ProblemController) FindProblemBySlugEndpoint(c echo.Context) e
 	})
 }
 
+func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context) error {
+	stats, err := controller.problemService.FindProblemTagStats()
+	if err != nil {
+		controller.logger.Error("Failed to fetch problem tag stats", err, nil)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, map[string][]models.ProblemTagStat{
+		"data": stats,
+	})
+}
+
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
+	g.GET("/tags", controller.FindProblemTagStatsEndpoint)
 	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)

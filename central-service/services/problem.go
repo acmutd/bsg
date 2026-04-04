@@ -220,3 +220,12 @@ func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, 
 	}
 	return &problem, nil
 }
+
+func (service *ProblemService) FindProblemTagStats() ([]models.ProblemTagStat, error) {
+	var stats []models.ProblemTagStat
+	result := service.db.Order("total_count DESC").Order("tag ASC").Find(&stats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return stats, nil
+}

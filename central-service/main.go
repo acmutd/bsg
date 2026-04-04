@@ -50,7 +50,7 @@ func main() {
 
 	logger.Info("Database connection established", nil)
 
-	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.Room{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Problem{}, &models.ProblemTagStat{}, &models.Room{}); err != nil {
 		logger.Fatal("Error migrating schema", err, nil)
 	}
 
