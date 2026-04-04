@@ -18,6 +18,7 @@ export const useChatSocket = () => {
 
     const socketRef = useRef<WebSocket | null>(null);
     const pendingRoomIDRef = useRef<string | null>(null);
+    const joinedRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const counterRef = useRef<HTMLDivElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -48,16 +49,19 @@ export const useChatSocket = () => {
 
             //race-condition prevention joinRoom was happening before
             //the wb connection
-            if(userEmail && roomId){
+            const targetRoomID = pendingRoomIDRef.current || roomId;
+            if(userEmail && targetRoomID){
                 const payload ={
                     name:userEmail,
                     "request-type": "join-room",
                     data: JSON.stringify({
                         userHandle: userEmail,
-                        roomID: pendingRoomIDRef.current
+                        roomID: targetRoomID
                     })
                 };
                 ws.send(JSON.stringify(payload));
+                joinedRoomIDRef.current = targetRoomID;
+                console.log("Sent join-room on socket open", { roomID: targetRoomID });
             }
         };
 
@@ -79,6 +83,10 @@ export const useChatSocket = () => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
+                        // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
+                        if (message?.data === 'Join Room Request') {
+                            return;
+                        }
                         console.log('recieved system message: ' + message);
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
@@ -129,6 +137,7 @@ export const useChatSocket = () => {
 
         ws.onclose = () => {
             setIsConnected(false);
+            joinedRoomIDRef.current = null;
         };
 
         return () => {
@@ -142,6 +151,10 @@ export const useChatSocket = () => {
         setLastGameEvent(null);
         pendingRoomIDRef.current = roomID;
 
+        if (joinedRoomIDRef.current === roomID) {
+            return;
+        }
+
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
                 name: userEmail,
@@ -152,6 +165,7 @@ export const useChatSocket = () => {
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
+            joinedRoomIDRef.current = roomID;
         }
     }, [userEmail]);
 

@@ -1,6 +1,5 @@
 import { useRoomStore } from '@/stores/useRoomStore';
 import { SERVER_URL } from '../lib/config'
-import { useChatSocket } from './useChatSocket'
 import { useUserStore } from '@/stores/useUserStore';
 import { useRouter } from 'next/router';
 
@@ -8,7 +7,6 @@ export const useRoomInit = () => {
 
     const router = useRouter();
 
-    const { joinChatRoom } = useChatSocket();
     const initRoom = useRoomStore(s => s.initRoom);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
@@ -32,7 +30,6 @@ export const useRoomInit = () => {
                 userId === room.adminId,
             );
 
-            joinChatRoom(room.id);
             router.push('/room-page');
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -67,8 +64,10 @@ export const useRoomInit = () => {
                 duration: options.duration || 30,
                 numEasyProblems: options.easy || 0,
                 numMediumProblems: options.medium || 0,
-                numHardProblems: options.hard || 0
+                numHardProblems: options.hard || 0,
+                tags: options.tags || []
             };
+            console.log("Create round params", roundParams);
             const roundRes = await fetch(`${SERVER_URL}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
                 body: JSON.stringify(roundParams),
@@ -77,7 +76,7 @@ export const useRoomInit = () => {
             });
             if (!roundRes.ok) {
                 const roundData = await roundRes.json();
-                throw new Error(roundData.error || 'Failed to create round');
+                throw new Error(roundData.error || roundData.message || 'Failed to create round');
             }
 
             // 3. Join the room (so creator is in active users list)
@@ -104,7 +103,6 @@ export const useRoomInit = () => {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            joinChatRoom(roomId);
             router.push('/room-page');
 
         } catch (e) {
@@ -143,7 +141,6 @@ export const useRoomInit = () => {
                             console.warn("CheckActiveRoom: chrome.storage.local not available");
                         }
 
-                        joinChatRoom(room.id);
                         router.push('/room-page');
 
                         // Check for active round

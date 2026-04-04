@@ -57,7 +57,12 @@ export function useRoomEvents() {
             }
 
             if (problems.length > 0) {
-                window.open(`https://leetcode.com/problems/${problems[0]}/`, '_top');
+                const targetSlug = problems[0];
+                const currentPath = typeof window !== 'undefined' ? window.location.pathname : "";
+                const alreadyOnTarget = currentPath.includes(`/problems/${targetSlug}/`);
+                if (!alreadyOnTarget) {
+                    window.open(`https://leetcode.com/problems/${targetSlug}/`, '_top');
+                }
             }
         } else if (lastGameEvent.type === 'next-problem') {
             let eventData = lastGameEvent.data;
