@@ -11,6 +11,7 @@ import { Toolbar } from '@/customComponents/Toolbar/Toolbar';
 import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { messageScript } from '@/utils/messageScript';
+import { useIsActive } from '@/hooks/useIsActive';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
@@ -20,6 +21,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const isFolded = useIsFolded();
   const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
+  const { isActive, setIsActive } = useIsActive();
 
   // Redirect popup render
   if (isDefaultPopup) {
@@ -33,21 +35,21 @@ export default function App({ Component, pageProps }: AppProps) {
   // On Leetcode extension render
   return (
     <div
+      className={(isActive) ? 'active' : ''}
       onMouseEnter={() => setIsPanelHovered(true)}
       onMouseLeave={() => setIsPanelHovered(false)}
-      onMouseDown={() => messageScript('ACTIVE')}
-      className="overflow-hidden"
+      onMouseDown={() => { messageScript('ACTIVE'); setIsActive(true); }}
     >
       {/* Sidebar */}
-      <div className={isFolded ? 'flex h-screen' : 'hidden'}>
+      <div className={(isFolded) ? 'flex h-screen' : 'hidden'}>
         <Sidebar isInRoom={isInRoom}/>
       </div>
 
       {/* Main Layout */}
-      <div className={isFolded ? 'hidden' : 'flex flex-col h-screen'}>
+      <div className={(isFolded) ? 'hidden' : 'flex flex-col h-screen'}>
         <HeaderBar isInRoom={isInRoom}/>
         <div className="flex-1 flex overflow-x-auto">
-          <div className="flex-1 flex flex-col min-w-[24rem]">
+          <div className="flex-1 flex flex-col min-w-[24rem] min-w-max">
             {isInRoom && <Toolbar/>}
             <div className="flex-1 overflow-y-auto">
               <Component {...pageProps}/>
