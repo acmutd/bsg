@@ -51,6 +51,9 @@ export const useChatSocket = () => {
             //the wb connection
             const targetRoomID = pendingRoomIDRef.current || roomId;
             if(userEmail && targetRoomID){
+                if (joinedRoomIDRef.current === targetRoomID) {
+                    return;
+                }
                 const payload ={
                     name:userEmail,
                     "request-type": "join-room",
@@ -149,11 +152,13 @@ export const useChatSocket = () => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
-        pendingRoomIDRef.current = roomID;
 
         if (joinedRoomIDRef.current === roomID) {
+            pendingRoomIDRef.current = roomID;
             return;
         }
+
+        pendingRoomIDRef.current = roomID;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
             const payload = {
@@ -255,12 +260,28 @@ export const useChatSocket = () => {
 
     useEffect(() => {
         const textArea = inputRef.current;
+        const container = containerRef.current;
         if (!textArea) return;
 
-        const resizeOberserver = new ResizeObserver(handleExpand);
+        let frameID: number | null = null;
+        const scheduleExpand = () => {
+            if (frameID !== null) {
+                cancelAnimationFrame(frameID);
+            }
+            frameID = requestAnimationFrame(() => {
+                frameID = null;
+                handleExpand();
+            });
+        };
+        const resizeOberserver = new ResizeObserver(scheduleExpand);
 
-        resizeOberserver.observe(textArea);
-        return () => resizeOberserver.disconnect();
+        resizeOberserver.observe(container || textArea);
+        return () => {
+            if (frameID !== null) {
+                cancelAnimationFrame(frameID);
+            }
+            resizeOberserver.disconnect();
+        };
     }, []);
 
     // Derived from messages so will persist between tabs as well
