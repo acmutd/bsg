@@ -1,4 +1,3 @@
-import '../../../packages/ui-styles/global.css';
 import type { AppProps } from 'next/app';
 import '@bsg/ui-styles/global.css';
 import { Poppins } from 'next/font/google';

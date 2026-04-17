@@ -25,6 +25,27 @@ type RTCClient struct {
 	ConnectionMutex sync.Mutex
 }
 
+func expectedResponseType(requestType string) response.ResponseType {
+	switch requestType {
+	case "join-room":
+		return response.SYSTEM_ANNOUNCEMENT
+	case "leave-room":
+		return response.SYSTEM_ANNOUNCEMENT
+	case "chat-message":
+		return response.CHAT_MESSAGE
+	case "round-start":
+		return response.ROUND_START
+	case "round-end":
+		return response.SYSTEM_ANNOUNCEMENT
+	case "next-problem":
+		return response.NEXT_PROBLEM
+	case "room-expired":
+		return response.ROOM_EXPIRED
+	default:
+		return ""
+	}
+}
+
 func InitializeRTCClient(name string) (*RTCClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(rtcWebSocketURL(), nil)
 	if err != nil {
@@ -74,15 +95,24 @@ func (client *RTCClient) SendMessage(requestType string, data interface{}) (*res
 		return nil, err
 	}
 
-	// Read response from Ingress
-	select {
-	case responseObject := <-client.Ingress:
-		if responseObject.RespStatus != "ok" {
-			return &responseObject, BSGError{StatusCode: 500, Message: responseObject.Message()}
+	expectedType := expectedResponseType(requestType)
+	deadline := time.After(5 * time.Second)
+
+	for {
+		select {
+		case responseObject := <-client.Ingress:
+			if expectedType != "" && responseObject.RespType != expectedType {
+				log.Printf("Ignoring RTC response with type %s while waiting for %s", responseObject.RespType, expectedType)
+				continue
+			}
+
+			if responseObject.RespStatus != "ok" {
+				return &responseObject, BSGError{StatusCode: 500, Message: responseObject.Message()}
+			}
+			return &responseObject, nil
+		case <-deadline:
+			return nil, BSGError{StatusCode: 504, Message: "Timeout waiting for RTC response"}
 		}
-		return &responseObject, nil
-	case <-time.After(5 * time.Second):
-		return nil, BSGError{StatusCode: 504, Message: "Timeout waiting for RTC response"}
 	}
 }
 

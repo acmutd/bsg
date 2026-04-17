@@ -18,6 +18,7 @@ export const useChatSocket = () => {
 
     const socketRef = useRef<WebSocket | null>(null);
     const pendingRoomIDRef = useRef<string | null>(null);
+    const joinedRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const counterRef = useRef<HTMLDivElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -48,16 +49,22 @@ export const useChatSocket = () => {
 
             //race-condition prevention joinRoom was happening before
             //the wb connection
-            if(userEmail && roomId){
+            const targetRoomID = pendingRoomIDRef.current || roomId;
+            if(userEmail && targetRoomID){
+                if (joinedRoomIDRef.current === targetRoomID) {
+                    return;
+                }
                 const payload ={
                     name:userEmail,
                     "request-type": "join-room",
                     data: JSON.stringify({
                         userHandle: userEmail,
-                        roomID: pendingRoomIDRef.current
+                        roomID: targetRoomID
                     })
                 };
                 ws.send(JSON.stringify(payload));
+                joinedRoomIDRef.current = targetRoomID;
+                console.log("Sent join-room on socket open", { roomID: targetRoomID });
             }
         };
 
@@ -79,6 +86,10 @@ export const useChatSocket = () => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
+                        // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
+                        if (message?.data === 'Join Room Request') {
+                            return;
+                        }
                         console.log('recieved system message: ' + message);
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
@@ -129,6 +140,7 @@ export const useChatSocket = () => {
 
         ws.onclose = () => {
             setIsConnected(false);
+            joinedRoomIDRef.current = null;
         };
 
         return () => {
@@ -140,6 +152,12 @@ export const useChatSocket = () => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
+
+        if (joinedRoomIDRef.current === roomID) {
+            pendingRoomIDRef.current = roomID;
+            return;
+        }
+
         pendingRoomIDRef.current = roomID;
 
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
@@ -152,6 +170,7 @@ export const useChatSocket = () => {
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
+            joinedRoomIDRef.current = roomID;
         }
     }, [userEmail]);
 
@@ -241,12 +260,28 @@ export const useChatSocket = () => {
 
     useEffect(() => {
         const textArea = inputRef.current;
+        const container = containerRef.current;
         if (!textArea) return;
 
-        const resizeOberserver = new ResizeObserver(handleExpand);
+        let frameID: number | null = null;
+        const scheduleExpand = () => {
+            if (frameID !== null) {
+                cancelAnimationFrame(frameID);
+            }
+            frameID = requestAnimationFrame(() => {
+                frameID = null;
+                handleExpand();
+            });
+        };
+        const resizeOberserver = new ResizeObserver(scheduleExpand);
 
-        resizeOberserver.observe(textArea);
-        return () => resizeOberserver.disconnect();
+        resizeOberserver.observe(container || textArea);
+        return () => {
+            if (frameID !== null) {
+                cancelAnimationFrame(frameID);
+            }
+            resizeOberserver.disconnect();
+        };
     }, []);
 
     // Derived from messages so will persist between tabs as well

@@ -199,8 +199,13 @@
     function syncHandleHeight() {
       try {
         const rect = qd.getBoundingClientRect();
-        handle.style.height = rect.height + 'px';
-        handle.style.alignSelf = 'stretch';
+        const height = rect.height + 'px';
+        if (handle.style.height !== height) {
+          handle.style.height = height;
+        }
+        if (handle.style.alignSelf !== 'stretch') {
+          handle.style.alignSelf = 'stretch';
+        }
       } catch (err) {
         // ignore
       }
@@ -211,7 +216,16 @@
 
     // Observe qd for size changes
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(syncHandleHeight);
+      let frameId = null;
+      const ro = new ResizeObserver(() => {
+        if (frameId !== null) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = requestAnimationFrame(() => {
+          frameId = null;
+          syncHandleHeight();
+        });
+      });
       ro.observe(qd);
     }
 

@@ -26,10 +26,11 @@ type RoundService struct {
 }
 
 type RoundCreationParameters struct {
-	Duration          int `json:"duration"` // Duration in minutes
-	NumEasyProblems   int `json:"numEasyProblems"`
-	NumMediumProblems int `json:"numMediumProblems"`
-	NumHardProblems   int `json:"numHardProblems"`
+	Duration          int      `json:"duration"` // Duration in minutes
+	NumEasyProblems   int      `json:"numEasyProblems"`
+	NumMediumProblems int      `json:"numMediumProblems"`
+	NumHardProblems   int      `json:"numHardProblems"`
+	Tags              []string `json:"tags"`
 }
 
 type RoundSubmissionParameters struct {
@@ -56,7 +57,8 @@ func (service *RoundService) SetDBConnection(db *gorm.DB) {
 	service.db = db
 }
 
-func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, error) {
+func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID *uuid.UUID) (*models.Round, bool, error) {
+	log.Printf("CreateRound room=%s easy=%d medium=%d hard=%d tags=%v", roomID.String(), params.NumEasyProblems, params.NumMediumProblems, params.NumHardProblems, params.Tags)
 	newRound := models.Round{
 		Duration:        params.Duration,
 		RoomID:          *roomID,
@@ -66,29 +68,33 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 	result := service.db.Create(&newRound)
 	if result.Error != nil {
 		log.Printf("Error creating new round: %v\n", result.Error)
-		return nil, result.Error
+		return nil, false, result.Error
 	}
 	// TODO: Add logic for problem generation
-	problemSet, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+	problemSet, fallbackUsed, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
 		NumEasyProblems:   params.NumEasyProblems,
 		NumMediumProblems: params.NumMediumProblems,
 		NumHardProblems:   params.NumHardProblems,
+		Tags:              params.Tags,
 	})
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	for _, problem := range problemSet {
+		log.Printf("CreateRound selected slug=%s difficulty=%s tags=%v", problem.Slug, problem.Difficulty, problem.Tags)
 	}
 	err = service.db.Model(&newRound).Association("ProblemSet").Append(problemSet)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	redisKey := fmt.Sprintf("%s_mostRecentRound", roomID)
 	_, err = service.rdb.Set(context.Background(), redisKey, strconv.FormatUint(uint64(newRound.ID), 10), 0).Result()
 	if err != nil {
 		log.Printf("Error setting value in redis instance: %v\n", err)
-		return nil, err
+		return nil, false, err
 	}
 	newRound.ProblemSet = []models.Problem{}
-	return &newRound, nil
+	return &newRound, fallbackUsed, nil
 }
 
 func (service *RoundService) FindRoundByID(roundID uint) (*models.Round, error) {
@@ -130,6 +136,17 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			StatusCode: 400,
 		}
 	}
+	// fetch problems before starting
+	if err := service.db.Model(round).Association("ProblemSet").Find(&round.ProblemSet); err != nil {
+		return nil, nil, err
+	}
+	if len(round.ProblemSet) == 0 {
+		return nil, nil, BSGError{
+			StatusCode: 400,
+			Message:    "Cannot start round: no problems were generated. Try fewer constraints or different tags.",
+		}
+	}
+
 	roundStartTime := time.Now().Add(time.Second * 10)
 	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
@@ -138,14 +155,9 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	if result.Error != nil {
 		return nil, nil, result.Error
 	}
-
-	// fetch problems before starting
-	if err := service.db.Model(round).Association("ProblemSet").Find(&round.ProblemSet); err != nil {
-		return nil, nil, err
-	}
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
-		var problemList []string
+		problemList := make([]string, 0, len(round.ProblemSet))
 		for _, problem := range round.ProblemSet {
 			problemList = append(problemList, problem.Slug)
 		}

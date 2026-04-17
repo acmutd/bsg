@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/central-service/services"
@@ -50,11 +51,18 @@ func (controller *ProblemController) FindProblemByProblemIDEndpoint(c echo.Conte
 func (controller *ProblemController) FindProblemsEndpoint(c echo.Context) error {
 	count := OptionalQueryParamUInt(c, "count", 10)
 	offset := OptionalQueryParamUInt(c, "offset", 0)
-	problems, err := controller.problemService.FindProblems(count, offset)
+	tagsParam := c.QueryParam("tags")
+	var tags []string
+	if tagsParam != "" {
+		tags = strings.Split(tagsParam, ",")
+	}
+
+	problems, err := controller.problemService.FindProblems(count, offset, tags)
 	if err != nil {
 		controller.logger.Error("Failed to search for problems", err, map[string]interface{}{
 			"count":  count,
 			"offset": offset,
+			"tags":   tags,
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
@@ -85,7 +93,20 @@ func (controller *ProblemController) FindProblemBySlugEndpoint(c echo.Context) e
 	})
 }
 
+func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context) error {
+	stats, err := controller.problemService.FindProblemTagStats()
+	if err != nil {
+		controller.logger.Error("Failed to fetch problem tag stats", err, nil)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, map[string][]models.ProblemTagStat{
+		"data": stats,
+	})
+}
+
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
+	g.GET("/tags", controller.FindProblemTagStatsEndpoint)
 	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)

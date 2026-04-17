@@ -108,6 +108,9 @@ async function startServer() {
     const roomsRoutes = require('./routes/rooms');
     app.use('/rooms', roomsRoutes);
 
+    const problemsRoutes = require('./routes/problems');
+    app.use('/problems', problemsRoutes);
+
     const submissionRoutes = require('./routes/submission');
     app.use('/submission', submissionRoutes);
 
