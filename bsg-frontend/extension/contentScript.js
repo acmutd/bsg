@@ -298,6 +298,10 @@
     const tabsetLayout = document.querySelector('.flexlayout__layout');
     if (!tabsetLayout) console.log("tabset layout not found");
 
+    // Remove scrollbar overflowing from tabs (purely visual)
+    const initialTabs = tabsetLayout.querySelectorAll('.flexlayout__tab');
+    initialTabs.forEach(tab => tab.style.clipPath = 'inset(0 round 8px)');
+
     const removeActive = () => {
       panelActive = false;
       activeTabsetObserver.disconnect();
@@ -333,21 +337,29 @@
       }
     });
 
-    // Watch for new tabsets being added
-    const newTabsetObserver = new MutationObserver((mutations) => {
+    // Watch for new tab and tabsets being added
+    const newTabObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-          if (node.matches('.flexlayout__tabset, .flexlayout__tab')) {
+          if (node.classList.contains('flexlayout__tabset')) {
+            removeActive();
+          }
+          
+          if (node.classList.contains('flexlayout__tab')) {
+            // Style tabs as they are added
+            node.style.clipPath = 'inset(0 round 8px)';
             removeActive();
           }
         });
       });
     });
 
+    // TODO: Oberserve when flexlayout__tabset-active is assigned to a new panel
+
     // Only observe added and removed nodes from LeetCode tabset layout
-    newTabsetObserver.observe(tabsetLayout, {
+    newTabObserver.observe(tabsetLayout, {
       childList: true,
       attributes: false,
       characterData: false
