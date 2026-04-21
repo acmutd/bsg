@@ -1,5 +1,5 @@
 import React from "react";
-import { useRoomStore } from "@/stores/useRoomStore";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { Participant } from "@bsg/models/Participant";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -190,42 +190,35 @@ const PodiumColumn = ({
     );
 };
 
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+const LeaderboardSkeleton = () => (
+    <div className="flex-1 flex flex-col gap-3 p-4 animate-pulse">
+        {/* Podium skeleton */}
+        <div className="flex items-end gap-2 pt-6">
+            <div className="flex-1 h-[160px] rounded-t-sm bg-[#2e2e2e]" />
+            <div className="flex-1 h-[200px] rounded-t-sm bg-[#3a3a3a]" />
+            <div className="flex-1 h-[120px] rounded-t-sm bg-[#2e2e2e]" />
+        </div>
+        {/* Row skeletons */}
+        {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-14 rounded-lg bg-[#2e2e2e]" />
+        ))}
+    </div>
+);
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
-    const users = useRoomStore((s) => s.participants);
+    const { participants, isLoading, error, refresh } = useLeaderboard();
 
-    let participants: Participant[] = users.map((user, index) => ({
-        id: user.id || index.toString(),
-        username: user.name || "Unknown User",
-        avatarUrl: user.photo,
-        defaultColor: "#72ab1c",
-        currentProblemIndex: 0,
-        score: (users.length - index) * 100, // temp
-    }));
-
-    // Dummy data for empty rooms
-    if (participants.length === 0) {
-        participants = [
-            { id: "1", username: "PIMPDEV22", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 10000 },
-            { id: "2", username: "Bob_Builder", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 820 },
-            { id: "3", username: "googoo ga ga", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 710 },
-            { id: "4", username: "Diddy", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 580 },
-            { id: "5", username: "Eve_Johnson", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 430 },
-            { id: "6", username: "Frank_Castle", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 310 },
-            { id: "7", username: "MUAHAHAHA", defaultColor: "#72ab1c", currentProblemIndex: 0, score: 310 },
-        ];
-    }
-
-    const sorted = [...participants].sort((a, b) => b.score - a.score);
-
-    // Map rank → participant for easy lookup
+    // Backend already returns entries sorted by rank; treat them as sorted.
+    const sorted = participants;
     const byRank: Record<number, Participant | undefined> = {
         1: sorted[0],
         2: sorted[1],
         3: sorted[2],
     };
-
     const rest = sorted.slice(3);
 
     return (
@@ -238,8 +231,18 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
                 <div className="mx-auto mt-2 w-16 h-0.5 rounded-full bg-gradient-to-r from-transparent via-[#72ab1c] to-transparent" />
             </div>
 
-            {/* Empty state */}
-            {sorted.length === 0 && (
+            {/* Error banner */}
+            {error && (
+                <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-red-900/30 border border-red-500/40 flex-shrink-0">
+                    <p className="text-red-400 text-xs text-center">{error}</p>
+                </div>
+            )}
+
+            {/* Loading skeleton */}
+            {isLoading && sorted.length === 0 && <LeaderboardSkeleton />}
+
+            {/* Empty state — shown when not loading and no entries */}
+            {!isLoading && sorted.length === 0 && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                     <div className="relative mb-4">
                         <div className="absolute inset-0 bg-[#72ab1c]/30 blur-xl rounded-full" />
@@ -255,13 +258,13 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
                             </svg>
                         </div>
                     </div>
-                    <p className="text-[#72ab1c] font-bold text-lg tracking-tight">No Participants Yet!</p>
-                    <p className="text-[#aaaaaa] text-sm mt-1">Waiting for players to join the room</p>
+                    <p className="text-[#72ab1c] font-bold text-lg tracking-tight">No Rankings Yet!</p>
+                    <p className="text-[#aaaaaa] text-sm mt-1">Scores appear once a round starts</p>
                     <div className="mt-3 w-16 h-0.5 rounded-full bg-gradient-to-r from-transparent via-[#72ab1c] to-transparent" />
                 </div>
             )}
 
-            {/* Podium + list */}
+            {/* Podium + ranked list */}
             {sorted.length > 0 && (
                 <div className="flex-1 flex flex-col min-h-0">
 

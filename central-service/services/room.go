@@ -502,8 +502,71 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 	return roundStartTime, problems, nil
 }
 
-func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
-	return service.roundService.GetLeaderboardByRoomID(roomID)
+// LeaderboardEntry is the enriched leaderboard row sent to the frontend.
+type LeaderboardEntry struct {
+	UserAuthID string `json:"userAuthID"`
+	Handle     string `json:"handle"`
+	PhotoURL   string `json:"photoURL"`
+	Score      uint64 `json:"score"`
+	Rank       int    `json:"rank"`
+}
+
+func (service *RoomService) GetLeaderboard(roomID string) ([]LeaderboardEntry, error) {
+	redisEntries, err := service.roundService.GetLeaderboardByRoomID(roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect all authIDs from the Redis result
+	authIDs := make([]string, 0, len(redisEntries))
+	for _, z := range redisEntries {
+		if authID, ok := z.Member.(string); ok {
+			authIDs = append(authIDs, authID)
+		}
+	}
+
+	// Batch-fetch user records from Postgres so we can show names/photos
+	var users []models.User
+	if len(authIDs) > 0 {
+		if err := service.db.Where("auth_id IN ?", authIDs).Find(&users).Error; err != nil {
+			log.Printf("Error fetching users for leaderboard enrichment in room %s: %v", roomID, err)
+			// Non-fatal: we'll fall back to showing the authID as the handle
+		}
+	}
+
+	// Build authID → User lookup map
+	userMap := make(map[string]models.User, len(users))
+	for _, u := range users {
+		userMap[u.AuthID] = u
+	}
+
+	entries := make([]LeaderboardEntry, 0, len(redisEntries))
+	for i, z := range redisEntries {
+		authID, ok := z.Member.(string)
+		if !ok {
+			continue // Skip corrupted or invalid entries
+		}
+		
+		decodedScore := DecompressScore(z.Score)
+
+		handle := authID // fallback
+		photoURL := ""
+		if u, ok := userMap[authID]; ok {
+			if u.Handle != "" {
+				handle = u.Handle
+			}
+			photoURL = u.PhotoURL
+		}
+
+		entries = append(entries, LeaderboardEntry{
+			UserAuthID: authID,
+			Handle:     handle,
+			PhotoURL:   photoURL,
+			Score:      decodedScore,
+			Rank:       i + 1,
+		})
+	}
+	return entries, nil
 }
 
 func (service *RoomService) CreateRoomSubmission(roomID string, params RoundSubmissionParameters, userID string) (*models.RoundSubmission, error) {
