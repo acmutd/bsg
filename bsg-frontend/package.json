@@ -15,10 +15,15 @@
     "packages/*"
   ],
   "devDependencies": {
-    "@types/chrome": "^0.0.317"
+    "@types/chrome": "^0.0.317",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
   },
   "dependencies": {
     "firebase": "^11.9.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "recharts": "^3.8.1",
     "zustand": "^5.0.11"
   }
 }

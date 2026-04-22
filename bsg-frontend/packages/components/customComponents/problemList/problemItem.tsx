@@ -7,13 +7,15 @@ type ProblemItem = {
     name: string;
     acceptance: number;
     difficulty: Difficulty;
+    tags?: string[];
     topic?: string;
     description: string;
     examples?: [{ input: string; output: string; explanation: string }];
     constraints?: string;
 };
 const ProblemItem = ({problemItem}: { problemItem: ProblemItem }) => {
-    const {id, name, acceptance, difficulty} = problemItem;
+    const {id, name, acceptance, difficulty, tags, topic} = problemItem;
+    const displayTags = (tags && tags.length > 0) ? tags : (topic ? [topic] : []);
 
     let difficultyColorClass = '';
     switch (difficulty) {
@@ -33,13 +35,23 @@ const ProblemItem = ({problemItem}: { problemItem: ProblemItem }) => {
     return (
         <Link href={`/apps/web/app/problem/${id}`}>
             <div
-                className='grid grid-cols-9 gap-4 bg-background px-4 py-2 rounded-md text-primary-foreground hover:bg-background/70'>
-                <div className='grid grid-cols-subgrid gap-4 col-span-5'>{`${id}. ${name}`}</div>
+                className='grid grid-cols-12 gap-4 bg-background px-4 py-2 rounded-md text-primary-foreground hover:bg-background/70'>
+                <div className='grid grid-cols-subgrid gap-4 col-span-4'>{`${id}. ${name}`}</div>
+                <div className='col-span-3 flex flex-wrap gap-1'>
+                    {displayTags.map((tag) => (
+                        <span
+                            key={`${id}-${tag}`}
+                            className='inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground'
+                        >
+                            {tag}
+                        </span>
+                    ))}
+                </div>
                 <div className='grid grid-cols-subgrid gap-4 col-span-2'>
                     {`${acceptance}%`}
                 </div>
                 <div
-                    className={`grid grid-cols-subgrid gap-4 col-span-2 ${difficultyColorClass}`}>
+                    className={`grid grid-cols-subgrid gap-4 col-span-3 ${difficultyColorClass}`}>
                     {difficulty}
                 </div>
             </div>
