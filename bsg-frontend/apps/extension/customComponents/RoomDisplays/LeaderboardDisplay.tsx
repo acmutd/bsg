@@ -141,7 +141,7 @@ const PodiumColumn = ({
     const roofColor = `rgba(${rgb},${topRoofOpacity})`;
 
     return (
-        <div className="flex-1 flex flex-col items-center">
+        <div className="flex-1 min-w-0 flex flex-col items-center">
             {/* Avatar */}
             <div className="relative mb-2 group">
                 <div
@@ -170,8 +170,8 @@ const PodiumColumn = ({
                     style={{
                         background: slot.podiumBackground || "linear-gradient(to bottom, rgba(58,85,24,0.6), rgba(42,61,18,0.8), rgba(30,42,13,0.9))",
                         borderTop: `1px solid ${borderColor}`,
-                        borderLeft: rank !== 3 ? `1px solid ${borderColor}` : undefined,
-                        borderRight: rank !== 2 ? `1px solid ${borderColor}` : undefined,
+                        borderLeft: `1px solid ${borderColor}`,
+                        borderRight: `1px solid ${borderColor}`,
                     }}
                 >
                     <div className="absolute inset-0 bg-gradient-to-b from-[#72ab1c]/10 to-transparent" />
