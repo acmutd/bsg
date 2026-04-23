@@ -1,11 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-<<<<<<< HEAD
-    "ignoreDeprecations": "5.0",
-=======
-    "target": "ES2022", //for the upcoming ts version ignoreDeprecation was a temporary this will fallback to the lastest ES
->>>>>>> 23031b214c095817f969c3d0d54c0c32266334c6
+    "target": "esnext", //for the upcoming ts version ignoreDeprecation was a temporary this will fallback to the lastest ES
     "types": [
       "chrome",
       "node"
@@ -13,12 +9,12 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
     "noEmit": true,
     "incremental": true,
     "esModuleInterop": true,
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",

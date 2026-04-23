@@ -2,11 +2,12 @@
   "name": "bsg-extension",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build-extension": "next build && shx mv out/_next out/next && shx cp -R ../../extension/* ./out/ && npm run fix-paths && npm run extract-inline",
     "fix-paths": "replace-in-file --configFile=replacementFileConfig.json",
-    "extract-inline": "node scripts/extract-inline.js",
+    "extract-inline": "tsx scripts/extract-inline.ts",
     "start": "next start",
     "lint": "next lint"
   },
@@ -35,8 +36,8 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-table": "^8.20.6",
     "@types/node": "20.6.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "18.2.22",
+    "@types/react-dom": "18.2.7",
     "autoprefixer": "10.4.15",
     "babel-plugin-macros": "^3.1.0",
     "class-variance-authority": "^0.7.0",
@@ -61,11 +62,14 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.0.319",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^25.6.0",
     "css-loader": "^7.1.2",
     "postcss-loader": "^8.1.1",
     "replace-in-file": "^8.3.0",
     "shx": "^0.4.0",
-    "style-loader": "^4.0.0"
+    "style-loader": "^4.0.0",
+    "tsx": "^4.21.0"
   },
   "description": "BSG Extension",
   "main": "index.js",
