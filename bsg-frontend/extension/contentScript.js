@@ -165,6 +165,7 @@
           chrome.storage.local.set({ "isPanelFolded": true });
           chrome.storage.local.set({ "panelWidth": '24rem' });
         } else {
+          chrome.storage.local.set({ "isPanelFolded": false });
           chrome.storage.local.set({ "panelWidth": panelWidth });
         }
       } catch (err) {
@@ -215,6 +216,7 @@
         chrome.storage.local.set({ "isPanelFolded": true });
         chrome.storage.local.set({ "panelWidth": '24rem' });
       } else {
+        chrome.storage.local.set({ "isPanelFolded": false });
         chrome.storage.local.set({ "panelWidth": panelWidth });
       }
     });
