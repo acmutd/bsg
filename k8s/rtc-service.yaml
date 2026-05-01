@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: rtc-deployment
+  labels:
+    app: rtc
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      app: rtc
+  template:
+    metadata: 
+      labels:
+        app: rtc
+    spec:
+      containers:
+      - name: rtc
+        image: "" # acmutd/bsg-frontend:latest  
+        ports:
+        - containerPort: 3002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtc-service
+spec:
+  selector:
+    app: rtc
+  ports: 
+  - name: TCP
+    port: 3002
+    targetPort: 3002
