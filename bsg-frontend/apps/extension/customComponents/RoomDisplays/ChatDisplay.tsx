@@ -2,6 +2,7 @@ import { Button } from '@bsg/ui/button'
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useUserStore } from '@/stores/useUserStore';
 import { useChatSocket } from '@/hooks/useChatSocket'
+import { useState } from 'react';
 
 export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -21,12 +22,16 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
     } = useChatSocket();
 
     const username = useUserStore(s => s.username);
+    const emojis = require('@bsg/ui-styles/assets/emojis/all.json');
+    const [displayEmojis, setDisplayEmojis] = useState<boolean>(false);
 
     return (
         <div
             ref={chatRef}
             className={`h-full flex flex-col relative overflow-y-auto ${(isActive) ? '' : 'hidden'}`}
         >
+            
+            {/* Messages */}
             <div className='flex-1 flex flex-col px-4 pt-4 gap-3'>
                 {groupedMessages.map((group, i) => (
                     <>
@@ -89,8 +94,9 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                     </>
                 ))}
             </div>
-
-            <div className="sticky relative justify-center bottom-0 w-full flex p-4 bg-gradient-to-t from-[#262626] to-transparent">
+            
+            {/* Chat Bar */}
+            <div className={`sticky relative justify-center bottom-0 w-full flex flex-col p-4 bg-gradient-to-t from-[#262626] to-transparent ${displayEmojis ? 'pb-0 gap-4' : ''}`}>
 
                 {/* Jump to bottom (shows when scroll > 200px from bottom) */}
                 {showJump &&
@@ -141,7 +147,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                         <div className='flex gap-3'>
                             <TooltipWrapper text="Emojis">
                                 <Button
-                                    //onClick={}
+                                    onClick={() => setDisplayEmojis(!displayEmojis)}
                                     className="rounded-full w-auto h-auto p-0 items-center justify-center bg-transparent hover:bg-transparent text-foreground/60 hover:text-foreground"
                                 >
                                     <svg
@@ -172,6 +178,19 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             </TooltipWrapper>
                         </div>
                     </div>
+                </div>
+
+                {/* emojis */}
+                <div className="grid grid-cols-8 gap-1 h-32 overflow-y-auto">
+                    {emojis.map(emoji => 
+                        <button
+                            key={emoji}
+                            //onClick={}
+                            className="text-xl"
+                        >
+                            {emoji}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
