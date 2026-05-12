@@ -18,30 +18,38 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         containerRef,
         counterRef,
         atLimit,
-        MAX_CHARS
+        MAX_CHARS,
+        insertEmoji,
+        categoryRefs,
+        emojiMenuRef,
+        scrollToCategory
     } = useChatSocket();
 
     const username = useUserStore(s => s.username);
-    const emojis = require('@bsg/ui-styles/assets/emojis/all.json');
-    const [displayEmojis, setDisplayEmojis] = useState<boolean>(false);
+    const emojiMap = require('@bsg/ui-styles/assets/emojis.json') as Record<string, { emoji: string; name: string; keywords: string[] }[]>;
+    const emojiCategories = Object.keys(emojiMap).map(key => ({
+        key,
+        name: key.charAt(0).toUpperCase() + key.slice(1)
+    }));
+    const emojiList = Object.entries(emojiMap).flatMap(([category, emojis]) =>
+        emojis.map(emoji => ({ ...emoji, category }))
+    );
 
-    const emojiCategories = [
-        { name: 'Recent' },
-        { name: 'People' },
-        { name: 'Nature' },
-        { name: 'Food' },
-        { name: 'Activities' },
-        { name: 'Travel' },
-        { name: 'Objects' },
-        { name: 'Symbols' },
-        { name: 'Flags' }
-    ];
+    const [displayEmojis, setDisplayEmojis] = useState<boolean>(false);
+    const [emojiSearch, setEmojiSearch] = useState<string>('');
+
+    const emojiSearchResults = emojiSearch ?
+        emojiList.filter(emoji =>
+            emoji.name.includes(emojiSearch) ||
+            emoji.keywords.some(keyword => keyword.includes(emojiSearch))
+        )
+    : [];
 
     return (
-        <div className="h-full flex flex-col">
+        <div className={`h-full flex flex-col ${(isActive) ? '' : 'hidden'}`}>
             <div
                 ref={chatRef}
-                className={`flex-1 flex flex-col relative overflow-y-auto ${(isActive) ? '' : 'hidden'}`}
+                className="flex-1 flex flex-col relative overflow-y-auto"
             >
 
                 {/* Messages */}
@@ -213,32 +221,81 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                     </svg>
                     <input
                         placeholder='Find an emoji'
+                        value={emojiSearch}
+                        onChange={e => setEmojiSearch(e.target.value)}
                         className="text-foreground placeholder-foreground/60 w-full bg-transparent outline-none"
                     />
                 </div>
 
                 <div className="flex h-32 bg-[#333333]">
                     <div className="flex flex-col w-9 p-1 gap-1 items-center overflow-y-auto no-scrollbar border-r border-white/10">
+                        <TooltipWrapper
+                            key="recent"
+                            text="Recent"
+                        >
+                            <Button
+                                key="recent"
+                                onClick={() => scrollToCategory("recent")}
+                                className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
+                            >
+
+                            </Button>
+                        </TooltipWrapper>
+
                         {emojiCategories.map(category =>
-                            <TooltipWrapper text={category.name}>
+                            <TooltipWrapper
+                                key={category.key}
+                                text={category.name}
+                            >
                                 <Button
-                                    key={category.name}
+                                    key={category.key}
+                                    onClick={() => scrollToCategory(category.key)}
                                     className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
                                 >
-                                    
+
                                 </Button>
                             </TooltipWrapper>
                         )}
                     </div>
-                    <div className="flex-1 grid grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] p-1 gap-1 overflow-y-auto overflow-x-hidden">
-                        {emojis.map(emoji =>
-                            <Button
-                                key={emoji}
-                                className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
-                            >
-                                {emoji}
-                            </Button>
-                        )}
+
+                    <div
+                        ref={emojiMenuRef}
+                        className="flex-1 flex flex-col overflow-y-auto"
+                    >
+                        {emojiSearch ?
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-1 p-1">
+                                {emojiSearchResults.map(emoji =>
+                                    <Button
+                                        key={emoji.name}
+                                        onClick={() => insertEmoji(emoji.emoji)}
+                                        className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
+                                    >
+                                        {emoji.emoji}
+                                    </Button>
+                                )}
+                            </div>
+                            :
+                            emojiCategories.map(category =>
+                                <div
+                                    key={category.key}
+                                    ref={el => { categoryRefs.current[category.key] = el }}
+                                    className="flex flex-col p-1 gap-1"
+                                >
+                                    <div className="text-foreground/60 px-1">{category.name}</div>
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-1">
+                                        {emojiMap[category.key].map(emoji => (
+                                            <Button
+                                                key={emoji.name}
+                                                onClick={() => insertEmoji(emoji.emoji)}
+                                                className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
+                                            >
+                                                {emoji.emoji}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
                     </div>
                 </div>
             </div>
