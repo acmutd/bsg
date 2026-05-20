@@ -1,11 +1,9 @@
 package models
 
 type Statistics struct {
-	ID           uint `gorm:"primaryKey" json:"id"`
-	UserID       uint `gorm:"uniqueIndex;not null" json:"userId"`
-	User         User `gorm:"foreignKey:UserID" json:"-"`
-	EasySolved   uint `gorm:"default:0" json:"easySolved"`
-	MediumSolved uint `gorm:"default:0" json:"mediumSolved"`
-	HardSolved   uint `gorm:"default:0" json:"hardSolved"`
-	TotalScore   uint `gorm:"default:0" json:"totalScore"` // can perform some kind of calculation based on problems solved
+	UserID     string `gorm:"primaryKey" json:"id"`
+	User       User   `gorm:"foreignKey:UserID;references:ID"`
+	RoomID     string `gorm:"primaryKey" json:"shortCode"`
+	Room       Room   `gorm:"foreignKey:RoomID;references:ShortCode"`
+	TotalScore uint   `json:"score"`
 }

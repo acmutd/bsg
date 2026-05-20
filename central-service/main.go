@@ -82,6 +82,10 @@ func main() {
 		logger.Fatal("Error migrating Leaderboard schema", err, nil)
 	}
 
+	if err := db.AutoMigrate(&models.Statistics{}); err != nil {
+		logger.Fatal("Error migrating Statistics schema", err, nil)
+	}
+
 	// Initialize Kafka-related components
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
@@ -167,6 +171,8 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
+	_ = services.InitializeStatisticService(db) //temporary declaration will come back to this
+
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
 	e.Use(userController.ValidateUserRequest)
