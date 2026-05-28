@@ -20,6 +20,11 @@ type UserStatistics struct {
 	TotalScore uint `json:"score"`
 }
 
+// func (service *Statistics) CalculateScore() (UserStatistics, error) {
+
+// }
+
+// Update the user score in the db
 func (service *Statistics) UpdateUserScore(currentUser string, roomName string, score uint) error {
 
 	userStats := models.Statistics{
@@ -35,7 +40,7 @@ func (service *Statistics) UpdateUserScore(currentUser string, roomName string, 
 	return nil
 }
 
-// function to find the UserScore
+// function to find the UserScore from the db
 func (service *Statistics) GetUserScore(currentUser string, roomName string) (UserStatistics, error) {
 
 	var user models.Statistics

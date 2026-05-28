@@ -171,7 +171,7 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
-	_ = services.InitializeStatisticService(db) //temporary declaration will come back to this
+	_ = services.InitializeStatisticService(db, rdb, rtcClient) //temporary declaration will come back to this
 
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
