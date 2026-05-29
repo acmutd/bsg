@@ -45,10 +45,11 @@ const ProblemList = ({problemList, page}: ProblemListProps) => {
                     </TooltipWrapper>
                 </div>
             </div>
-            <div className='px-3 grid grid-cols-9 gap-4 mb-2'>
-                <p className='grid grid-cols-subgrid gap-4 col-span-5'>Title</p>
+            <div className='px-3 grid grid-cols-12 gap-4 mb-2'>
+                <p className='grid grid-cols-subgrid gap-4 col-span-4'>Title</p>
+                <p className='grid grid-cols-subgrid gap-4 col-span-3'>Tags</p>
                 <p className='grid grid-cols-subgrid gap-4 col-span-2'>Acceptance</p>
-                <p className='grid grid-cols-subgrid gap-4 col-span-2'>Difficulty</p>
+                <p className='grid grid-cols-subgrid gap-4 col-span-3'>Difficulty</p>
             </div>
             <div className='flex flex-col space-y-4'>
                 {currentProblems.map((it, index) => (

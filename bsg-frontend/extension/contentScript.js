@@ -16,7 +16,7 @@
     });
   }
 
-  waitForQDContent().then(function (qd) {
+  waitForQDContent().then(async function (qd) {
     const wrapper = qd.parentElement;
     if (!wrapper) {
       console.warn('where parent');
@@ -43,11 +43,23 @@
       position: 'relative',
     });
 
+    const initPanelWidth = async () => {
+      const result = await chrome.storage.local.get(["panelWidth", "isPanelFolded"]);
+
+      const panelWidth = result.panelWidth ?? '24rem';
+      const isPanelFolded = result.isPanelFolded ?? false;
+
+      if (result.panelWidth === undefined) chrome.storage.local.set({ panelWidth: '24rem' });
+      if (result.isPanelFolded === undefined) chrome.storage.local.set({ isPanelFolded: false });
+
+      return isPanelFolded ? '2.25rem' : panelWidth;
+    }
+
     // Create the main panel
     const panel = document.createElement('div');
     panel.id = 'bsg-extension-panel';
     Object.assign(panel.style, {
-      width: '24rem',
+      width: await initPanelWidth(),
       height: `${qd.getBoundingClientRect().height}px`,
       backgroundColor: '#262626',
       borderRadius: '8px',
@@ -146,7 +158,15 @@
       // Immediately align panel left boundary with pointer so the visible bar is under cursor
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
-        panel.style.width = `${clampWidth(rightEdge - e.clientX)}px`;
+        const panelWidth = `${clampWidth(rightEdge - e.clientX) / 16}rem`;
+        panel.style.width = panelWidth;
+
+        if (panelWidth === '2.25rem') {
+          chrome.storage.local.set({ "isPanelFolded": true });
+          chrome.storage.local.set({ "panelWidth": '24rem' });
+        } else {
+          chrome.storage.local.set({ "panelWidth": panelWidth });
+        }
       } catch (err) {
         // ignore
       }
@@ -188,7 +208,15 @@
       if (!isDragging) return;
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
-      panel.style.width = `${clampWidth(rightEdge - e.clientX)}px`;
+      const panelWidth = `${clampWidth(rightEdge - e.clientX) / 16}rem`;
+      panel.style.width = panelWidth;
+
+      if (panelWidth === '2.25rem') {
+        chrome.storage.local.set({ "isPanelFolded": true });
+        chrome.storage.local.set({ "panelWidth": '24rem' });
+      } else {
+        chrome.storage.local.set({ "panelWidth": panelWidth });
+      }
     });
 
     // End drag on pointerup or when pointer leaves
@@ -199,8 +227,13 @@
     function syncHandleHeight() {
       try {
         const rect = qd.getBoundingClientRect();
-        handle.style.height = rect.height + 'px';
-        handle.style.alignSelf = 'stretch';
+        const height = rect.height + 'px';
+        if (handle.style.height !== height) {
+          handle.style.height = height;
+        }
+        if (handle.style.alignSelf !== 'stretch') {
+          handle.style.alignSelf = 'stretch';
+        }
       } catch (err) {
         // ignore
       }
@@ -211,7 +244,16 @@
 
     // Observe qd for size changes
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(syncHandleHeight);
+      let frameId = null;
+      const ro = new ResizeObserver(() => {
+        if (frameId !== null) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = requestAnimationFrame(() => {
+          frameId = null;
+          syncHandleHeight();
+        });
+      });
       ro.observe(qd);
     }
 
@@ -231,14 +273,18 @@
 
       if (message.type === "FOLD") {
         panel.style.width = "2.25rem";
+        chrome.storage.local.set({ "isPanelFolded": true });
       }
 
       if (message.type === "UNFOLD") {
-        panel.style.width = "24rem";
+        chrome.storage.local.get(["panelWidth"]).then((result) => {
+          panel.style.width = result.panelWidth ?? '24rem';
+        });
+        chrome.storage.local.set({ isPanelFolded: false });
       }
 
       if (message.type === "MAXIMIZE") {
-        panel.style.width = `${window.innerWidth}px`;
+        panel.style.width = `${window.innerWidth / 16}rem`;
       }
 
       if (message.type === "ACTIVE") {

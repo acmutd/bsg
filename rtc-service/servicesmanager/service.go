@@ -93,7 +93,10 @@ func (s *Service) ReadMessages() {
 							if messageStruct.Type == "join-room" {
 								room.RLock()
 								for _, prevMsg := range room.Messages {
-									s.Egress <- prevMsg
+									// Only replay non-transient events on reconnect.
+									if prevMsg.RespType == response.CHAT_MESSAGE || prevMsg.RespType == response.SYSTEM_ANNOUNCEMENT {
+										s.Egress <- prevMsg
+									}
 								}
 								room.RUnlock()
 							}
