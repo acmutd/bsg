@@ -114,6 +114,9 @@ async function startServer() {
     const submissionRoutes = require('./routes/submission');
     app.use('/submission', submissionRoutes);
 
+    const statisticsRoutes = require('../routes/statistics');
+    app.use('/statistics', statisticsRoutes)
+
     // Healthcheck endpoint
     app.get('/health', async (req, res) => {
         try {

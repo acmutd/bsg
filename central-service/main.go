@@ -171,7 +171,8 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
-	_ = services.InitializeStatisticService(db, rdb, rtcClient) //temporary declaration will come back to this
+	statService := services.InitializeStatisticService(db, rdb, rtcClient)
+	statsController := controllers.InitializeStatisticsController(&statService, &roomService, logger)
 
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
@@ -201,6 +202,7 @@ func main() {
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
 	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
+	statsController.InitializeRoutes(e.Group("/api/statistics"))
 
 	logger.Info("Central service started", map[string]interface{}{
 		"port": 5000,

@@ -14,6 +14,10 @@ type StatisticsController struct {
 	logger       *utils.StructuredLogger
 }
 
+func InitializeStatisticsController(s *services.Statistics, r *services.RoomService, l *utils.StructuredLogger) StatisticsController {
+	return StatisticsController{s, r, l}
+}
+
 func (controller *StatisticsController) GetStatistics(c echo.Context) error {
 
 	userAuthID := c.Get("userAuthID").(string)
