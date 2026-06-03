@@ -32,6 +32,7 @@ export const useChatSocket = () => {
     const [inputText, setInputText] = useState<string>('');
     const [showJump, setShowJump] = useState<boolean>(false);
     const [atLimit, setAtLimit] = useState<boolean>(false);
+    const [emojiSearch, setEmojiSearch] = useState<string>('');
 
     const userEmail = useUserStore(s => s.email);
     const username = useUserStore(s => s.username);
@@ -294,12 +295,16 @@ export const useChatSocket = () => {
     };
 
     const scrollToCategory = (category: string) => {
-        const menuEl = emojiMenuRef.current;
-        const categoryEl = categoryRefs.current[category];
+        setEmojiSearch('');
 
-        if (menuEl && categoryEl) {
-            menuEl.scrollTop = categoryEl.offsetTop - menuEl.offsetTop;
-        }
+        setTimeout(() => {
+            const menuEl = emojiMenuRef.current;
+            const categoryEl = categoryRefs.current[category];
+
+            if (menuEl && categoryEl) {
+                menuEl.scrollTop = categoryEl.offsetTop - menuEl.offsetTop;
+            }
+        }, 0);
     }
 
     useEffect(() => {
@@ -399,6 +404,8 @@ export const useChatSocket = () => {
         insertEmoji,
         categoryRefs,
         emojiMenuRef,
-        scrollToCategory
+        scrollToCategory,
+        emojiSearch,
+        setEmojiSearch
     };
 };
