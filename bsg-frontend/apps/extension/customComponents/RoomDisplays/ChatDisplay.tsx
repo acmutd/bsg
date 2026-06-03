@@ -294,7 +294,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                         )}
                     </div>
 
-                    <div className={`flex-1 flex flex-col overflow-y-auto ${emojiSearch ? '' : 'hidden'}`}>
+                    <div className={`flex-1 overflow-y-auto ${emojiSearch ? '' : 'hidden'}`}>
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-1 p-1">
                             {emojiSearchResults.map(emoji =>
                                 <Button
