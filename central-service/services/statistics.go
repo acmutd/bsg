@@ -46,31 +46,17 @@ func (service *Statistics) CalculateScore(runtime int, difficulty string) (UserS
 	return UserStatistics{finalScore}, nil
 }
 
-// Update the user score in the db
-func (service *Statistics) UpdateUserScore(currentUser string, roomName string, score float64) error {
+// Update the user score in the db by adding newScore to the existing score
+func (service *Statistics) UpdateUserScore(currentUser string, roomName string, newScore float64) error {
+	existing, err := service.GetUserScore(currentUser, roomName)
+	if err != nil {
+		return BSGError{404, "Could not find statistics data for this user"}
+	}
 
 	userStats := models.Statistics{
 		UserID:     currentUser,
 		RoomID:     roomName,
-		TotalScore: score,
-	}
-
-	score, err := service.GetUserScore(currentUser, roomName)
-	if err != nil {
-		return BSGError{404, "Could not find statistics data for this user"}
-	}
-	dbScore := score.TotalScore
-
-	currentScore, err := service.CalculateScore() 
-	if dbScore >= 0 {
-
-	}
-
-
-
-	if currentScore.TotalScore >= 0 {
-		currentScore.TotalScore += 
-
+		TotalScore: existing.TotalScore + newScore,
 	}
 
 	result := service.db.Save(&userStats)
