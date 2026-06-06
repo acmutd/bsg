@@ -1,9 +1,7 @@
 package models
 
 type Statistics struct {
-	UserID     string  `gorm:"primaryKey" json:"id"`
-	User       User    `gorm:"foreignKey:UserID;references:ID"`
-	RoomID     string  `gorm:"primaryKey" json:"shortCode"`
-	Room       Room    `gorm:"foreignKey:RoomID;references:ShortCode"`
+	UserID     string  `gorm:"primaryKey;type:text" json:"user_id"`
+	RoomID     string  `gorm:"primaryKey;type:text" json:"room_id"`
 	TotalScore float64 `json:"score"`
 }
