@@ -128,7 +128,7 @@ services:
       - SERVER_SECRET=${SERVER_SECRET}
       - CENTRAL_SERVICE_URL=http://central-service:5000
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SERVER_URL=${SERVER_URL:-http://localhost:3000}
+      - SERVER_URL=${SERVER_URL}
   web:
     build:
       context: ./bsg-frontend

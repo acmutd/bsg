@@ -1,5 +1,5 @@
 const CONFIG = {
-  SERVER_URL: 'http://localhost:3000',
+  SERVER_URL: 'http://ec2-44-222-120-246.compute-1.amazonaws.com/',
   RTC_SERVICE_URL: 'ws://localhost:5001/ws',
 };
 
