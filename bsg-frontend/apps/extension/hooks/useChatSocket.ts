@@ -25,11 +25,14 @@ export const useChatSocket = () => {
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const emojiMenuRef = useRef<HTMLDivElement | null>(null);
 
-    const [ messages, setMessages ] = useState<Message[]>([]);
-    const [ inputText, setInputText ] = useState<string>('');
-    const [ showJump, setShowJump ] = useState<boolean>(false);
-    const [ atLimit, setAtLimit ] = useState<boolean>(false);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [inputText, setInputText] = useState<string>('');
+    const [showJump, setShowJump] = useState<boolean>(false);
+    const [atLimit, setAtLimit] = useState<boolean>(false);
+    const [emojiSearch, setEmojiSearch] = useState<string>('');
 
     const userEmail = useUserStore(s => s.email);
     const username = useUserStore(s => s.username);
@@ -77,7 +80,7 @@ export const useChatSocket = () => {
 
                     if (responseType === 'chat-message') {
                         console.log('recieved chat message: ' + JSON.stringify(message))
-                        setMessages( prev => [...prev, {
+                        setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
@@ -178,7 +181,7 @@ export const useChatSocket = () => {
         const chat = chatRef.current;
         const textArea = inputRef.current;
         if (!roomId || !chat || !textArea) return;
-        
+
         const text = inputText.trim();
         if (!text) return;
 
@@ -256,6 +259,52 @@ export const useChatSocket = () => {
             if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
             atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
         }
+    }
+
+    const insertEmoji = (emoji: string) => {
+        const textarea = inputRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = inputText.slice(0, start) + emoji + inputText.slice(end);
+
+        if (newText.length <= MAX_CHARS) {
+            setInputText(newText);
+            requestAnimationFrame(() => {
+                textarea.selectionStart = start + emoji.length;
+                textarea.selectionEnd = start + emoji.length;
+                textarea.focus();
+                handleExpand();
+            });
+        } else if (inputText.length < MAX_CHARS) {
+            setInputText(newText.substring(0, MAX_CHARS));
+            requestAnimationFrame(() => {
+                textarea.focus();
+                handleExpand();
+            });
+
+            setAtLimit(true);
+            if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
+            atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
+        } else {
+            setAtLimit(true);
+            if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
+            atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
+        }
+    };
+
+    const scrollToCategory = (category: string) => {
+        setEmojiSearch('');
+
+        setTimeout(() => {
+            const menuEl = emojiMenuRef.current;
+            const categoryEl = categoryRefs.current[category];
+
+            if (menuEl && categoryEl) {
+                menuEl.scrollTop = categoryEl.offsetTop - menuEl.offsetTop;
+            }
+        }, 0);
     }
 
     useEffect(() => {
@@ -352,5 +401,11 @@ export const useChatSocket = () => {
         atLimit,
         MAX_CHARS,
         clearMessages,
+        insertEmoji,
+        categoryRefs,
+        emojiMenuRef,
+        scrollToCategory,
+        emojiSearch,
+        setEmojiSearch
     };
 };
