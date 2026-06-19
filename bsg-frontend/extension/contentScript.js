@@ -158,16 +158,13 @@
       // Immediately align panel left boundary with pointer so the visible bar is under cursor
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
-        const panelWidth = `${clampWidth(rightEdge - e.clientX) / 16}rem`;
-        panel.style.width = panelWidth;
+        const widthPx = clampWidth(rightEdge - e.clientX);
+        const panelWidth = `${widthPx / 16}rem`;
+        const isFolded = widthPx === 36;
 
-        if (panelWidth === '2.25rem') {
-          chrome.storage.local.set({ "isPanelFolded": true });
-          chrome.storage.local.set({ "panelWidth": '24rem' });
-        } else {
-          chrome.storage.local.set({ "isPanelFolded": false });
-          chrome.storage.local.set({ "panelWidth": panelWidth });
-        }
+        panel.style.width = panelWidth;
+        chrome.storage.local.set({ "isPanelFolded": isFolded });
+        chrome.storage.local.set({ "panelWidth": isFolded ? '24rem' : panelWidth });
       } catch (err) {
         // ignore
       }
@@ -209,16 +206,13 @@
       if (!isDragging) return;
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
-      const panelWidth = `${clampWidth(rightEdge - e.clientX) / 16}rem`;
-      panel.style.width = panelWidth;
+      const widthPx = clampWidth(rightEdge - e.clientX);
+      const panelWidth = `${widthPx / 16}rem`;
+      const isFolded = widthPx === 36;
 
-      if (panelWidth === '2.25rem') {
-        chrome.storage.local.set({ "isPanelFolded": true });
-        chrome.storage.local.set({ "panelWidth": '24rem' });
-      } else {
-        chrome.storage.local.set({ "isPanelFolded": false });
-        chrome.storage.local.set({ "panelWidth": panelWidth });
-      }
+      panel.style.width = panelWidth;
+      chrome.storage.local.set({ "isPanelFolded": isFolded });
+      chrome.storage.local.set({ "panelWidth": isFolded ? '24rem' : panelWidth });
     });
 
     // End drag on pointerup or when pointer leaves
