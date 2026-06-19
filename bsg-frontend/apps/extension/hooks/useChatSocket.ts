@@ -342,7 +342,7 @@ export const useChatSocket = () => {
             if (
                 lastGroup &&
                 !msg.isSystem &&
-                lastGroup[0].userName === msg.userName
+                lastGroup[0].userHandle === msg.userHandle //lastGroup[0].userName === msg.userName
             ) {
                 lastGroup.push(msg);
             } else {

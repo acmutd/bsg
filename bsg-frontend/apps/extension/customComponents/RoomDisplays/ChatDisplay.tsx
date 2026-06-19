@@ -28,6 +28,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
     } = useChatSocket();
 
     const username = useUserStore(s => s.username);
+    const email = useUserStore(s => s.email);     // ← add this line
     const emojiMap = require('@bsg/ui-styles/assets/emojis.json') as Record<string, { emoji: string; name: string; keywords: string[] }[]>;
     const emojiList = Object.entries(emojiMap).flatMap(([category, emojis]) =>
         emojis.map(emoji => ({ ...emoji, category }))
@@ -76,7 +77,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 :
 
                                 <>
-                                    {(group[0].userName === username) ?
+                                    {(group[0].userHandle === email) ? // just changed
 
                                         // User's own message
                                         <div
