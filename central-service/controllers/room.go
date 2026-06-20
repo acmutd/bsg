@@ -165,6 +165,36 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	})
 }
 
+func (controller *RoomController) UpdateRoundDurationEndpoint(c echo.Context) error {
+	targetRoomID := c.Param("roomID")
+	userAuthID := c.Get("userAuthID").(string)
+	var body struct {
+		Duration int `json:"duration"`
+	}
+	if err := c.Bind(&body); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
+	}
+	newDuration, err := controller.roomService.SetRoundDurationByRoomID(targetRoomID, userAuthID, body.Duration)
+	if err != nil {
+		controller.logger.Error("Failed to update round duration", err, map[string]interface{}{
+			"room_id": targetRoomID,
+			"user_id": userAuthID,
+		})
+		if bsgErr, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to update timer. "+bsgErr.Message)
+		}
+		if bsgErr, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to update timer. "+bsgErr.Message)
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update timer. Please try again later")
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"data": map[string]interface{}{
+			"duration": newDuration,
+		},
+	})
+}
+
 func (controller *RoomController) GetLeaderboardEndpoint(c echo.Context) error {
 	roomID := c.Param("roomID")
 	leaderboard, err := controller.roomService.GetLeaderboard(roomID)
@@ -256,6 +286,7 @@ func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 	g.POST("/:roomID/rounds/create", controller.CreateNewRoundEndpoint)
+	g.POST("/:roomID/rounds/time", controller.UpdateRoundDurationEndpoint)
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
 	g.POST("/:roomID/end", controller.EndRoundEndpoint)
 	g.POST("/:roomID/:problemID", controller.CreateSubmissionEndpoint)

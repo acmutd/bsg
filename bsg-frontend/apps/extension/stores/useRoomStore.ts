@@ -14,6 +14,7 @@ interface roomStoreState {
   activeTab: TabName;
   isRoundStarted: boolean;
   roundEndTime: number | null;
+  roundDuration: number | null;
   lastGameEvent: GameEvent | null;
   roomNotice: string | null;
 
@@ -27,6 +28,7 @@ interface roomStoreState {
   setActiveTab: (activeTab: TabName) => void;
   setIsRoundStarted: (isRoundStarted: boolean) => void;
   setRoundEndTime: (roundEndTime: number | null) => void;
+  setRoundDuration: (roundDuration: number | null) => void;
   setLastGameEvent: (lastGameEvent: GameEvent | null) => void;
   setRoomNotice: (roomNotice: string | null) => void;
 
@@ -50,6 +52,7 @@ const roomStoreInit = {
   activeTab: 'chat' as TabName,
   isRoundStarted: false,
   roundEndTime: null,
+  roundDuration: null,
   lastGameEvent: null,
   roomNotice: null,
 };
@@ -67,6 +70,7 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setActiveTab: (activeTab) => set({ activeTab: activeTab }),
   setIsRoundStarted: (isRoundStarted) => set({ isRoundStarted: isRoundStarted }),
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
+  setRoundDuration: (roundDuration) => set({ roundDuration: roundDuration }),
   setLastGameEvent: (lastGameEvent) => set({ lastGameEvent: lastGameEvent }),
   setRoomNotice: (roomNotice) => set({ roomNotice: roomNotice }),
 
