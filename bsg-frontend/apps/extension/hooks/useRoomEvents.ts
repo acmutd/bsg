@@ -57,6 +57,14 @@ export function useRoomEvents() {
             }
 
             if (problems.length > 0) {
+            
+                
+            //problem array kept getting erased due to zustand stored it here
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ problems: problems });
+
+            } 
+
                 const targetSlug = problems[0];
                 const currentPath = typeof window !== 'undefined' ? window.location.pathname : "";
                 const alreadyOnTarget = currentPath.includes(`/problems/${targetSlug}/`);
