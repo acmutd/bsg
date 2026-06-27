@@ -59,3 +59,7 @@ test-worker:
 test-kafka:
 	@echo "Running kafka-queue tests..."
 	@cd kafka-queue && go test ./... -v
+
+build-docker:
+	@echo "Spinning up Docker environment"
+	@docker compose --env-file ./.env up --build --force-recreate 
