@@ -1,2 +1,16 @@
+# Secrets / local env
 .env
 serviceKey.json
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Dependencies & build output (kept out of iCloud via *.nosync too)
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+**/out/
+*.nosync
