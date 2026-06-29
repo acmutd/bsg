@@ -63,6 +63,17 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
         }
     };
 
+    //timer update success message timeout
+    useEffect(() => {
+        if (!saved) return;
+    
+        const timeout = setTimeout(() => {
+            setSaved(false);
+        }, 3000);
+    
+        return () => clearTimeout(timeout);
+    }, [saved]);
+
     return (
         <div className={`flex flex-col h-full p-4 gap-4 ${(isActive) ? '' : 'hidden'}`}>
             <div className="text-base font-medium">Settings</div>
