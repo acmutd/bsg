@@ -101,8 +101,8 @@ const PlayerTab = ({
     <button
         onClick={onClick}
         className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 whitespace-nowrap ${active
-                ? "bg-[#72ab1c]/10 border-[#72ab1c] text-[#72ab1c]"
-                : "bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#72ab1c]/40 hover:text-gray-200"
+            ? "bg-[#72ab1c]/10 border-[#72ab1c] text-[#72ab1c]"
+            : "bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#72ab1c]/40 hover:text-gray-200"
             }`}
         style={active ? { boxShadow: "0 0 14px rgba(114,171,28,0.25)" } : {}}
     >
@@ -408,8 +408,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                         <div
                                             key={problem.id}
                                             className={`bg-[#141414] rounded-xl p-3 border relative overflow-hidden transition-all duration-300 ${isSolved
-                                                    ? "border-[#72ab1c]/30"
-                                                    : "border-[#2a2a2a]"
+                                                ? "border-[#72ab1c]/30"
+                                                : "border-[#2a2a2a]"
                                                 }`}
                                             style={isSolved ? { boxShadow: "0 0 12px rgba(114,171,28,0.08)" } : {}}
                                         >
@@ -419,8 +419,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${isSolved
-                                                            ? "border-[#72ab1c]/40 bg-[#72ab1c]/10"
-                                                            : "border-[#2a2a2a] bg-[#1a1a1a]"
+                                                        ? "border-[#72ab1c]/40 bg-[#72ab1c]/10"
+                                                        : "border-[#2a2a2a] bg-[#1a1a1a]"
                                                         }`}
                                                 >
                                                     {isSolved ? (
