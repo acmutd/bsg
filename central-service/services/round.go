@@ -168,11 +168,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 			Duration:    round.Duration,
 		}
 		if _, err := service.rtcClient.SendMessage("round-start", roundStart); err != nil {
-			log.Printf("Error sending round-start message: %v", err)
-			return nil, nil, BSGError{
-				StatusCode: 500,
-				Message:    "Internal Server Error",
-			}
+			log.Printf("Error sending round-start message: %v (continuing with participant creation)", err)
 		}
 	} // This closing brace was missing
 	err := service.db.Transaction(func(tx *gorm.DB) error {
@@ -288,21 +284,22 @@ func (service *RoundService) getLeaderboardByRoundID(roundID uint) ([]redis.Z, e
 	return result, nil
 }
 
-// Get leaderboard of a round
-func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, error) {
+// Get leaderboard of a round (also returns the round ID for downstream enrichment)
+func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, uint, error) {
 	key := fmt.Sprintf("%s_mostRecentRound", roomID)
 	roundIDStr, err := service.rdb.Get(context.Background(), key).Result()
 	if err != nil {
 		if err, ok := err.(redis.Error); ok && err.Error() == "redis: nil" {
-			return nil, BSGError{StatusCode: 404, Message: "No recent round"}
+			return nil, 0, BSGError{StatusCode: 404, Message: "No recent round"}
 		}
-		return nil, err
+		return nil, 0, err
 	}
 	roundID, err := strconv.ParseUint(roundIDStr, 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return service.getLeaderboardByRoundID(uint(roundID))
+	entries, err := service.getLeaderboardByRoundID(uint(roundID))
+	return entries, uint(roundID), err
 }
 
 // First 10 bits will represent the user score and the remaining 43 bits represent the user's submission timestamp
@@ -509,6 +506,11 @@ func (service *RoundService) CreateRoundSubmission(
 	problemCount := service.db.Model(round).Association("ProblemSet").Count()
 
 	if submissionParams.Verdict == constants.SUBMISSION_STATUS_ACCEPTED {
+		// Increment solved count on first-time AC (problemScore > 0 means not previously solved)
+		if problemScore > 0 {
+			service.db.Model(participant).Update("solved_problem_count", gorm.Expr("solved_problem_count + ?", 1))
+		}
+
 		if problemIndex == int(problemCount)-1 {
 			// user solved their last problem, round keeps running for others
 			log.Printf("User %s finished all problems in round %d", participant.ParticipantAuthID, round.ID)

@@ -204,29 +204,6 @@ router.post('/:id/end', ensureAuth, async (req, res) => {
     }
 });
 
-router.post('/:id/leave', ensureAuth, async (req, res) => {
-    const authId = req.user.id;
-    const { id } = req.params;
-
-    try {
-        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/leave`, {
-            method: 'POST',
-            headers: {
-                'X-Server-Secret': serverSecret,
-                'X-User-Auth-ID': authId,
-            }
-        });
-
-        const data = await response.json()
-        res.status(response.status).json(data)
-
-    } catch (error) {
-        console.log('Unable to find room to leave')
-        res.status(500).json({ error: 'Internal Server Error' })
-
-    }
-})
-
 // Get Leaderboard for a Room
 router.get('/:id/leaderboard', ensureAuth, async (req, res) => {
     const authID = req.user.id;
@@ -243,6 +220,29 @@ router.get('/:id/leaderboard', ensureAuth, async (req, res) => {
         res.status(response.status).json(data);
     } catch (error) {
         logger.error('Error getting leaderboard', error, {
+            user_id: authID,
+            room_id: id,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get Round Details
+router.get('/:id/round-details', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/round-details`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error getting round details', error, {
             user_id: authID,
             room_id: id,
         });

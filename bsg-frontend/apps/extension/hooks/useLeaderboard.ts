@@ -13,6 +13,7 @@ interface LeaderboardEntry {
     /** already-decoded integer score from the backend */
     score: number;
     rank: number;
+    solvedCount: number;
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ export function useLeaderboard() {
                 defaultColor: '#72ab1c',
                 currentProblemIndex: null,
                 score: entry.score,
+                solvedCount: entry.solvedCount ?? 0,
             }));
 
             // Entries already come back sorted by rank from the backend

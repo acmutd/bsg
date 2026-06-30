@@ -504,15 +504,16 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 
 // LeaderboardEntry is the enriched leaderboard row sent to the frontend.
 type LeaderboardEntry struct {
-	UserAuthID string `json:"userAuthID"`
-	Handle     string `json:"handle"`
-	PhotoURL   string `json:"photoURL"`
-	Score      uint64 `json:"score"`
-	Rank       int    `json:"rank"`
+	UserAuthID  string `json:"userAuthID"`
+	Handle      string `json:"handle"`
+	PhotoURL    string `json:"photoURL"`
+	Score       uint64 `json:"score"`
+	Rank        int    `json:"rank"`
+	SolvedCount uint   `json:"solvedCount"`
 }
 
 func (service *RoomService) GetLeaderboard(roomID string) ([]LeaderboardEntry, error) {
-	redisEntries, err := service.roundService.GetLeaderboardByRoomID(roomID)
+	redisEntries, roundID, err := service.roundService.GetLeaderboardByRoomID(roomID)
 	if err != nil {
 		return nil, err
 	}
@@ -531,6 +532,19 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]LeaderboardEntry, e
 		if err := service.db.Where("auth_id IN ?", authIDs).Find(&users).Error; err != nil {
 			log.Printf("Error fetching users for leaderboard enrichment in room %s: %v", roomID, err)
 			// Non-fatal: we'll fall back to showing the authID as the handle
+		}
+	}
+
+	// Batch-fetch round participants for solved counts
+	solvedMap := make(map[string]uint)
+	if roundID > 0 {
+		var participants []models.RoundParticipant
+		if err := service.db.Where("round_id = ?", roundID).Find(&participants).Error; err != nil {
+			log.Printf("Error fetching round participants for room %s: %v", roomID, err)
+		} else {
+			for _, p := range participants {
+				solvedMap[p.ParticipantAuthID] = p.SolvedProblemCount
+			}
 		}
 	}
 
@@ -559,11 +573,12 @@ func (service *RoomService) GetLeaderboard(roomID string) ([]LeaderboardEntry, e
 		}
 
 		entries = append(entries, LeaderboardEntry{
-			UserAuthID: authID,
-			Handle:     handle,
-			PhotoURL:   photoURL,
-			Score:      decodedScore,
-			Rank:       i + 1,
+			UserAuthID:  authID,
+			Handle:      handle,
+			PhotoURL:    photoURL,
+			Score:       decodedScore,
+			Rank:        i + 1,
+			SolvedCount: solvedMap[authID],
 		})
 	}
 	return entries, nil
@@ -621,4 +636,85 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 		}
 	}
 	return nil
+}
+
+// ─── Round Details (for Statistics display) ──────────────────────────────────
+
+// ProblemDetail is a lightweight problem representation for the round-details response.
+type ProblemDetail struct {
+	ID         uint   `json:"id"`
+	Name       string `json:"name"`
+	Slug       string `json:"slug"`
+	Difficulty string `json:"difficulty"`
+}
+
+// RoundDetailsResponse contains the current round's problems and per-user solved status.
+type RoundDetailsResponse struct {
+	RoundID        uint                `json:"roundId"`
+	Status         string              `json:"status"`
+	Problems       []ProblemDetail     `json:"problems"`
+	SolvedProblems map[string][]uint   `json:"solvedProblems"` // authID → list of solved problem IDs
+}
+
+func (service *RoomService) GetRoundDetails(roomID string) (*RoundDetailsResponse, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		return nil, err
+	}
+	if len(room.Rounds) == 0 {
+		return nil, BSGError{StatusCode: 404, Message: "No rounds in this room"}
+	}
+
+	// Use the most recent round
+	round := room.Rounds[len(room.Rounds)-1]
+
+	// Load the problem set for this round
+	var problems []models.Problem
+	if err := service.db.Model(&round).Association("ProblemSet").Find(&problems); err != nil {
+		return nil, err
+	}
+
+	problemDetails := make([]ProblemDetail, 0, len(problems))
+	for _, p := range problems {
+		problemDetails = append(problemDetails, ProblemDetail{
+			ID:         p.ID,
+			Name:       p.Name,
+			Slug:       p.Slug,
+			Difficulty: p.Difficulty,
+		})
+	}
+
+	// Find which problems each participant has solved (accepted) in this round
+	type solvedRow struct {
+		ParticipantAuthID string
+		ProblemID         uint
+	}
+	var solvedRows []solvedRow
+	result := service.db.Raw(`
+		SELECT DISTINCT rp.participant_auth_id, s.problem_id
+		FROM round_submissions rs
+		JOIN submissions s 
+			ON rs.id = s.submission_owner_id 
+			AND s.submission_owner_type = 'round_submissions'
+		JOIN round_participants rp
+			ON rs.round_participant_id = rp.id
+		WHERE rs.round_id = ?
+			AND s.verdict = ?
+	`, round.ID, constants.SUBMISSION_STATUS_ACCEPTED).Scan(&solvedRows)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	solvedMap := make(map[string][]uint)
+	for _, row := range solvedRows {
+		solvedMap[row.ParticipantAuthID] = append(solvedMap[row.ParticipantAuthID], row.ProblemID)
+	}
+
+	return &RoundDetailsResponse{
+		RoundID:        round.ID,
+		Status:         round.Status,
+		Problems:       problemDetails,
+		SolvedProblems: solvedMap,
+	}, nil
 }

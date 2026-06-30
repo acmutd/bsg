@@ -250,6 +250,21 @@ func (controller *RoomController) EndRoundEndpoint(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "Round ended"})
 }
 
+func (controller *RoomController) GetRoundDetailsEndpoint(c echo.Context) error {
+	roomID := c.Param("roomID")
+	details, err := controller.roomService.GetRoundDetails(roomID)
+	if err != nil {
+		controller.logger.Error("Failed to get round details", err, map[string]interface{}{
+			"room_id": roomID,
+		})
+		if err, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to get round details. "+err.Message)
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get round details")
+	}
+	return c.JSON(http.StatusOK, details)
+}
+
 func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/", controller.CreateNewRoomEndpoint)
 	g.GET("/active", controller.GetActiveRoomEndpoint)
@@ -261,4 +276,5 @@ func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/:roomID/:problemID", controller.CreateSubmissionEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
+	g.GET("/:roomID/round-details", controller.GetRoundDetailsEndpoint)
 }

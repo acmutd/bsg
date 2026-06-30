@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Clock, TrendingUp, Loader2 } from "lucide-react";
 import {
     Bar,
@@ -11,7 +11,7 @@ import {
     Tooltip,
 } from "recharts";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
-import { useStatistics } from "@/hooks/useStatistics";
+import { useStatistics, type RoundProblem } from "@/hooks/useStatistics";
 import { Participant } from "@bsg/models/Participant";
 
 // ─── BSG Color Tokens ─────────────────────────────────────────────────────────
@@ -22,9 +22,9 @@ const BSG_GREEN_DIM = "#4d7a10";
 // ─── Difficulty config ────────────────────────────────────────────────────────
 
 const difficultyConfig = {
-    Easy:   { color: BSG_GREEN,  bg: "rgba(114,171,28,0.12)", border: "rgba(114,171,28,0.35)" },
-    Medium: { color: "#ffa500",  bg: "rgba(255,165,0,0.12)",  border: "rgba(255,165,0,0.35)"  },
-    Hard:   { color: "#ff4d4d",  bg: "rgba(255,77,77,0.12)",  border: "rgba(255,77,77,0.35)"  },
+    Easy: { color: BSG_GREEN, bg: "rgba(114,171,28,0.12)", border: "rgba(114,171,28,0.35)" },
+    Medium: { color: "#ffa500", bg: "rgba(255,165,0,0.12)", border: "rgba(255,165,0,0.35)" },
+    Hard: { color: "#ff4d4d", bg: "rgba(255,77,77,0.12)", border: "rgba(255,77,77,0.35)" },
 } as const;
 
 // ─── Trophy SVG ───────────────────────────────────────────────────────────────
@@ -100,11 +100,10 @@ const PlayerTab = ({
 }) => (
     <button
         onClick={onClick}
-        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 whitespace-nowrap ${
-            active
+        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 whitespace-nowrap ${active
                 ? "bg-[#72ab1c]/10 border-[#72ab1c] text-[#72ab1c]"
                 : "bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#72ab1c]/40 hover:text-gray-200"
-        }`}
+            }`}
         style={active ? { boxShadow: "0 0 14px rgba(114,171,28,0.25)" } : {}}
     >
         {name}
@@ -119,33 +118,50 @@ const NoDataBadge = () => (
     </span>
 );
 
-// ─── Difficulty summary tile (placeholder) ────────────────────────────────────
+// ─── Difficulty summary tile ──────────────────────────────────────────────────
 
 const DiffTile = ({
     diff,
     cfg,
+    solved = 0,
+    total = 0,
 }: {
     diff: "Easy" | "Medium" | "Hard";
     cfg: { color: string; bg: string; border: string };
-}) => (
-    <div
-        className="rounded-xl border p-3 relative overflow-hidden w-fit min-w-[72px]"
-        style={{ borderColor: cfg.border, background: cfg.bg }}
-    >
+    solved?: number;
+    total?: number;
+}) => {
+    const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
+    const hasData = total > 0;
+    return (
         <div
-            className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: `linear-gradient(to right, transparent, ${cfg.color}55, transparent)` }}
-        />
-        <span className="text-[9px] uppercase tracking-widest font-medium" style={{ color: cfg.color }}>
-            {diff}
-        </span>
-        <div className="text-2xl font-bold font-mono mt-0.5 text-gray-600">—</div>
-        <div className="w-full bg-[#1e1e1e] rounded-full h-[3px] mt-2 overflow-hidden">
-            <div className="h-full w-0 rounded-full" style={{ backgroundColor: cfg.color }} />
+            className="rounded-xl border p-3 relative overflow-hidden w-fit min-w-[72px]"
+            style={{ borderColor: cfg.border, background: cfg.bg }}
+        >
+            <div
+                className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: `linear-gradient(to right, transparent, ${cfg.color}55, transparent)` }}
+            />
+            <span className="text-[9px] uppercase tracking-widest font-medium" style={{ color: cfg.color }}>
+                {diff}
+            </span>
+            <div className={`text-2xl font-bold font-mono mt-0.5 ${hasData ? "text-white" : "text-gray-600"}`}>
+                {hasData ? `${solved}/${total}` : "—"}
+            </div>
+            <div className="w-full bg-[#1e1e1e] rounded-full h-[3px] mt-2 overflow-hidden">
+                <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ backgroundColor: cfg.color, width: `${pct}%` }}
+                />
+            </div>
+            {hasData ? (
+                <p className="text-[9px] mt-1" style={{ color: cfg.color }}>{pct}%</p>
+            ) : (
+                <p className="text-[9px] text-gray-600 mt-1">no data</p>
+            )}
         </div>
-        <p className="text-[9px] text-gray-600 mt-1">no data</p>
-    </div>
-);
+    );
+};
 
 // ─── Custom score tooltip ─────────────────────────────────────────────────────
 
@@ -185,7 +201,7 @@ const EmptyState = () => (
 
 export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     const { participants, isLoading, error } = useLeaderboard();
-    const { statistics } = useStatistics();
+    const { statistics, roundDetails } = useStatistics();
 
     const [selectedIdx, setSelectedIdx] = useState(0);
 
@@ -198,6 +214,26 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
         username: p.username.length > 8 ? p.username.slice(0, 7) + "…" : p.username,
         score: p.score,
     }));
+
+    // Derive per-user solved problem IDs from round details
+    const selectedSolvedIds = useMemo(() => {
+        if (!selected || !roundDetails?.solvedProblems) return new Set<number>();
+        return new Set(roundDetails.solvedProblems[selected.id] ?? []);
+    }, [selected, roundDetails]);
+
+    // Difficulty counts for the selected user in this round
+    const diffCounts = useMemo(() => {
+        const counts = { Easy: { solved: 0, total: 0 }, Medium: { solved: 0, total: 0 }, Hard: { solved: 0, total: 0 } };
+        if (!roundDetails?.problems) return counts;
+        for (const p of roundDetails.problems) {
+            const key = (p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1).toLowerCase()) as keyof typeof counts;
+            if (counts[key]) {
+                counts[key].total++;
+                if (selectedSolvedIds.has(p.id)) counts[key].solved++;
+            }
+        }
+        return counts;
+    }, [roundDetails, selectedSolvedIds]);
 
     return (
         <div className={`flex flex-col bg-[#0e0e0e] overflow-auto ${isActive ? "" : "hidden"}`}>
@@ -287,19 +323,19 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
                         {/* ── Summary stat cards ── */}
                         <div className="flex flex-wrap gap-2">
-                            {/* Score — real data from leaderboard */}
+                            {/* Score — from statistics endpoint */}
                             <StatCard
                                 icon={<TrophyIcon size={10} color={BSG_GREEN} />}
                                 label="Points"
-                                value={selected ? selected.score.toLocaleString() : "—"}
+                                value={(statistics?.score ?? 0).toLocaleString()}
                                 valueColor="text-[#72ab1c]"
                             />
-                            {/* Solved / Time — no backend data yet */}
+                            {/* Solved — from leaderboard data */}
                             <StatCard
                                 icon={<CheckCircle2 size={10} />}
                                 label="Solved"
-                                value="—"
-                                dim
+                                value={selected ? selected.solvedCount : "—"}
+                                dim={!selected || selected.solvedCount === 0}
                             />
                             <StatCard
                                 icon={<Clock size={10} />}
@@ -347,34 +383,94 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
                         </div>
 
-                        {/* ── Problem breakdown (placeholder — no backend data) ── */}
+                        {/* ── Problem breakdown ── */}
                         <div className="flex items-center gap-2">
                             <span className="text-[9px] text-gray-500 uppercase tracking-widest font-medium">
                                 Problem Breakdown
                             </span>
                             <div className="flex-1 h-px bg-[#2a2a2a]" />
-                            <NoDataBadge />
+                            {roundDetails?.problems && roundDetails.problems.length > 0 ? (
+                                <span className="text-[9px] text-gray-500 font-mono">
+                                    {selectedSolvedIds.size}/{roundDetails.problems.length}
+                                </span>
+                            ) : (
+                                <NoDataBadge />
+                            )}
                         </div>
 
-                        <div className="flex flex-col gap-2">
-                            {[1, 2, 3].map((n) => (
-                                <div
-                                    key={n}
-                                    className="bg-[#141414] rounded-xl p-3 border border-[#2a2a2a] opacity-40"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex-shrink-0" />
-                                        <div className="flex-1 flex flex-col gap-1.5">
-                                            <div className="h-3 w-28 rounded bg-[#222]" />
-                                            <div className="h-2 w-20 rounded bg-[#1e1e1e]" />
+                        {roundDetails?.problems && roundDetails.problems.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                                {roundDetails.problems.map((problem) => {
+                                    const isSolved = selectedSolvedIds.has(problem.id);
+                                    const diffKey = (problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1).toLowerCase()) as keyof typeof difficultyConfig;
+                                    const cfg = difficultyConfig[diffKey] ?? difficultyConfig.Medium;
+                                    return (
+                                        <div
+                                            key={problem.id}
+                                            className={`bg-[#141414] rounded-xl p-3 border relative overflow-hidden transition-all duration-300 ${isSolved
+                                                    ? "border-[#72ab1c]/30"
+                                                    : "border-[#2a2a2a]"
+                                                }`}
+                                            style={isSolved ? { boxShadow: "0 0 12px rgba(114,171,28,0.08)" } : {}}
+                                        >
+                                            {isSolved && (
+                                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/30 to-transparent" />
+                                            )}
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${isSolved
+                                                            ? "border-[#72ab1c]/40 bg-[#72ab1c]/10"
+                                                            : "border-[#2a2a2a] bg-[#1a1a1a]"
+                                                        }`}
+                                                >
+                                                    {isSolved ? (
+                                                        <CheckCircle2 size={14} className="text-[#72ab1c]" />
+                                                    ) : (
+                                                        <span className="text-[10px] text-gray-600 font-mono">?</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={`text-xs font-medium truncate ${isSolved ? "text-white" : "text-gray-400"}`}>
+                                                        {problem.name}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span
+                                                            className="text-[9px] font-medium uppercase"
+                                                            style={{ color: cfg.color }}
+                                                        >
+                                                            {problem.difficulty}
+                                                        </span>
+                                                        {isSolved && (
+                                                            <span className="text-[9px] text-[#72ab1c] font-medium">Solved ✓</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                {[1, 2, 3].map((n) => (
+                                    <div
+                                        key={n}
+                                        className="bg-[#141414] rounded-xl p-3 border border-[#2a2a2a] opacity-40"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex-shrink-0" />
+                                            <div className="flex-1 flex flex-col gap-1.5">
+                                                <div className="h-3 w-28 rounded bg-[#222]" />
+                                                <div className="h-2 w-20 rounded bg-[#1e1e1e]" />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                            <p className="text-[9px] text-gray-600 text-center">
-                                Per-problem breakdown requires additional backend data
-                            </p>
-                        </div>
+                                ))}
+                                <p className="text-[9px] text-gray-600 text-center">
+                                    Problem data will appear once a round starts
+                                </p>
+                            </div>
+                        )}
 
                         {/* ── Room score comparison (real leaderboard data) ── */}
                         <div
@@ -443,10 +539,16 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </p>
                         </div>
 
-                        {/* ── Difficulty tiles (placeholder — no backend data) ── */}
+                        {/* ── Difficulty tiles (per-round data) ── */}
                         <div className="flex flex-wrap gap-2">
                             {(["Easy", "Medium", "Hard"] as const).map((diff) => (
-                                <DiffTile key={diff} diff={diff} cfg={difficultyConfig[diff]} />
+                                <DiffTile
+                                    key={diff}
+                                    diff={diff}
+                                    cfg={difficultyConfig[diff]}
+                                    solved={diffCounts[diff].solved}
+                                    total={diffCounts[diff].total}
+                                />
                             ))}
                         </div>
                     </>

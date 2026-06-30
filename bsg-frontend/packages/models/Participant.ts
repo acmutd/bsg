@@ -5,4 +5,5 @@ export type Participant = {
     defaultColor: string
     currentProblemIndex: number | null
     score: number
+    solvedCount: number
 }
