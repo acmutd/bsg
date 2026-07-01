@@ -3,6 +3,16 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
 
+//for audio unpload to out folder
+function playChatSound(filename: string) {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return;
+
+    const audio = new Audio(chrome.runtime.getURL(`sounds/${filename}`));
+    audio.play().catch(() => {
+        // Chrome may block autoplay 
+    });
+}
+
 export type Message = {
     userHandle: string;
     userName?: string;
@@ -198,6 +208,7 @@ export const useChatSocket = () => {
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
+            playChatSound('message-sent.mp3');
 
             setInputText('');
             textArea.style.height = 'auto';
