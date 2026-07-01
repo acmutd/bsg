@@ -37,6 +37,7 @@ export const useChatSocket = () => {
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const emojiMenuRef = useRef<HTMLDivElement | null>(null);
+    const suppressChatSoundsRef = useRef(false); //sound allowed 
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState<string>('');
@@ -75,7 +76,9 @@ export const useChatSocket = () => {
                         roomID: targetRoomID
                     })
                 };
+                suppressChatSoundsRef.current = true; // 
                 ws.send(JSON.stringify(payload));
+
                 joinedRoomIDRef.current = targetRoomID;
                 console.log("Sent join-room on socket open", { roomID: targetRoomID });
             }
@@ -98,9 +101,19 @@ export const useChatSocket = () => {
                             roomID: message.roomID,
                             isSystem: false
                         }]);
+
+                        // checks user handle to know if the message is sent by the user or received from others
+                        if (!suppressChatSoundsRef.current) {
+                            if (message.userHandle === userEmail) {
+                                playChatSound('message-sent.mp3');
+                            } else {
+                                playChatSound('message-recieved.mp3');
+                            }
+                        }
                     } else if (responseType === 'system-announcement') {
                         // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
-                        if (message?.data === 'Join Room Request') {
+                        if (message?.data === 'Join Room Request') { //  border between history and new msgs
+                            suppressChatSoundsRef.current = false;
                             return;
                         }
                         console.log('recieved system message: ' + message);
@@ -165,6 +178,7 @@ export const useChatSocket = () => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
+        suppressChatSoundsRef.current = true;  
 
         if (joinedRoomIDRef.current === roomID) {
             pendingRoomIDRef.current = roomID;
@@ -182,6 +196,7 @@ export const useChatSocket = () => {
                     roomID: roomID
                 })
             };
+            suppressChatSoundsRef.current = true;
             socketRef.current.send(JSON.stringify(payload));
             joinedRoomIDRef.current = roomID;
         }
@@ -208,7 +223,6 @@ export const useChatSocket = () => {
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
-            playChatSound('message-sent.mp3');
 
             setInputText('');
             textArea.style.height = 'auto';
