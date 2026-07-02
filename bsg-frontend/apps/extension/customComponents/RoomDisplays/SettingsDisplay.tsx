@@ -3,6 +3,7 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { SERVER_URL } from '../../lib/config';
 import { Label } from '@bsg/ui/label';
 import { Slider } from '@bsg/ui/slider';
+import { NotificationToggle } from '../NotificationToggle';
 
 const MIN_DURATION = 5;
 const MAX_DURATION = 120;
@@ -74,6 +75,8 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
         return () => clearTimeout(timeout);
     }, [saved]);
 
+    const [chatNotificationsEnabled, setChatNotificationsEnabled] = useState(true); //temp
+
     return (
         <div className={`flex flex-col h-full p-4 gap-4 ${(isActive) ? '' : 'hidden'}`}>
             <div className="text-base font-medium">Settings</div>
@@ -104,6 +107,20 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
                         </div>
                     )}
                 </div>
+            </div>
+
+
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                    <span className="text-sm font-medium">Chat sounds</span>
+                    <span className="text-xs text-foreground/50">
+                        Play a sound when messages are sent or received
+                    </span>
+                </div>
+                <NotificationToggle
+                    enabled={chatNotificationsEnabled}
+                    onChange={setChatNotificationsEnabled}
+                />
             </div>
 
             {isAdmin && !isRoundStarted && (
