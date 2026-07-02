@@ -4,10 +4,12 @@ import { SERVER_URL } from '../../lib/config';
 import { Label } from '@bsg/ui/label';
 import { Slider } from '@bsg/ui/slider';
 import { NotificationToggle } from '../NotificationToggle';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 const MIN_DURATION = 5;
 const MAX_DURATION = 120;
 const STEP = 5;
+
 
 export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -22,6 +24,16 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
     const [ error, setError ] = useState<string | null>(null);
     const [ saved, setSaved ] = useState<boolean>(false);
 
+
+    const chatNotificationsEnabled = useSettingsStore(s => s.chatNotificationsEnabled);
+    const setChatNotificationsEnabled = useSettingsStore(s => s.setChatNotificationsEnabled);
+    const loadSettings = useSettingsStore(s => s.loadSettings);
+
+    useEffect(() => {
+        if (isActive) loadSettings();
+    }, [isActive, loadSettings]);
+
+    
     // Sync the working value when the stored duration changes or the tab reopens.
     useEffect(() => {
         if (roundDuration != null) setValue(roundDuration);
@@ -74,8 +86,6 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
     
         return () => clearTimeout(timeout);
     }, [saved]);
-
-    const [chatNotificationsEnabled, setChatNotificationsEnabled] = useState(true); //temp
 
     return (
         <div className={`flex flex-col h-full p-4 gap-4 ${(isActive) ? '' : 'hidden'}`}>

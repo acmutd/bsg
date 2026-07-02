@@ -2,15 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+
 
 //for audio unpload to out folder
 function playChatSound(filename: string) {
     if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return;
+    if (!useSettingsStore.getState().chatNotificationsEnabled) return; // checks if chat notifications are enabled
 
     const audio = new Audio(chrome.runtime.getURL(`sounds/${filename}`));
-    audio.play().catch(() => {
-        // Chrome may block autoplay 
-    });
+    audio.play().catch(() => {});
 }
 
 export type Message = {
