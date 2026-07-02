@@ -648,12 +648,19 @@ type ProblemDetail struct {
 	Difficulty string `json:"difficulty"`
 }
 
+// SolvedProblemInfo contains the problem ID and the timestamp it was solved.
+type SolvedProblemInfo struct {
+	ProblemID uint      `json:"problemId"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 // RoundDetailsResponse contains the current round's problems and per-user solved status.
 type RoundDetailsResponse struct {
-	RoundID        uint                `json:"roundId"`
-	Status         string              `json:"status"`
-	Problems       []ProblemDetail     `json:"problems"`
-	SolvedProblems map[string][]uint   `json:"solvedProblems"` // authID → list of solved problem IDs
+	RoundID        uint                           `json:"roundId"`
+	Status         string                         `json:"status"`
+	RoundStartTime time.Time                      `json:"roundStartTime"`
+	Problems       []ProblemDetail                `json:"problems"`
+	SolvedProblems map[string][]SolvedProblemInfo `json:"solvedProblems"` // authID → list of solved problem info
 }
 
 func (service *RoomService) GetRoundDetails(roomID string) (*RoundDetailsResponse, error) {
@@ -686,12 +693,13 @@ func (service *RoomService) GetRoundDetails(roomID string) (*RoundDetailsRespons
 
 	// Find which problems each participant has solved (accepted) in this round
 	type solvedRow struct {
-		ParticipantAuthID string
-		ProblemID         uint
+		ParticipantAuthID   string
+		ProblemID           uint
+		SubmissionTimestamp time.Time
 	}
 	var solvedRows []solvedRow
 	result := service.db.Raw(`
-		SELECT DISTINCT rp.participant_auth_id, s.problem_id
+		SELECT rp.participant_auth_id, s.problem_id, MIN(s.submission_timestamp) as submission_timestamp
 		FROM round_submissions rs
 		JOIN submissions s 
 			ON rs.id = s.submission_owner_id 
@@ -700,20 +708,25 @@ func (service *RoomService) GetRoundDetails(roomID string) (*RoundDetailsRespons
 			ON rs.round_participant_id = rp.id
 		WHERE rs.round_id = ?
 			AND s.verdict = ?
+		GROUP BY rp.participant_auth_id, s.problem_id
 	`, round.ID, constants.SUBMISSION_STATUS_ACCEPTED).Scan(&solvedRows)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	solvedMap := make(map[string][]uint)
+	solvedMap := make(map[string][]SolvedProblemInfo)
 	for _, row := range solvedRows {
-		solvedMap[row.ParticipantAuthID] = append(solvedMap[row.ParticipantAuthID], row.ProblemID)
+		solvedMap[row.ParticipantAuthID] = append(solvedMap[row.ParticipantAuthID], SolvedProblemInfo{
+			ProblemID: row.ProblemID,
+			Timestamp: row.SubmissionTimestamp,
+		})
 	}
 
 	return &RoundDetailsResponse{
 		RoundID:        round.ID,
 		Status:         round.Status,
+		RoundStartTime: round.LastUpdatedTime, // or the actual start time if different
 		Problems:       problemDetails,
 		SolvedProblems: solvedMap,
 	}, nil
