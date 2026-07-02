@@ -9,6 +9,8 @@ import {
     XAxis,
     YAxis,
     Tooltip,
+    PieChart,
+    Pie
 } from "recharts";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useStatistics, type RoundProblem } from "@/hooks/useStatistics";
@@ -177,6 +179,26 @@ const ScoreTooltip = ({ active, payload, label }: any) => {
     );
 };
 
+const PieTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const data = payload[0].payload;
+    const diff = data.name;
+    const secs = data.value;
+    const mins = Math.floor(secs / 60);
+    const s = secs % 60;
+
+    return (
+        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs shadow-xl flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: data.fill }} />
+                <span className="font-bold text-white">{diff}</span>
+            </div>
+            <span className="text-gray-400 font-mono">Time: {mins}m {s}s</span>
+            <span className="text-gray-500 font-mono">Solved: {data.solvedCount}</span>
+        </div>
+    );
+};
+
 // ─── Loading state ────────────────────────────────────────────────────────────
 
 const LoadingState = () => (
@@ -215,11 +237,63 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
         score: p.score,
     }));
 
-    // Derive per-user solved problem IDs from round details
-    const selectedSolvedIds = useMemo(() => {
-        if (!selected || !roundDetails?.solvedProblems) return new Set<number>();
-        return new Set(roundDetails.solvedProblems[selected.id] ?? []);
+    // Derive per-user solved problem info
+    const { solvedIds, problemTimes, totalTimeStr, timePerDifficulty } = useMemo(() => {
+        const ids = new Set<number>();
+        const pTimes = new Map<number, string>();
+        const timeDiff = { Easy: 0, Medium: 0, Hard: 0 };
+        let tStr = "—";
+
+        if (!selected || !roundDetails?.solvedProblems || !roundDetails?.roundStartTime) {
+            return { solvedIds: ids, problemTimes: pTimes, totalTimeStr: tStr, timePerDifficulty: timeDiff };
+        }
+
+        const solved = roundDetails.solvedProblems[selected.id] ?? [];
+        if (solved.length === 0) {
+            return { solvedIds: ids, problemTimes: pTimes, totalTimeStr: tStr, timePerDifficulty: timeDiff };
+        }
+
+        const sortedSolved = [...solved].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+        const diffMap = new Map<number, string>();
+        for (const p of roundDetails.problems ?? []) {
+            diffMap.set(p.id, p.difficulty);
+        }
+
+        let lastTime = new Date(roundDetails.roundStartTime).getTime();
+        let totalMs = 0;
+
+        for (const s of sortedSolved) {
+            ids.add(s.problemId);
+            const t = new Date(s.timestamp).getTime();
+            const durationSec = Math.max(0, Math.floor((t - lastTime) / 1000));
+            const mins = Math.floor(durationSec / 60);
+            const secs = durationSec % 60;
+            pTimes.set(s.problemId, `${mins}m ${secs}s`);
+
+            const d = diffMap.get(s.problemId);
+            if (d) {
+                const diffKey = (d.charAt(0).toUpperCase() + d.slice(1).toLowerCase()) as keyof typeof timeDiff;
+                if (timeDiff[diffKey] !== undefined) {
+                    timeDiff[diffKey] += durationSec;
+                }
+            }
+
+            totalMs += (t - lastTime);
+            lastTime = t;
+        }
+
+        if (totalMs > 0) {
+            const totalSec = Math.floor(totalMs / 1000);
+            const tMins = Math.floor(totalSec / 60);
+            const tSecs = totalSec % 60;
+            tStr = `${tMins}m ${tSecs}s`;
+        }
+
+        return { solvedIds: ids, problemTimes: pTimes, totalTimeStr: tStr, timePerDifficulty: timeDiff };
     }, [selected, roundDetails]);
+
+    const selectedSolvedIds = solvedIds;
 
     // Difficulty counts for the selected user in this round
     const diffCounts = useMemo(() => {
@@ -234,6 +308,17 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
         }
         return counts;
     }, [roundDetails, selectedSolvedIds]);
+
+    const pieData = useMemo(() => {
+        return (["Easy", "Medium", "Hard"] as const).map(diff => {
+            return {
+                name: diff,
+                value: timePerDifficulty[diff],
+                fill: difficultyConfig[diff].color,
+                solvedCount: diffCounts[diff].solved
+            };
+        }).filter(d => d.value > 0);
+    }, [timePerDifficulty, diffCounts]);
 
     return (
         <div className={`flex flex-col bg-[#0e0e0e] overflow-auto ${isActive ? "" : "hidden"}`}>
@@ -340,45 +425,71 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             <StatCard
                                 icon={<Clock size={10} />}
                                 label="Total Time"
-                                value="—"
-                                dim
+                                value={totalTimeStr}
+                                dim={totalTimeStr === "—"}
                             />
                         </div>
 
-                        {/* ── Time distribution (placeholder — no backend data) ── */}
+                        {/* ── Time distribution ── */}
                         <div className="bg-[#141414] rounded-xl p-3 border border-[#2a2a2a] relative overflow-hidden">
                             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/20 to-transparent" />
                             <div className="flex items-center justify-between">
                                 <span className="text-[9px] text-gray-500 uppercase tracking-widest font-medium">
                                     Time Distribution
                                 </span>
-                                <NoDataBadge />
+                                {pieData.length === 0 && <NoDataBadge />}
                             </div>
                             <div className="flex items-center justify-center py-5">
                                 <div className="relative" style={{ width: 80, height: 80 }}>
-                                    <svg viewBox="0 0 80 80" className="w-full h-full">
-                                        <circle cx="40" cy="40" r="28" fill="none" stroke="#1e1e1e" strokeWidth="14" />
-                                        <circle
-                                            cx="40" cy="40" r="28" fill="none"
-                                            stroke="#2a2a2a" strokeWidth="14"
-                                            strokeDasharray="4 6"
-                                        />
-                                    </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-[9px] text-gray-600 font-mono">—</span>
-                                    </div>
+                                    {pieData.length > 0 ? (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={pieData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={24}
+                                                    outerRadius={38}
+                                                    paddingAngle={3}
+                                                    dataKey="value"
+                                                    stroke="none"
+                                                />
+                                                <Tooltip content={<PieTooltip />} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <>
+                                            <svg viewBox="0 0 80 80" className="w-full h-full">
+                                                <circle cx="40" cy="40" r="28" fill="none" stroke="#1e1e1e" strokeWidth="14" />
+                                                <circle
+                                                    cx="40" cy="40" r="28" fill="none"
+                                                    stroke="#2a2a2a" strokeWidth="14"
+                                                    strokeDasharray="4 6"
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-[9px] text-gray-600 font-mono">—</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                                 <div className="ml-4 flex flex-col gap-2">
-                                    {(["Easy", "Medium", "Hard"] as const).map((diff) => (
-                                        <div key={diff} className="flex items-center gap-2 text-[9px]">
-                                            <div
-                                                className="w-2 h-2 rounded-full opacity-30"
-                                                style={{ backgroundColor: difficultyConfig[diff].color }}
-                                            />
-                                            <span className="text-gray-600">{diff}</span>
-                                            <span className="font-mono text-gray-700 ml-auto">—</span>
-                                        </div>
-                                    ))}
+                                    {(["Easy", "Medium", "Hard"] as const).map((diff) => {
+                                        const secs = timePerDifficulty[diff];
+                                        const mins = Math.floor(secs / 60);
+                                        const s = secs % 60;
+                                        const timeStr = secs > 0 ? `${mins}m ${s}s` : "—";
+                                        return (
+                                            <div key={diff} className="flex items-center gap-2 text-[9px]">
+                                                <div
+                                                    className="w-2 h-2 rounded-full opacity-30"
+                                                    style={{ backgroundColor: difficultyConfig[diff].color }}
+                                                />
+                                                <span className="text-gray-600">{diff}</span>
+                                                <span className="font-mono text-gray-700 ml-auto">{timeStr}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -441,7 +552,9 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                                             {problem.difficulty}
                                                         </span>
                                                         {isSolved && (
-                                                            <span className="text-[9px] text-[#72ab1c] font-medium">Solved ✓</span>
+                                                            <span className="text-[9px] text-[#72ab1c] font-medium">
+                                                                Solved ✓ {problemTimes.has(problem.id) ? `(${problemTimes.get(problem.id)})` : ''}
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -510,7 +623,9 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                             tick={{ fill: "#555", fontSize: 9 }}
                                             axisLine={false}
                                             tickLine={false}
-                                            width={28}
+                                            width={35}
+                                            allowDecimals={false}
+                                            label={{ value: 'Points', angle: -90, position: 'insideLeft', fill: '#555', fontSize: 9, offset: 5 }}
                                         />
                                         <Tooltip
                                             content={<ScoreTooltip />}

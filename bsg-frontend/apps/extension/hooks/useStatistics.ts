@@ -13,12 +13,18 @@ export interface RoundProblem {
     difficulty: string;
 }
 
+export interface SolvedProblemInfo {
+    problemId: number;
+    timestamp: string;
+}
+
 export interface RoundDetails {
     roundId: number;
     status: string;
+    roundStartTime: string;
     problems: RoundProblem[];
-    /** Map of userAuthID → list of solved problem IDs */
-    solvedProblems: Record<string, number[]>;
+    /** Map of userAuthID → list of solved problem info */
+    solvedProblems: Record<string, SolvedProblemInfo[]>;
 }
 
 const POLL_INTERVAL_MS = 15_000;
@@ -37,7 +43,7 @@ export function useStatistics() {
                 .then((res) => res.json())
                 .then((data) => setStatistics(data.data))
                 .catch((err) => console.error('[useStatistics]', err));
-            
+
             // Fetch new round details for problem breakdowns
             fetch(`${SERVER_URL}/rooms/${roomId}/round-details`, { credentials: 'include' })
                 .then((res) => {
