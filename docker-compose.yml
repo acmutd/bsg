@@ -140,8 +140,6 @@ services:
         NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
         NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
         NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
-    ports:
-      - ${PORT_WEB:-80}:80
 
   caddy:
       image: caddy:latest
@@ -169,3 +167,4 @@ volumes:
   zookeeper-log-volume:
   redisinsight-volume:
   kafka-data-volume:
+  caddy_data:
