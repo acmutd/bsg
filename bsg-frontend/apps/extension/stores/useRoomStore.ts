@@ -17,7 +17,10 @@ interface roomStoreState {
   roundDuration: number | null;
   lastGameEvent: GameEvent | null;
   roomNotice: string | null;
+  unreadCount: number; // for chat notification count
 
+  incrementUnread: () => void; // for chat notification count
+  clearUnread: () => void; // for chat notification count
   setIsInRoom: (isInRoom: boolean) => void;
   setRoomId: (roomId: string | null) => void;
   setIsConnected: (isConnected: boolean) => void;
@@ -55,6 +58,7 @@ const roomStoreInit = {
   roundDuration: null,
   lastGameEvent: null,
   roomNotice: null,
+  unreadCount: 0, // set to 0 initially
 };
 
 export const useRoomStore = create<roomStoreState>((set) => ({
@@ -72,7 +76,18 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
   setRoundDuration: (roundDuration) => set({ roundDuration: roundDuration }),
   setLastGameEvent: (lastGameEvent) => set({ lastGameEvent: lastGameEvent }),
+  // for chat notification count
   setRoomNotice: (roomNotice) => set({ roomNotice: roomNotice }),
+  incrementUnread: () => set((state) => {
+    const unreadCount = state.unreadCount + 1;
+    console.log('[BSG unread] increment →', unreadCount);
+    return { unreadCount };
+  }),
+  clearUnread: () => {
+    console.log('[BSG unread] clear → 0');
+    set({ unreadCount: 0 });
+  },
+
 
   initRoom: (
     roomId,
@@ -84,7 +99,8 @@ export const useRoomStore = create<roomStoreState>((set) => ({
     roomCode: roomCode,
     adminId: adminId,
     isAdmin: isAdmin,
-    isInRoom: true
+    isInRoom: true,
+    unreadCount: 0
   }),
   resetRoom: () => set(roomStoreInit)
 }));

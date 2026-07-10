@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { usePanelStore } from '@/stores/usePanelStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -13,6 +14,13 @@ function playChatSound(filename: string) {
     const audio = new Audio(chrome.runtime.getURL(`sounds/${filename}`));
     audio.play().catch(() => {});
 }
+
+// for chat notification count - increment
+function isChatVisible(): boolean {
+    const { activeTab } = useRoomStore.getState();
+    const { isFolded } = usePanelStore.getState();
+    return activeTab === 'chat' && !isFolded;
+  }
 
 export type Message = {
     userHandle: string;
@@ -111,6 +119,24 @@ export const useChatSocket = () => {
                                 playChatSound('message-recieved.mp3');
                             }
                         }
+
+                        // for chat notification count - increment
+                        const isNewMessage = !suppressChatSoundsRef.current;
+                        const fromOtherUser = message.userHandle !== userEmail;
+                        const chatVisible = isChatVisible();
+                        console.log('[BSG unread] message check', {
+                            isNewMessage,
+                            fromOtherUser,
+                            chatVisible,
+                            userHandle: message.userHandle,
+                            userEmail,
+                            activeTab: useRoomStore.getState().activeTab,
+                            isFolded: usePanelStore.getState().isFolded,
+                            currentUnread: useRoomStore.getState().unreadCount,
+                        });
+                        if (isNewMessage && fromOtherUser && !chatVisible) {
+                            useRoomStore.getState().incrementUnread();
+                        }
                     } else if (responseType === 'system-announcement') {
                         // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
                         if (message?.data === 'Join Room Request') { //  border between history and new msgs
@@ -180,6 +206,7 @@ export const useChatSocket = () => {
         setMessages([]);
         setLastGameEvent(null);
         suppressChatSoundsRef.current = true;  
+        useRoomStore.getState().clearUnread(); // checks uread
 
         if (joinedRoomIDRef.current === roomID) {
             pendingRoomIDRef.current = roomID;

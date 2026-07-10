@@ -15,6 +15,8 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
     const activeTab = useRoomStore(s => s.activeTab);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const isPanelHovered = usePanelStore(s => s.isPanelHovered);
+
+    const unreadCount = useRoomStore(s => s.unreadCount);
     
     return (
         <div
@@ -32,7 +34,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             {/* Logo */}
                             <div className="flex flex-col w-full items-center bg-[#262626] pointer-events-auto">
                                 <div className="flex pt-2 px-1 gap-1 font-medium text-sm">
-                                    <div className="w-5 h-5 flex items-center justify-center">
+                                    <div className="relative w-5 h-5 flex items-center justify-center">
                                         <svg
                                             viewBox="0 0 81 65"
                                             fill="none"
@@ -46,6 +48,39 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                                 stroke-linejoin="round"
                                             />
                                         </svg>
+                                        
+                                        {unreadCount > 0 && (
+                                            <span
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: -2,
+                                                    right: -3,
+                                                    width: 11,
+                                                    height: 11,
+                                                    borderRadius: '50%',
+                                                    backgroundColor: '#ef4444',
+                                                    color: '#ffffff',
+                                                    fontSize: 7,
+                                                    fontWeight: 700,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    zIndex: 50,
+                                                    lineHeight: 1,
+                                                    boxSizing: 'border-box',
+                                                    border: '1px solid #262626',
+                                                }}
+                                            >
+                                                {unreadCount > 9 ? (
+                                                    <>
+                                                        <span style={{ fontSize: 7 }}>9</span>
+                                                        <span style={{ fontSize: 5, marginTop: -1 }}>+</span>
+                                                    </>
+                                                ) : (
+                                                    unreadCount
+                                                )}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
