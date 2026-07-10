@@ -12,6 +12,7 @@ export const useRoomInit = () => {
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
     const userId = useUserStore(s => s.userId);
+    const setProblems = useRoomStore(s => s.setProblems)
 
     const parseJsonSafe = async (res: Response): Promise<any | null> => {
         try {
@@ -177,6 +178,13 @@ export const useRoomInit = () => {
                             chrome.storage.local.set({ activeRoomId: room.id }, () => {
                                 console.log("CheckActiveRoom: Saved activeRoomId");
                             });
+                            console.log("Loading problems from storage");
+                            chrome.storage.local.get(['problems'], (result) => {
+                                // console.log("Problems: ", result.problems);
+                                setProblems(result.problems || null);
+                            });
+
+                            
                         } else {
                             console.warn("CheckActiveRoom: chrome.storage.local not available");
                         }
