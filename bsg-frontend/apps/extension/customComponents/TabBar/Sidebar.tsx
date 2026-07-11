@@ -18,6 +18,11 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
 
     const unreadCount = useRoomStore(s => s.unreadCount);
     
+    //to select tab and unfold the panel - sets active tab and unfolds the extension!
+    const selectTabAndUnfold = (tab: TabName) => {
+        setActiveTab(tab);
+        messageScript('UNFOLD');
+      };
     return (
         <div
             onDoubleClick={() => messageScript('UNFOLD')}
@@ -100,7 +105,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             <Button
                                 onMouseEnter={() => setHoveredTab('roomInfo')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('roomInfo')}
+                                onClick={() => selectTabAndUnfold('roomInfo')}
                                 className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'roomInfo') ? '' : 'opacity-60'}`}>
@@ -128,7 +133,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             <Button
                                 onMouseEnter={() => setHoveredTab('chat')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('chat')}
+                                onClick={() => selectTabAndUnfold('chat')}
                                 className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'chat') ? '' : 'opacity-60'}`}>
@@ -152,7 +157,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             <Button
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('leaderboard')}
+                                onClick={() => selectTabAndUnfold('leaderboard')}
                                 className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'leaderboard') ? '' : 'opacity-60'}`}>
@@ -181,7 +186,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             <Button
                                 onMouseEnter={() => setHoveredTab('statistics')}
                                 onMouseLeave={() => setHoveredTab(null)}
-                                onClick={() => setActiveTab('statistics')}
+                                onClick={() => selectTabAndUnfold('statistics')}
                                 className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'statistics') ? '' : 'opacity-60'}`}>
