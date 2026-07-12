@@ -12,6 +12,7 @@ export const Toolbar = () => {
 
     const isAdmin = useRoomStore(s => s.isAdmin);
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
+    const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
 
     // TODO: Move timer into separate iframe
@@ -114,7 +115,7 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Settings">
                     <Button
-                        //onClick={}
+                        onClick={() => setActiveTab('settings')}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
                     >
                         <svg

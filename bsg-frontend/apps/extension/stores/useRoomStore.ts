@@ -14,9 +14,13 @@ interface roomStoreState {
   activeTab: TabName;
   isRoundStarted: boolean;
   roundEndTime: number | null;
+  roundDuration: number | null;
   lastGameEvent: GameEvent | null;
   roomNotice: string | null;
+  unreadCount: number; // for chat notification count
 
+  incrementUnread: () => void; // for chat notification count
+  clearUnread: () => void; // for chat notification count
   setIsInRoom: (isInRoom: boolean) => void;
   setRoomId: (roomId: string | null) => void;
   setIsConnected: (isConnected: boolean) => void;
@@ -27,6 +31,7 @@ interface roomStoreState {
   setActiveTab: (activeTab: TabName) => void;
   setIsRoundStarted: (isRoundStarted: boolean) => void;
   setRoundEndTime: (roundEndTime: number | null) => void;
+  setRoundDuration: (roundDuration: number | null) => void;
   setLastGameEvent: (lastGameEvent: GameEvent | null) => void;
   setRoomNotice: (roomNotice: string | null) => void;
 
@@ -50,8 +55,10 @@ const roomStoreInit = {
   activeTab: 'chat' as TabName,
   isRoundStarted: false,
   roundEndTime: null,
+  roundDuration: null,
   lastGameEvent: null,
   roomNotice: null,
+  unreadCount: 0, // set to 0 initially
 };
 
 export const useRoomStore = create<roomStoreState>((set) => ({
@@ -67,8 +74,20 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setActiveTab: (activeTab) => set({ activeTab: activeTab }),
   setIsRoundStarted: (isRoundStarted) => set({ isRoundStarted: isRoundStarted }),
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
+  setRoundDuration: (roundDuration) => set({ roundDuration: roundDuration }),
   setLastGameEvent: (lastGameEvent) => set({ lastGameEvent: lastGameEvent }),
+  // for chat notification count
   setRoomNotice: (roomNotice) => set({ roomNotice: roomNotice }),
+  incrementUnread: () => set((state) => {
+    const unreadCount = state.unreadCount + 1;
+    console.log('[BSG unread] increment →', unreadCount);
+    return { unreadCount };
+  }),
+  clearUnread: () => {
+    console.log('[BSG unread] clear → 0');
+    set({ unreadCount: 0 });
+  },
+
 
   initRoom: (
     roomId,
@@ -80,7 +99,8 @@ export const useRoomStore = create<roomStoreState>((set) => ({
     roomCode: roomCode,
     adminId: adminId,
     isAdmin: isAdmin,
-    isInRoom: true
+    isInRoom: true,
+    unreadCount: 0
   }),
   resetRoom: () => set(roomStoreInit)
 }));
