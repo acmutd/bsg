@@ -16,14 +16,7 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
         photo: useUserStore(s => s.iconUrl)
     };
 
-    const users: User[] = [
-        user,
-        { id: "1", name: "test", email: "", photo: "" },
-        { id: "2", name: "test", email: "", photo: "" },
-        { id: "3", name: "test", email: "", photo: "" },
-        { id: "4", name: "test", email: "", photo: "" },
-        { id: "5", name: "test", email: "", photo: "" },
-    ];
+    const users: User[] = useRoomStore(s => s.participants);
 
     const isConnected = true;
 

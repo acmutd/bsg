@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { SERVER_URL } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
+import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
 
 export function useRoomEvents() {
@@ -15,15 +16,24 @@ export function useRoomEvents() {
     const userId = useUserStore(s => s.userId);
     const roomId = useRoomStore(s => s.roomId);
     const lastGameEvent = useRoomStore(s => s.lastGameEvent);
+    const lastParticipantJoinTime = useRoomStore(s => s.lastParticipantJoinTime);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setResetRoom = useRoomStore(s => s.resetRoom);
+    const { setRoomParticipants } = useRoomInit();
 
-    // Handle Game Events
+    // Refresh participants when someone joins or leaves
     useEffect(() => {
-        if (!lastGameEvent) return;
+        if (!lastParticipantJoinTime || !roomId) return;
+        setRoomParticipants(roomId);
+    }, [lastParticipantJoinTime, roomId]);
+
+    // Refresh participants when round starts (indicates room activity)
+    useEffect(() => {
+        if (!lastGameEvent || !roomId) return;
 
         if (lastGameEvent.type === 'round-start') {
+            setRoomParticipants(roomId);
             const data = lastGameEvent.data;
             let problems: string[] = [];
             let endTime: number;

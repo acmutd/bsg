@@ -89,8 +89,10 @@ export const useChatSocket = () => {
                             isSystem: false
                         }]);
                     } else if (responseType === 'system-announcement') {
-                        // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
-                        if (message?.data === 'Join Room Request') {
+                        // Trigger participant refresh on join/leave, but don't add to chat to avoid noise
+                        const messageData = message?.data || '';
+                        if (messageData === 'Join Room Request' || messageData === 'Leave Room Request') {
+                            useRoomStore.getState().setLastParticipantJoinTime(Date.now());
                             return;
                         }
                         console.log('recieved system message: ' + message);

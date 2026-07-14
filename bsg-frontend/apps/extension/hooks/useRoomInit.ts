@@ -2,16 +2,57 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { SERVER_URL } from '../lib/config'
 import { useUserStore } from '@/stores/useUserStore';
 import { useRouter } from 'next/router';
+import { User } from '@bsg/models/User';
 
 export const useRoomInit = () => {
 
     const router = useRouter();
 
     const initRoom = useRoomStore(s => s.initRoom);
+    const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
     const userId = useUserStore(s => s.userId);
+    const username = useUserStore(s => s.username);
+    const email = useUserStore(s => s.email);
+    const iconUrl = useUserStore(s => s.iconUrl);
+
+    const mapBackendUser = (user: any): User => ({
+        id: user.authID || String(user.id),
+        name: user.handle || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email || String(user.id),
+        email: user.email || '',
+        photo: user.photoURL || ''
+    });
+
+    const setRoomParticipants = async (roomId: string) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/participants`, {
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                throw new Error(`Failed to load participants (${res.status})`);
+            }
+
+            const data = await res.json();
+            const roomUsers = Array.isArray(data.data) ? data.data.map(mapBackendUser) : [];
+            setParticipants(roomUsers);
+        } catch (error) {
+            console.error('Failed to load room participants', error);
+
+            if (userId) {
+                setParticipants([{
+                    id: userId,
+                    name: username || email || userId,
+                    email: email || '',
+                    photo: iconUrl || ''
+                }]);
+            }
+        }
+    };
+
+
 
     const parseJsonSafe = async (res: Response): Promise<any | null> => {
         try {
@@ -57,6 +98,8 @@ export const useRoomInit = () => {
                 room.adminId,
                 userId === room.adminId,
             );
+
+            await setRoomParticipants(room.id);
 
             setRoomNotice(null);
 
@@ -132,6 +175,8 @@ export const useRoomInit = () => {
                 userId === adminId
             );
 
+            await setRoomParticipants(roomId);
+
             const warningMessage = roundData?.warningMessage;
             setRoomNotice(typeof warningMessage === 'string' && warningMessage.trim() ? warningMessage : null);
 
@@ -170,6 +215,9 @@ export const useRoomInit = () => {
                             room.adminId,
                             userId === room.adminId
                         );
+
+                        await setRoomParticipants(room.id);
+
                         setRoomNotice(null);
 
                         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -212,5 +260,5 @@ export const useRoomInit = () => {
         }
     }
 
-    return { joinRoom, createRoom, checkActiveRoom };
+    return { joinRoom, createRoom, checkActiveRoom, setRoomParticipants };
 }
