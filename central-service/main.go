@@ -165,7 +165,7 @@ func main() {
 	roomScheduler := tasks.New()
 	defer roomScheduler.Stop()
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
-	roomController := controllers.InitializeRoomController(&roomService, logger)
+	roomController := controllers.InitializeRoomController(&roomService, &userService, logger)
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 

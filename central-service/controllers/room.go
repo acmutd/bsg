@@ -12,11 +12,12 @@ import (
 
 type RoomController struct {
 	roomService *services.RoomService
+	userService *services.UserService
 	logger      *utils.StructuredLogger
 }
 
-func InitializeRoomController(service *services.RoomService, logger *utils.StructuredLogger) RoomController {
-	return RoomController{service, logger}
+func InitializeRoomController(roomService *services.RoomService, userService *services.UserService, logger *utils.StructuredLogger) RoomController {
+	return RoomController{roomService, userService, logger}
 }
 
 // Endpoint for creating a new room given an admin and a roomName
@@ -87,6 +88,40 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, map[string]models.Room{
 		"data": *room,
+	})
+}
+
+func (controller *RoomController) GetRoomParticipantsEndpoint(c echo.Context) error {
+	roomID := c.Param("roomID")
+	authIDs, err := controller.roomService.FindActiveUsers(roomID)
+	if err != nil {
+		controller.logger.Error("Failed to get room participants", err, map[string]interface{}{
+			"room_id": roomID,
+		})
+		if err, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to get room participants. "+err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get room participants. Please try again later")
+	}
+
+	participants := make([]models.User, 0, len(authIDs))
+	for _, authID := range authIDs {
+		user, err := controller.userService.FindUserByAuthID(authID)
+		if err != nil {
+			controller.logger.Warn("Skipping participant lookup failure", map[string]interface{}{
+				"room_id": roomID,
+				"auth_id": authID,
+			})
+			continue
+		}
+		if user == nil {
+			continue
+		}
+		participants = append(participants, *user)
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"data": participants,
 	})
 }
 
@@ -259,6 +294,7 @@ func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
 	g.POST("/:roomID/end", controller.EndRoundEndpoint)
 	g.POST("/:roomID/:problemID", controller.CreateSubmissionEndpoint)
+	g.GET("/:roomID/participants", controller.GetRoomParticipantsEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
 }
