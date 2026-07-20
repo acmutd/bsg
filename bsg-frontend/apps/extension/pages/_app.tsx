@@ -11,6 +11,7 @@ import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { messageScript } from '@/utils/messageScript';
 import { useIsActive } from '@/hooks/useIsActive';
+import { useEffect } from 'react';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
@@ -21,6 +22,21 @@ export default function App({ Component, pageProps }: AppProps) {
   const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
   const { isActive, setIsActive } = useIsActive();
+  const activeTab = useRoomStore(s => s.activeTab);
+  const clearUnread = useRoomStore(s => s.clearUnread);
+
+  const setIsFolded = usePanelStore(s => s.setIsFolded);
+
+  useEffect(() => {
+    setIsFolded(isFolded);
+  }, [isFolded, setIsFolded]);
+  
+  useEffect(() => {
+    if (activeTab === 'chat' && !isFolded) {
+      console.log('[BSG unread] clearing — chat is active');
+      clearUnread();
+    }
+  }, [activeTab, isFolded, clearUnread]);
 
   // Redirect popup render
   if (isDefaultPopup) {
