@@ -251,6 +251,42 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	return &roundStartTime, round.ProblemSet, nil
 }
 
+// Allowed round duration range (minutes), matching the create-round Slider in the UI.
+const (
+	MIN_ROUND_DURATION = 5
+	MAX_ROUND_DURATION = 120
+)
+
+// UpdateRoundDuration sets the duration (in minutes) of a round that has not started yet.
+// The timer only begins on round start, so before then this is a plain column update that
+// the eventual InitiateRoundStart will read — nothing needs to be rescheduled or broadcast.
+func (service *RoundService) UpdateRoundDuration(round *models.Round, newDuration int) (int, error) {
+	if round == nil {
+		return 0, &BSGError{
+			Message:    "Round not found",
+			StatusCode: 404,
+		}
+	}
+	if round.Status != constants.ROUND_CREATED {
+		return 0, &BSGError{
+			Message:    "Timer can only be edited before the round starts",
+			StatusCode: 400,
+		}
+	}
+	if newDuration < MIN_ROUND_DURATION || newDuration > MAX_ROUND_DURATION {
+		return 0, &BSGError{
+			Message:    fmt.Sprintf("Duration must be between %d and %d minutes", MIN_ROUND_DURATION, MAX_ROUND_DURATION),
+			StatusCode: 400,
+		}
+	}
+	// Explicit column update: GORM's Updates(struct) skips zero values, Update does not.
+	if err := service.db.Model(round).Update("duration", newDuration).Error; err != nil {
+		return 0, err
+	}
+	round.Duration = newDuration
+	return newDuration, nil
+}
+
 // Adds a user to a round leaderboard
 // Member values are a compression of the user's score and last submission timestamp
 // User's initial score will be 0 with the current timestamp

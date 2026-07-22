@@ -1,7 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { usePanelStore } from '@/stores/usePanelStore';
 import { RTC_SERVICE_URL } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+
+
+//for audio unpload to out folder
+function playChatSound(filename: string) {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return;
+    if (!useSettingsStore.getState().chatNotificationsEnabled) return; // checks if chat notifications are enabled
+
+    const audio = new Audio(chrome.runtime.getURL(`sounds/${filename}`));
+    audio.play().catch(() => {});
+}
+
+// for chat notification count - increment
+function isChatVisible(): boolean {
+    const { activeTab } = useRoomStore.getState();
+    const { isFolded } = usePanelStore.getState();
+    return activeTab === 'chat' && !isFolded;
+  }
 
 export type Message = {
     userHandle: string;
@@ -25,11 +44,15 @@ export const useChatSocket = () => {
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const emojiMenuRef = useRef<HTMLDivElement | null>(null);
+    const suppressChatSoundsRef = useRef(false); //sound allowed 
 
-    const [ messages, setMessages ] = useState<Message[]>([]);
-    const [ inputText, setInputText ] = useState<string>('');
-    const [ showJump, setShowJump ] = useState<boolean>(false);
-    const [ atLimit, setAtLimit ] = useState<boolean>(false);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [inputText, setInputText] = useState<string>('');
+    const [showJump, setShowJump] = useState<boolean>(false);
+    const [atLimit, setAtLimit] = useState<boolean>(false);
+    const [emojiSearch, setEmojiSearch] = useState<string>('');
 
     const userEmail = useUserStore(s => s.email);
     const username = useUserStore(s => s.username);
@@ -62,7 +85,9 @@ export const useChatSocket = () => {
                         roomID: targetRoomID
                     })
                 };
+                suppressChatSoundsRef.current = true; // 
                 ws.send(JSON.stringify(payload));
+
                 joinedRoomIDRef.current = targetRoomID;
                 console.log("Sent join-room on socket open", { roomID: targetRoomID });
             }
@@ -77,7 +102,7 @@ export const useChatSocket = () => {
 
                     if (responseType === 'chat-message') {
                         console.log('recieved chat message: ' + JSON.stringify(message))
-                        setMessages( prev => [...prev, {
+                        setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
@@ -85,9 +110,37 @@ export const useChatSocket = () => {
                             roomID: message.roomID,
                             isSystem: false
                         }]);
+
+                        // checks user handle to know if the message is sent by the user or received from others
+                        if (!suppressChatSoundsRef.current) {
+                            if (message.userHandle === userEmail) {
+                                playChatSound('message-sent.mp3');
+                            } else {
+                                playChatSound('message-recieved.mp3');
+                            }
+                        }
+
+                        // for chat notification count - increment
+                        const isNewMessage = !suppressChatSoundsRef.current;
+                        const fromOtherUser = message.userHandle !== userEmail;
+                        const chatVisible = isChatVisible();
+                        console.log('[BSG unread] message check', {
+                            isNewMessage,
+                            fromOtherUser,
+                            chatVisible,
+                            userHandle: message.userHandle,
+                            userEmail,
+                            activeTab: useRoomStore.getState().activeTab,
+                            isFolded: usePanelStore.getState().isFolded,
+                            currentUnread: useRoomStore.getState().unreadCount,
+                        });
+                        if (isNewMessage && fromOtherUser && !chatVisible) {
+                            useRoomStore.getState().incrementUnread();
+                        }
                     } else if (responseType === 'system-announcement') {
                         // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
-                        if (message?.data === 'Join Room Request') {
+                        if (message?.data === 'Join Room Request') { //  border between history and new msgs
+                            suppressChatSoundsRef.current = false;
                             return;
                         }
                         console.log('recieved system message: ' + message);
@@ -152,6 +205,8 @@ export const useChatSocket = () => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
         setMessages([]);
         setLastGameEvent(null);
+        suppressChatSoundsRef.current = true;  
+        useRoomStore.getState().clearUnread(); // checks uread
 
         if (joinedRoomIDRef.current === roomID) {
             pendingRoomIDRef.current = roomID;
@@ -169,6 +224,7 @@ export const useChatSocket = () => {
                     roomID: roomID
                 })
             };
+            suppressChatSoundsRef.current = true;
             socketRef.current.send(JSON.stringify(payload));
             joinedRoomIDRef.current = roomID;
         }
@@ -178,7 +234,7 @@ export const useChatSocket = () => {
         const chat = chatRef.current;
         const textArea = inputRef.current;
         if (!roomId || !chat || !textArea) return;
-        
+
         const text = inputText.trim();
         if (!text) return;
 
@@ -258,6 +314,52 @@ export const useChatSocket = () => {
         }
     }
 
+    const insertEmoji = (emoji: string) => {
+        const textarea = inputRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = inputText.slice(0, start) + emoji + inputText.slice(end);
+
+        if (newText.length <= MAX_CHARS) {
+            setInputText(newText);
+            requestAnimationFrame(() => {
+                textarea.selectionStart = start + emoji.length;
+                textarea.selectionEnd = start + emoji.length;
+                textarea.focus();
+                handleExpand();
+            });
+        } else if (inputText.length < MAX_CHARS) {
+            setInputText(newText.substring(0, MAX_CHARS));
+            requestAnimationFrame(() => {
+                textarea.focus();
+                handleExpand();
+            });
+
+            setAtLimit(true);
+            if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
+            atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
+        } else {
+            setAtLimit(true);
+            if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
+            atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
+        }
+    };
+
+    const scrollToCategory = (category: string) => {
+        setEmojiSearch('');
+
+        setTimeout(() => {
+            const menuEl = emojiMenuRef.current;
+            const categoryEl = categoryRefs.current[category];
+
+            if (menuEl && categoryEl) {
+                menuEl.scrollTop = categoryEl.offsetTop - menuEl.offsetTop;
+            }
+        }, 0);
+    }
+
     useEffect(() => {
         const textArea = inputRef.current;
         const container = containerRef.current;
@@ -293,7 +395,7 @@ export const useChatSocket = () => {
             if (
                 lastGroup &&
                 !msg.isSystem &&
-                lastGroup[0].userName === msg.userName
+                lastGroup[0].userHandle === msg.userHandle //lastGroup[0].userName === msg.userName
             ) {
                 lastGroup.push(msg);
             } else {
@@ -352,5 +454,11 @@ export const useChatSocket = () => {
         atLimit,
         MAX_CHARS,
         clearMessages,
+        insertEmoji,
+        categoryRefs,
+        emojiMenuRef,
+        scrollToCategory,
+        emojiSearch,
+        setEmojiSearch
     };
 };

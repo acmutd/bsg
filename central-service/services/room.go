@@ -502,6 +502,29 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 	return roundStartTime, problems, nil
 }
 
+// SetRoundDurationByRoomID updates the duration of the room's not-yet-started round.
+// Reserved for the room admin, and only valid while a round is in the CREATED state.
+func (service *RoomService) SetRoundDurationByRoomID(roomID string, userID string, duration int) (int, error) {
+	room, err := service.FindRoomByID(roomID)
+	if err != nil {
+		return 0, err
+	}
+	if room.Admin != userID { // check if user is room admin
+		return 0, BSGError{http.StatusUnauthorized, "User is not room admin. This functionality is reserved for room admin..."}
+	}
+	var round *models.Round
+	for i := range room.Rounds {
+		if room.Rounds[i].Status == constants.ROUND_CREATED {
+			round = &room.Rounds[i]
+			break
+		}
+	}
+	if round == nil {
+		return 0, BSGError{http.StatusNotFound, "No round to edit. The timer can only be changed before the round starts."}
+	}
+	return service.roundService.UpdateRoundDuration(round, duration)
+}
+
 func (service *RoomService) GetLeaderboard(roomID string) ([]redis.Z, error) {
 	return service.roundService.GetLeaderboardByRoomID(roomID)
 }
