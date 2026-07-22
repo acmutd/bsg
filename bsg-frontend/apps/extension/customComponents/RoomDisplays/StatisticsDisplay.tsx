@@ -42,11 +42,19 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     useEffect(() => setHasAnimated(false), [isActive]);
 
     const chartConfig: ChartConfig = {
-        score: { label: "Score", color: "#FFFFFF" },
-        solveTime: { label: "Solve Time", color: "#FFFFFF" },
-        runTime: { label: "Run Time", color: "#FFFFFF" },
-        memory: { label: "Memory", color: "#FFFFFF" }
+        score: { label: "Score", color: "#62AF2E" },
+        solveTime: { label: "Solve Time", color: "rgb(2,177,40)" },
+        runTime: { label: "Run Time", color: "rgb(0,123,255)" },
+        memory: { label: "Memory", color: "rgb(255,183,0)" }
     };
+
+    const chartColors: Record<ActiveChart, string> = {
+        score: '#62AF2E',
+        solveTime: 'rgb(2,177,40)',
+        runTime: 'rgb(0,123,255)',
+        memory: 'rgb(255,183,0)',
+        percentile: 'rgb(255,157,20)'
+    }
 
     type SubmissionEntry = {
         username: string,
@@ -162,7 +170,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     background
                                     stackId='breakdown'
                                     dataKey='solveTime'
-                                    fill='#DDDDDD'
+                                    fill={chartColors['solveTime']}
                                     isAnimationActive={false}
                                     className=''
                                 />
@@ -170,7 +178,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     background
                                     stackId='breakdown'
                                     dataKey='runTime'
-                                    fill='#BBBBBB'
+                                    fill={chartColors['runTime']}
                                     isAnimationActive={false}
                                     className=''
                                 />
@@ -178,7 +186,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     background
                                     stackId='breakdown'
                                     dataKey='memory'
-                                    fill='#999999'
+                                    fill={chartColors['memory']}
                                     isAnimationActive={false}
                                     className=''
                                 />
@@ -187,7 +195,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             <RadialBar
                                 background
                                 dataKey='score'
-                                fill='#FFFFFF'
+                                fill={chartColors['score']}
                                 isAnimationActive={isAnimationsActive && !hasAnimated}
                                 onAnimationEnd={() => setHasAnimated(true)}
                                 className=''
@@ -197,7 +205,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                 </ChartContainer>
             </div>
 
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-1 w-full">
                 <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">
                     Room Statistics
                 </div>
@@ -367,19 +375,19 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     <>
                                         <Bar
                                             dataKey='solveTime'
-                                            fill='#FFFFFF'
+                                            fill={chartColors['solveTime']}
                                             radius={[4, 4, 0, 0]}
                                             isAnimationActive={isAnimationsActive}
                                         />
                                         <Bar
                                             dataKey='runTime'
-                                            fill='#FFFFFF'
+                                            fill={chartColors['runTime']}
                                             radius={[4, 4, 0, 0]}
                                             isAnimationActive={isAnimationsActive}
                                         />
                                         <Bar
                                             dataKey='memory'
-                                            fill='#FFFFFF'
+                                            fill={chartColors['memory']}
                                             radius={[4, 4, 0, 0]}
                                             isAnimationActive={isAnimationsActive}
                                         />
@@ -388,8 +396,9 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     </>
                                     :
                                     <Bar
+                                        key={activeChart}
                                         dataKey={activeChart}
-                                        fill='#FFFFFF'
+                                        fill={chartColors[activeChart]}
                                         radius={[4, 4, 0, 0]}
                                         isAnimationActive={isAnimationsActive}
                                     />
