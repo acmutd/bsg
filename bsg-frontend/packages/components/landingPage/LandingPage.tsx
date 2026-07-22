@@ -142,9 +142,17 @@ export default function LandingPage() {
       {/* ================= FOOTER ================= */}
       <footer className="w-full px-6 sm:px-8 md:px-10 py-8 sm:py-10 text-white">
         <div className="w-full border-t border-white/20" />
-        <p className="text-sm sm:text-base tracking-wider font-extrabold mt-3 ml-4 sm:ml-8">
-          BSG
-        </p>
+        <div className="flex items-center justify-between mt-3 ml-4 sm:ml-8 mr-4 sm:mr-8">
+          <p className="text-sm sm:text-base tracking-wider font-extrabold">
+            BSG
+          </p>
+          <Link
+            href="/privacy"
+            className="text-xs sm:text-sm text-white/60 hover:text-white transition-colors"
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
     </div>
   );
