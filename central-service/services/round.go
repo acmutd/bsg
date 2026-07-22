@@ -485,7 +485,7 @@ func (service *RoundService) CreateRoundSubmission(
 		return nil, err
 	}
 
-	// skip kafka queue in unit tests
+	// skip submission queue in unit tests
 	if service.submissionQueue != nil {
 		if err := service.submissionQueue.AddSubmissionToQueue(problem, &newSubmission); err != nil {
 			log.Printf("failed to queue submission: %v", err)

@@ -111,24 +111,24 @@ func (wl *WorkerLogger) LogSubmissionError(submissionID, problemID string, err e
 	wl.logWithLevel(LevelError, "submission processing failed", err, metadata)
 }
 
-// LogKafkaEvent logs a Kafka event
-func (wl *WorkerLogger) LogKafkaEvent(eventType, topic string, metadata map[string]interface{}) {
+// LogQueueEvent logs a message queue event
+func (wl *WorkerLogger) LogQueueEvent(eventType, queueName string, metadata map[string]interface{}) {
 	if metadata == nil {
 		metadata = make(map[string]interface{})
 	}
 	metadata["event_type"] = eventType
-	metadata["topic"] = topic
-	wl.logWithLevel(LevelInfo, "kafka event", nil, metadata)
+	metadata["queue"] = queueName
+	wl.logWithLevel(LevelInfo, "queue event", nil, metadata)
 }
 
-// LogKafkaError logs a Kafka error event
-func (wl *WorkerLogger) LogKafkaError(eventType, topic string, err error, metadata map[string]interface{}) {
+// LogQueueError logs a message queue error event
+func (wl *WorkerLogger) LogQueueError(eventType, queueName string, err error, metadata map[string]interface{}) {
 	if metadata == nil {
 		metadata = make(map[string]interface{})
 	}
 	metadata["event_type"] = eventType
-	metadata["topic"] = topic
-	wl.logWithLevel(LevelError, "kafka error", err, metadata)
+	metadata["queue"] = queueName
+	wl.logWithLevel(LevelError, "queue error", err, metadata)
 }
 
 // ProcessingError represents an error during submission processing
@@ -155,19 +155,7 @@ func (pe *ProcessingError) IsRetryable() bool {
 	return retryableCodes[pe.Code]
 }
 
-// MessageQueueError represents an error with Kafka messages
-type MessageQueueError struct {
-	Topic   string
-	Offset  int64
-	Message string
-}
-
-// Error implements the error interface
-func (mq *MessageQueueError) Error() string {
-	return fmt.Sprintf("MessageQueueError: topic=%s offset=%d: %s", mq.Topic, mq.Offset, mq.Message)
-}
-
-// InputValidator provides validation for Kafka messages
+// InputValidator provides validation for queue messages
 type InputValidator struct {
 	logger *WorkerLogger
 }
@@ -177,8 +165,8 @@ func NewInputValidator(logger *WorkerLogger) *InputValidator {
 	return &InputValidator{logger: logger}
 }
 
-// ValidateIngressMessage validates a Kafka ingress message
-func (iv *InputValidator) ValidateIngressMessage(msg *KafkaIngressDTO) error {
+// ValidateIngressMessage validates an ingress queue message
+func (iv *InputValidator) ValidateIngressMessage(msg *SubmissionIngressDTO) error {
 	if msg == nil {
 		return fmt.Errorf("message is nil")
 	}
@@ -216,8 +204,8 @@ func (iv *InputValidator) ValidateIngressMessage(msg *KafkaIngressDTO) error {
 	return nil
 }
 
-// ValidateEgressMessage validates a Kafka egress message
-func (iv *InputValidator) ValidateEgressMessage(msg *KafkaEgressDTO) error {
+// ValidateEgressMessage validates an egress queue message
+func (iv *InputValidator) ValidateEgressMessage(msg *SubmissionEgressDTO) error {
 	if msg == nil {
 		return fmt.Errorf("message is nil")
 	}

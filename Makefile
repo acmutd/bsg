@@ -1,4 +1,4 @@
-.PHONY: test test-go test-node test-server test-frontend test-central test-rtc test-worker test-kafka help
+.PHONY: test test-go test-node test-server test-frontend test-central test-rtc test-worker help
 
 help:
 	@echo "Available test commands:"
@@ -10,7 +10,6 @@ help:
 	@echo "  make test-central      - Run central-service tests only"
 	@echo "  make test-rtc          - Run rtc-service tests only"
 	@echo "  make test-worker       - Run worker-service tests only"
-	@echo "  make test-kafka        - Run kafka-queue tests only"
 
 # Run all tests
 test: test-go test-node
@@ -22,7 +21,6 @@ test-go:
 	@cd central-service && go test ./... -v
 	@cd rtc-service && go test ./... -v
 	@cd worker-service && go test ./... -v
-	@cd kafka-queue && go test ./... -v
 	@echo "✓ Go tests completed"
 
 # Run all Node.js tests
@@ -55,7 +53,3 @@ test-rtc:
 test-worker:
 	@echo "Running worker-service tests..."
 	@cd worker-service && go test ./... -v
-
-test-kafka:
-	@echo "Running kafka-queue tests..."
-	@cd kafka-queue && go test ./... -v
