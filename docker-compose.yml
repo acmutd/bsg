@@ -129,6 +129,8 @@ services:
       - CENTRAL_SERVICE_URL=http://central-service:5000
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - SERVER_URL=${SERVER_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - NODE_ENV=${NODE_ENV:-production}
   web:
     build:
       context: ./bsg-frontend

@@ -1,3 +1,5 @@
-binarysearchgang.com {
+# binarysearchgang.com (apex + www) is served by Vercel — do not route it here.
+# This box only serves the Express API.
+api.binarysearchgang.com {
     reverse_proxy server:3000
 }
