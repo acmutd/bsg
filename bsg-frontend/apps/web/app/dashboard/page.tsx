@@ -269,7 +269,7 @@ const Dashboard = () => {
 
         const fetchProblems = async () => {
             try {
-                const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:3000";
+                const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
                 const response = await fetch(`${serverUrl}/problems?${params.toString()}`, {
                     signal: controller.signal,
                 });

@@ -82,6 +82,10 @@ func main() {
 		logger.Fatal("Error migrating Leaderboard schema", err, nil)
 	}
 
+	if err := db.AutoMigrate(&models.Statistics{}); err != nil {
+		logger.Fatal("Error migrating Statistics schema", err, nil)
+	}
+
 	// Initialize Kafka-related components
 	kafkaManager := services.NewKafkaManagerService()
 	defer kafkaManager.Cleanup()
@@ -167,6 +171,9 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
+	statService := services.InitializeStatisticService(db, rdb, rtcClient)
+	statsController := controllers.InitializeStatisticsController(&statService, &roomService, logger)
+
 	lbController := controllers.InitializeLeaderboardController(&lbService)
 
 	e.Use(userController.ValidateUserRequest)
@@ -195,6 +202,7 @@ func main() {
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
 	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
+	statsController.InitializeRoutes(e.Group("/api/statistics"))
 
 	logger.Info("Central service started", map[string]interface{}{
 		"port": 5000,

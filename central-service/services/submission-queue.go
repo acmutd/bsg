@@ -181,7 +181,7 @@ func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(ra
 		// update redis leaderboard
 		if submission.SubmissionOwnerType == "round_submissions" {
 			var roundSubmission models.RoundSubmission
-			if err := egressQueueService.db.First(&roundSubmission, submission.SubmissionOwnerID).Error; err == nil {
+			if err := egressQueueService.db.Preload("RoundParticipant").First(&roundSubmission, submission.SubmissionOwnerID).Error; err == nil {
 				if err := egressQueueService.roundService.UpdateLeaderboardScore(roundSubmission.RoundID, roundSubmission.RoundParticipant.ParticipantAuthID, scoreToAdd); err != nil {
 					log.Printf("failed to update Redis leaderboard: %v", err)
 				}
