@@ -28,7 +28,7 @@ export const useLogin = () => {
         try {
 
             //Open the OAuth Window
-            const popup = window.open(`${process.env.SERVER_URL}/auth/${Provider}`)
+            const popup = window.open(`https://api.binarysearchgang.com/auth/${Provider}`)
 
             //Keep polling to see if auth is done or not
             const checkAuth = async () => {
