@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+module.exports = {
     reactStrictMode: true,
     output: 'export',
 
@@ -11,7 +10,4 @@ const nextConfig: NextConfig = {
         '@bsg/models',
         '@bsg/ui-styles',
     ],
-
 }
-
-export default nextConfig;

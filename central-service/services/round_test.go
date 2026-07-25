@@ -236,7 +236,7 @@ func TestCompressScoreAndTimeStampMaxScore(t *testing.T) {
 }
 
 // TestDecompressScoreOnly tests decompression of score
-func TestDecompressScore(t *testing.T) {
+func TestDecompressScoreOnly(t *testing.T) {
 	testCases := []struct {
 		name            string
 		compressedScore float64
@@ -244,24 +244,24 @@ func TestDecompressScore(t *testing.T) {
 	}{
 		{
 			name:            "zero score",
-			compressedScore: float64(uint64(0) << 43),
+			compressedScore: float64(uint64(0) << 54),
 			expectedScore:   0,
 		},
 		{
 			name:            "low score",
-			compressedScore: float64(uint64(100) << 43),
+			compressedScore: float64(uint64(100) << 54),
 			expectedScore:   100,
 		},
 		{
 			name:            "high score",
-			compressedScore: float64(uint64(1000) << 43),
+			compressedScore: float64(uint64(1000) << 54),
 			expectedScore:   1000,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := DecompressScore(tc.compressedScore)
+			result := decompressScoreOnly(tc.compressedScore)
 			assert.Equal(t, tc.expectedScore, result)
 		})
 	}
@@ -498,7 +498,7 @@ func TestCompressDecompressCycle(t *testing.T) {
 			compressed := compressScoreAndTimeStamp(tc.score, timestamp)
 
 			// Verify the compressed value can be decompressed
-			decompressed := DecompressScore(float64(compressed))
+			decompressed := decompressScoreOnly(float64(compressed))
 
 			// The decompression may not perfectly round-trip due to bit inversion
 			// but should return a uint64 value
@@ -615,12 +615,12 @@ func BenchmarkCompressScoreAndTimeStamp(b *testing.B) {
 	}
 }
 
-// BenchmarkDecompressScore benchmarks decompression performance
-func BenchmarkDecompressScore(b *testing.B) {
+// BenchmarkDecompressScoreOnly benchmarks decompression performance
+func BenchmarkDecompressScoreOnly(b *testing.B) {
 	testVal := float64(123456789)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		DecompressScore(testVal)
+		decompressScoreOnly(testVal)
 	}
 }

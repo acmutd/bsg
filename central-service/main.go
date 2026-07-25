@@ -77,13 +77,16 @@ func main() {
 	if err := db.AutoMigrate(&models.RoundSubmission{}); err != nil {
 		logger.Fatal("Error migrating RoundSubmission schema", err, nil)
 	}
-
 	if err := db.AutoMigrate(&models.Leaderboard{}); err != nil {
 		logger.Fatal("Error migrating Leaderboard schema", err, nil)
 	}
 
-	if err := db.AutoMigrate(&models.Statistics{}); err != nil {
-		logger.Fatal("Error migrating Statistics schema", err, nil)
+
+	if err := db.AutoMigrate(&models.Feedback{}); err != nil {
+		logger.Fatal("Error migrating Feedback schema", err, nil)
+	}
+	if err := db.AutoMigrate(&models.Rating{}); err != nil {
+		logger.Fatal("Error migrating Rating schema", err, nil)
 	}
 
 	// Initialize Kafka-related components
@@ -171,10 +174,10 @@ func main() {
 	roomService := services.InitializeRoomService(db, rdb, &roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom)
 	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
-	statService := services.InitializeStatisticService(db, rdb, rtcClient)
-	statsController := controllers.InitializeStatisticsController(&statService, &roomService, logger)
-
 	lbController := controllers.InitializeLeaderboardController(&lbService)
+	feedbackService := services.InitializeFeedbackService(db)
+	feedbackController := controllers.InitializeFeedbackController(&feedbackService, logger)
+
 
 	e.Use(userController.ValidateUserRequest)
 
@@ -202,7 +205,8 @@ func main() {
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
 	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
-	statsController.InitializeRoutes(e.Group("/api/statistics"))
+	feedbackController.InitializeRoutes(e.Group("/api/feedback"))
+	
 
 	logger.Info("Central service started", map[string]interface{}{
 		"port": 5000,

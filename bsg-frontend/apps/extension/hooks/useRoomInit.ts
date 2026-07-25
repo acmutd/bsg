@@ -10,7 +10,6 @@ export const useRoomInit = () => {
     const initRoom = useRoomStore(s => s.initRoom);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
-    const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
     const userId = useUserStore(s => s.userId);
 
@@ -133,10 +132,6 @@ export const useRoomInit = () => {
                 userId === adminId
             );
 
-            // round was just created (not started) — remember its duration so the
-            // Settings panel can show/edit it before the admin starts the round
-            setRoundDuration(roundParams.duration);
-
             const warningMessage = roundData?.warningMessage;
             setRoomNotice(typeof warningMessage === 'string' && warningMessage.trim() ? warningMessage : null);
 
@@ -194,11 +189,6 @@ export const useRoomInit = () => {
                             const lastRound = room.rounds[room.rounds.length - 1];
                             const status = lastRound.Status || lastRound.status;
                             console.log("CheckActiveRoom: Last round status:", status);
-                            // remember the round's configured duration (editable while "created")
-                            const lastRoundDuration = lastRound.duration || lastRound.Duration;
-                            if (typeof lastRoundDuration === 'number') {
-                                setRoundDuration(lastRoundDuration);
-                            }
                             // ROUND_STARTED = "started" (need to verify constant value, assuming string)
                             if (status === "started") {
                                 setIsRoundStarted(true);

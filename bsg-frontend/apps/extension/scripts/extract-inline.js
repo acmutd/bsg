@@ -1,12 +1,7 @@
-// scripts/extract-inline.ts
-import fs from 'fs';
-import path from 'path';
-import { glob } from 'glob';
-
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// scripts/extract-inline.js
+const fs = require('fs')
+const path = require('path')
+const glob = require('glob')
 
 // 1. find every HTML in your build `out/` folder
 const htmlFiles = glob.sync(path.join(__dirname, '../out/*.html'))

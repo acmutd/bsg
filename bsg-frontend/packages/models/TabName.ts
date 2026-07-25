@@ -1,1 +1,1 @@
-export type TabName = 'roomInfo' | 'chat' | 'leaderboard' | 'statistics' | 'settings';
+export type TabName = 'roomInfo' | 'chat' | 'leaderboard' | 'statistics';

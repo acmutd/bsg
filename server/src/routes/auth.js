@@ -24,7 +24,7 @@ router.get('/google/callback',
 );
 
 
-router.get('/done',(req, res) => {
+router.get('/done',(res) => {
     res.send(`You are successfully authenticated please go back to the leetcode page`);
 });
 
