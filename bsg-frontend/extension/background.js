@@ -1,6 +1,6 @@
 const CONFIG = {
   SERVER_URL: 'https://api.binarysearchgang.com',
-  RTC_SERVICE_URL: 'ws://localhost:5001/ws',
+  RTC_SERVICE_URL: 'wss://api.binarysearchgang.com/ws',
 };
 
 let offscreenCreated = false;
