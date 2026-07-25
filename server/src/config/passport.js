@@ -14,7 +14,7 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL}/auth/google/callback`
+    callbackURL: `https://api.binarysearchgang.com/auth/google/callback`
 },
     (accessToken, refreshToken, profile, done) => {
         const user = {
