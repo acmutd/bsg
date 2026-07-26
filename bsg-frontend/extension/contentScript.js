@@ -300,7 +300,6 @@
           attributes: true,
           attributeFilter: ['class']
         });
-        console.log("attatched activeTabsetObserver to: ", activeTabset);
       }
     });
 
