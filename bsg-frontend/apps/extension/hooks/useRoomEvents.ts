@@ -41,7 +41,12 @@ export function useRoomEvents() {
             if (data && typeof data === 'object' && data.startTime) {
                 // new format: { startTime (unix seconds), duration (minutes), problems }
                 problems = data.problems || [];
-                endTime = (data.startTime * 1000) + (data.duration * 60 * 1000);
+                if (data.serverNow) {
+                    const remainingUntilStart = (data.startTime - data.serverNow) * 1000;
+                    endTime = Date.now() + remainingUntilStart + (data.duration * 60 * 1000);
+                } else {
+                    endTime = (data.startTime * 1000) + (data.duration * 60 * 1000);
+                }
             } else {
                 // legacy fallback: comma-separated slugs
                 // const slugs = typeof data === 'string' ? data.split(',') : [];

@@ -126,7 +126,7 @@ export const useRoomInit = () => {
             // 1. Create Room
             const res = await fetch(`${SERVER_URL}/rooms`, {
                 method: 'POST',
-                body: JSON.stringify({ roomName: roomCode }),
+                body: JSON.stringify({ roomName: roomCode, ttl: 360 }),
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
