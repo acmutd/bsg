@@ -144,6 +144,12 @@ export const useChatSocket = () => {
                             isSystem: true
                         }]);
                     } else if (responseType === 'round-start') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: 'Round started!',
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
                         try {
                             const parsedData = JSON.parse(message.data);
                             setLastGameEvent({
