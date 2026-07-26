@@ -20,6 +20,7 @@ export function useRoomEvents() {
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setResetRoom = useRoomStore(s => s.resetRoom);
+    const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
 
     // Refresh participants when someone joins or leaves
@@ -80,6 +81,14 @@ export function useRoomEvents() {
 
             } 
 
+            
+                
+            //problem array kept getting erased due to zustand stored it here
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ problems: problems });
+
+            } 
+
                 const targetSlug = problems[0];
                 const currentPath = typeof window !== 'undefined' ? window.location.pathname : "";
                 const alreadyOnTarget = currentPath.includes(`/problems/${targetSlug}/`);
@@ -104,6 +113,7 @@ export function useRoomEvents() {
                 window.open(`https://leetcode.com/problems/${nextProblem}/`, '_top');
             }
         } else if (lastGameEvent.type === 'round-end') {
+            console.log("We got inside of the round-end game type ")
             setRoundEndTime(null);
             setIsRoundStarted(false);
 
@@ -115,8 +125,10 @@ export function useRoomEvents() {
                 chrome.storage.local.remove('problems');
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
+            setActiveTab('leaderboard')
         }
     }, [lastGameEvent, isLoggedIn, isInRoom]);
+
 
     // Check storage for nextProblem state on mount and when extension opens
     useEffect(() => {

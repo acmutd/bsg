@@ -1,7 +1,11 @@
 const cors = require('cors')
 
+const allowedOrigins = [
+    `chrome-extension://${process.env.EXTENSION_ID || 'deadeahbgooeggmhfdleelgiaecafhkn' }`,
+    'https://leetcode.com'
+]
 const corsOption = {
-    origin: `chrome-extension://${process.env.EXTENSION_ID || 'deadeahbgooeggmhfdleelgiaecafhkn' }`,
+    origin: allowedOrigins,
     credentials: true
 }
 const corsMiddleware = cors(corsOption);
