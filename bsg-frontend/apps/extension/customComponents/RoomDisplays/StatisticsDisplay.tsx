@@ -58,13 +58,13 @@ const PlayerAvatar = ({
             <img
                 src={participant.avatarUrl}
                 alt={participant.username}
-                className={`${sizeMap[size]} rounded-xl object-cover border-2 border-[#72ab1c]/40 flex-shrink-0`}
+                className={`${sizeMap[size]} rounded-xl object-cover border-2 border-primary/40 flex-shrink-0`}
             />
         );
     }
     return (
         <div
-            className={`${sizeMap[size]} rounded-xl flex items-center justify-center font-bold text-white border-2 border-[#72ab1c]/40 flex-shrink-0`}
+            className={`${sizeMap[size]} rounded-xl flex items-center justify-center font-bold text-white border-2 border-primary/40 flex-shrink-0`}
             style={{ background: `linear-gradient(135deg, ${BSG_GREEN}, ${BSG_GREEN_DIM})` }}
         >
             {participant.username[0]?.toUpperCase() ?? "?"}
@@ -83,13 +83,13 @@ const StatCard = ({
     valueColor?: string;
     dim?: boolean;
 }) => (
-    <div className="bg-[#141414] rounded-xl p-2.5 border border-[#2a2a2a] flex flex-col gap-1.5 relative overflow-hidden w-fit min-w-[80px]">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/25 to-transparent" />
+    <div className="bg-[#333333] rounded-xl p-2.5 border border-white/10 flex flex-col gap-1.5 relative overflow-hidden w-fit min-w-[80px]">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
         <div className="flex items-center gap-1.5">
-            <span className={dim ? "text-gray-600" : "text-[#72ab1c]"}>{icon}</span>
-            <span className="text-[8px] text-gray-500 uppercase tracking-widest font-medium">{label}</span>
+            <span className={dim ? "text-foreground/40" : "text-primary"}>{icon}</span>
+            <span className="text-[8px] text-foreground/50 uppercase tracking-widest font-medium">{label}</span>
         </div>
-        <div className={`text-xl font-bold font-mono ${dim ? "text-gray-600" : valueColor}`}>{value}</div>
+        <div className={`text-xl font-bold font-mono ${dim ? "text-foreground/40" : valueColor}`}>{value}</div>
     </div>
 );
 
@@ -103,8 +103,8 @@ const PlayerTab = ({
     <button
         onClick={onClick}
         className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 whitespace-nowrap ${active
-            ? "bg-[#72ab1c]/10 border-[#72ab1c] text-[#72ab1c]"
-            : "bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#72ab1c]/40 hover:text-gray-200"
+            ? "bg-primary/10 border-primary text-primary"
+            : "bg-[#262626] border-white/10 text-foreground/60 hover:border-primary/40 hover:text-foreground"
             }`}
         style={active ? { boxShadow: "none" } : {}}
     >
@@ -115,7 +115,7 @@ const PlayerTab = ({
 // ─── "No data" badge ──────────────────────────────────────────────────────────
 
 const NoDataBadge = () => (
-    <span className="text-[9px] text-gray-600 border border-[#2a2a2a] rounded px-1.5 py-0.5 font-mono">
+    <span className="text-[9px] text-foreground/40 border border-white/10 rounded px-1.5 py-0.5 font-mono">
         not tracked
     </span>
 );
@@ -147,10 +147,10 @@ const DiffTile = ({
             <span className="text-[9px] uppercase tracking-widest font-medium" style={{ color: cfg.color }}>
                 {diff}
             </span>
-            <div className={`text-2xl font-bold font-mono mt-0.5 ${hasData ? "text-white" : "text-gray-600"}`}>
+            <div className={`text-2xl font-bold font-mono mt-0.5 ${hasData ? "text-white" : "text-foreground/40"}`}>
                 {hasData ? `${solved}/${total}` : "—"}
             </div>
-            <div className="w-full bg-[#1e1e1e] rounded-full h-[3px] mt-2 overflow-hidden">
+            <div className="w-full bg-[#262626] rounded-full h-[3px] mt-2 overflow-hidden">
                 <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ backgroundColor: cfg.color, width: `${pct}%` }}
@@ -159,7 +159,7 @@ const DiffTile = ({
             {hasData ? (
                 <p className="text-[9px] mt-1" style={{ color: cfg.color }}>{pct}%</p>
             ) : (
-                <p className="text-[9px] text-gray-600 mt-1">no data</p>
+                <p className="text-[9px] text-foreground/40 mt-1">no data</p>
             )}
         </div>
     );
@@ -170,8 +170,8 @@ const DiffTile = ({
 const ScoreTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs shadow-xl">
-            <p className="text-gray-400 mb-1">{label}</p>
+        <div className="bg-[#262626] border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
+            <p className="text-foreground/60 mb-1">{label}</p>
             <p className="font-bold font-mono" style={{ color: BSG_GREEN }}>
                 {payload[0].value.toLocaleString()} pts
             </p>
@@ -188,13 +188,13 @@ const PieTooltip = ({ active, payload }: any) => {
     const s = secs % 60;
 
     return (
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs shadow-xl flex flex-col gap-1">
+        <div className="bg-[#262626] border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl flex flex-col gap-1">
             <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: data.fill }} />
                 <span className="font-bold text-white">{diff}</span>
             </div>
-            <span className="text-gray-400 font-mono">Time: {mins}m {s}s</span>
-            <span className="text-gray-500 font-mono">Solved: {data.solvedCount}</span>
+            <span className="text-foreground/60 font-mono">Time: {mins}m {s}s</span>
+            <span className="text-foreground/50 font-mono">Solved: {data.solvedCount}</span>
         </div>
     );
 };
@@ -203,8 +203,8 @@ const PieTooltip = ({ active, payload }: any) => {
 
 const LoadingState = () => (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
-        <Loader2 size={24} className="text-[#72ab1c] animate-spin" />
-        <p className="text-gray-500 text-xs">Loading statistics…</p>
+        <Loader2 size={24} className="text-primary animate-spin" />
+        <p className="text-foreground/50 text-xs">Loading statistics…</p>
     </div>
 );
 
@@ -212,8 +212,8 @@ const LoadingState = () => (
 
 const EmptyState = () => (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
-        <TrendingUp size={28} className="text-gray-700" />
-        <p className="text-gray-500 text-xs text-center">
+        <TrendingUp size={28} className="text-foreground/30" />
+        <p className="text-foreground/50 text-xs text-center">
             No round data yet.<br />Stats will appear once a round starts.
         </p>
     </div>
@@ -321,7 +321,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     }, [timePerDifficulty, diffCounts]);
 
     return (
-        <div className={`flex flex-col bg-[#0e0e0e] overflow-auto ${isActive ? "" : "hidden"}`}>
+        <div className={`flex flex-col bg-background overflow-auto ${isActive ? "" : "hidden"}`}>
             <div className="min-h-full p-4 flex flex-col gap-4">
 
                 {/* ── Header ── */}
@@ -337,13 +337,13 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                         >
                             Round Performance
                         </h1>
-                        <p className="text-gray-500 text-xs mt-0.5">
+                        <p className="text-foreground/50 text-xs mt-0.5">
                             {participants.length > 0
                                 ? `${participants.length} participant${participants.length !== 1 ? "s" : ""}`
                                 : "Awaiting participants"}
                         </p>
                     </div>
-                    <div className="mt-3 h-px bg-gradient-to-r from-[#72ab1c]/30 via-[#72ab1c]/10 to-transparent" />
+                    <div className="mt-3 h-px bg-gradient-to-r from-primary/30 via-primary/10 to-transparent" />
                 </div>
 
                 {/* ── Loading / Error / Empty ── */}
@@ -362,11 +362,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                     <>
                         {/* ── Player selector ── */}
                         <div
-                            className="rounded-xl border border-[#72ab1c]/25 relative overflow-hidden"
-                            style={{
-                                background: "linear-gradient(135deg, #1e1e1e, #141414)",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                            }}
+                            className="rounded-xl border border-primary/25 relative overflow-hidden bg-[#333333]"
                         >
                             <div className="overflow-x-auto px-4 py-3 pb-2" style={{ scrollbarWidth: "thin" }}>
                                 <div className="flex gap-2 min-w-max">
@@ -385,19 +381,15 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                         {/* ── Selected player card ── */}
                         {selected && (
                             <div
-                                className="rounded-xl border border-[#72ab1c]/20 p-3 flex items-center gap-3"
-                                style={{
-                                    background: "linear-gradient(135deg, #2a2a2a, #1a1a1a)",
-                                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                                }}
+                                className="rounded-xl border border-primary/20 p-3 flex items-center gap-3 bg-[#333333]"
                             >
                                 <PlayerAvatar participant={selected} size="lg" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-white font-bold text-sm truncate">{selected.username}</p>
-                                    <p className="text-gray-500 text-xs mt-0.5">Current round</p>
+                                    <p className="text-foreground/50 text-xs mt-0.5">Current round</p>
                                 </div>
                                 <div
-                                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-[#72ab1c]/30 text-xs font-bold flex-shrink-0"
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-primary/30 text-xs font-bold flex-shrink-0"
                                     style={{ color: BSG_GREEN, background: "rgba(114,171,28,0.08)" }}
                                 >
                                     <TrophyIcon size={11} color={BSG_GREEN} />
@@ -413,7 +405,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                 icon={<TrophyIcon size={10} color={BSG_GREEN} />}
                                 label="Points"
                                 value={(statistics?.score ?? 0).toLocaleString()}
-                                valueColor="text-[#72ab1c]"
+                                valueColor="text-primary"
                             />
                             {/* Solved — from leaderboard data */}
                             <StatCard
@@ -431,10 +423,10 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                         </div>
 
                         {/* ── Time distribution ── */}
-                        <div className="bg-[#141414] rounded-xl p-3 border border-[#2a2a2a] relative overflow-hidden">
-                            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/20 to-transparent" />
+                        <div className="bg-[#333333] rounded-xl p-3 border border-white/10 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] text-gray-500 uppercase tracking-widest font-medium">
+                                <span className="text-[9px] text-foreground/50 uppercase tracking-widest font-medium">
                                     Time Distribution
                                 </span>
                                 {pieData.length === 0 && <NoDataBadge />}
@@ -460,15 +452,15 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     ) : (
                                         <>
                                             <svg viewBox="0 0 80 80" className="w-full h-full">
-                                                <circle cx="40" cy="40" r="28" fill="none" stroke="#1e1e1e" strokeWidth="14" />
+                                                <circle cx="40" cy="40" r="28" fill="none" stroke="#262626" strokeWidth="14" />
                                                 <circle
                                                     cx="40" cy="40" r="28" fill="none"
-                                                    stroke="#2a2a2a" strokeWidth="14"
+                                                    stroke="#333333" strokeWidth="14"
                                                     strokeDasharray="4 6"
                                                 />
                                             </svg>
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-[9px] text-gray-600 font-mono">—</span>
+                                                <span className="text-[9px] text-foreground/40 font-mono">—</span>
                                             </div>
                                         </>
                                     )}
@@ -485,8 +477,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                                     className="w-2 h-2 rounded-full opacity-30"
                                                     style={{ backgroundColor: difficultyConfig[diff].color }}
                                                 />
-                                                <span className="text-gray-600">{diff}</span>
-                                                <span className="font-mono text-gray-700 ml-auto">{timeStr}</span>
+                                                <span className="text-foreground/40">{diff}</span>
+                                                <span className="font-mono text-foreground/30 ml-auto">{timeStr}</span>
                                             </div>
                                         );
                                     })}
@@ -496,12 +488,12 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
                         {/* ── Problem breakdown ── */}
                         <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-gray-500 uppercase tracking-widest font-medium">
+                            <span className="text-[9px] text-foreground/50 uppercase tracking-widest font-medium">
                                 Problem Breakdown
                             </span>
-                            <div className="flex-1 h-px bg-[#2a2a2a]" />
+                            <div className="flex-1 h-px bg-white/10" />
                             {roundDetails?.problems && roundDetails.problems.length > 0 ? (
-                                <span className="text-[9px] text-gray-500 font-mono">
+                                <span className="text-[9px] text-foreground/50 font-mono">
                                     {selectedSolvedIds.size}/{roundDetails.problems.length}
                                 </span>
                             ) : (
@@ -518,30 +510,30 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                     return (
                                         <div
                                             key={problem.id}
-                                            className={`bg-[#141414] rounded-xl p-3 border relative overflow-hidden transition-all duration-300 ${isSolved
-                                                ? "border-[#72ab1c]/30"
-                                                : "border-[#2a2a2a]"
+                                             className={`bg-[#333333] rounded-xl p-3 border relative overflow-hidden transition-all duration-300 ${isSolved
+                                                ? "border-primary/30"
+                                                : "border-white/10"
                                                 }`}
                                             style={isSolved ? { boxShadow: "0 1px 2px rgba(0,0,0,0.1)" } : {}}
                                         >
                                             {isSolved && (
-                                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/30 to-transparent" />
+                                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
                                             )}
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${isSolved
-                                                        ? "border-[#72ab1c]/40 bg-[#72ab1c]/10"
-                                                        : "border-[#2a2a2a] bg-[#1a1a1a]"
+                                                        ? "border-primary/40 bg-primary/10"
+                                                        : "border-white/10 bg-[#262626]"
                                                         }`}
                                                 >
                                                     {isSolved ? (
-                                                        <CheckCircle2 size={14} className="text-[#72ab1c]" />
+                                                        <CheckCircle2 size={14} className="text-primary" />
                                                     ) : (
-                                                        <span className="text-[10px] text-gray-600 font-mono">?</span>
+                                                        <span className="text-[10px] text-foreground/40 font-mono">?</span>
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-xs font-medium truncate ${isSolved ? "text-white" : "text-gray-400"}`}>
+                                                    <p className={`text-xs font-medium truncate ${isSolved ? "text-white" : "text-foreground/60"}`}>
                                                         {problem.name}
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-0.5">
@@ -552,7 +544,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                                             {problem.difficulty}
                                                         </span>
                                                         {isSolved && (
-                                                            <span className="text-[9px] text-[#72ab1c] font-medium">
+                                                            <span className="text-[9px] text-primary font-medium">
                                                                 Solved ✓ {problemTimes.has(problem.id) ? `(${problemTimes.get(problem.id)})` : ''}
                                                             </span>
                                                         )}
@@ -568,18 +560,18 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                 {[1, 2, 3].map((n) => (
                                     <div
                                         key={n}
-                                        className="bg-[#141414] rounded-xl p-3 border border-[#2a2a2a] opacity-40"
+                                        className="bg-[#333333] rounded-xl p-3 border border-white/10 opacity-40"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex-shrink-0" />
+                                            <div className="w-8 h-8 rounded-lg bg-[#262626] border border-white/10 flex-shrink-0" />
                                             <div className="flex-1 flex flex-col gap-1.5">
-                                                <div className="h-3 w-28 rounded bg-[#222]" />
-                                                <div className="h-2 w-20 rounded bg-[#1e1e1e]" />
+                                                <div className="h-3 w-28 rounded bg-[#333333]" />
+                                                <div className="h-2 w-20 rounded bg-[#262626]" />
                                             </div>
                                         </div>
                                     </div>
                                 ))}
-                                <p className="text-[9px] text-gray-600 text-center">
+                                <p className="text-[9px] text-foreground/40 text-center">
                                     Problem data will appear once a round starts
                                 </p>
                             </div>
@@ -587,18 +579,17 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
                         {/* ── Room score comparison (real leaderboard data) ── */}
                         <div
-                            className="rounded-xl border border-[#2a2a2a] p-3 relative overflow-hidden"
-                            style={{ background: "linear-gradient(180deg, #141414 0%, #111 100%)" }}
+                            className="rounded-xl border border-white/10 p-3 relative overflow-hidden bg-[#333333]"
                         >
-                            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/20 to-transparent" />
+                            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
                             <div className="flex items-center justify-between mb-3">
-                                <span className="text-[9px] text-gray-500 uppercase tracking-widest font-medium">
+                                <span className="text-[9px] text-foreground/50 uppercase tracking-widest font-medium">
                                     Room Score Comparison
                                 </span>
                                 <div className="flex items-center gap-1">
-                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: BSG_GREEN }} />
-                                    <span className="text-[9px] text-gray-500">live data</span>
+                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                    <span className="text-[9px] text-foreground/50">live data</span>
                                 </div>
                             </div>
 
@@ -610,7 +601,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                         barSize={22}
                                         margin={{ left: -14, right: 4, top: 2, bottom: 0 }}
                                     >
-                                        <CartesianGrid vertical={false} stroke="#1e1e1e" />
+                                        <CartesianGrid vertical={false} stroke="#262626" />
                                         <XAxis
                                             dataKey="username"
                                             stroke="#3a3a3a"
@@ -649,7 +640,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
 
                             {/* Scoring formula hint */}
-                            <p className="text-[9px] text-gray-700 mt-2 text-center font-mono">
+                            <p className="text-[9px] text-foreground/30 mt-2 text-center font-mono">
                                 Score = BasePoints × e<sup>−0.001 × runtime(ms)</sup>
                             </p>
                         </div>
