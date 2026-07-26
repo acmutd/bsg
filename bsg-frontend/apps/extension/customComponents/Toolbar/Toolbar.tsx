@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
@@ -14,15 +14,53 @@ export const Toolbar = () => {
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
+    const problems = useRoomStore(s => s.problems);
+    var currIndex = useRef(-2);
 
-    // TODO: Move timer into separate iframe
+//TODO: Move timer to iframe
+  useEffect(() => { 
+    if (problems.length == 0){
+        return;
+    }
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        var url = tabs[0].url;
+        if (url == undefined){
+            console.log("oh no");
+        } else {
+            var start = url?.indexOf("/problems/");
+            var startword = url.slice(start+10)
+            var end = startword.indexOf("/");
+            var finalword = startword.slice(0, end);
+            // console.log("CurrProblem:", problems, finalword, problems.indexOf(finalword))
+            if (currIndex.current == -1){
+                //parse error
+                console.log("Parse Error")
+            } else {
+                currIndex.current = problems.indexOf(finalword)
+            }
+        }
+    });
+}, [problems])
+  
 
     return (
         <div className="flex h-8 px-1 border-b border-white/10 items-center justify-between">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
-                        //onClick={}
+                        onClick={_ => {
+                          if(currIndex.current == -2){
+                            console.log("Problems not yet loaded");
+                          } else {
+                            var newIndex;
+                            if (currIndex.current == 0){
+                                console.log("No previous problem");
+                            } else {
+                                newIndex = currIndex.current-1;
+                                window.open(`https://leetcode.com/problems/${problems[newIndex]}/`, '_top');
+                            }
+                          }
+                        }}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
                     >
                         <svg
@@ -37,7 +75,20 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Next Problem">
                     <Button
-                        //onClick={}
+                        onClick={ _ => {
+                          if(currIndex.current == -2){
+                            console.log("Problems not yet loaded");
+                          } else {
+                            var newIndex;
+                            if (currIndex.current == problems.length-1){
+                                console.log("No next problem");
+                            } else {
+                                newIndex = currIndex.current+1;
+                                window.open(`https://leetcode.com/problems/${problems[newIndex]}/`, '_top');
+                            }
+                          }
+                        }
+                        }
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
                     >
                         <svg

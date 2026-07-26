@@ -67,6 +67,14 @@ export function useRoomEvents() {
             }
 
             if (problems.length > 0) {
+            
+                
+            //problem array kept getting erased due to zustand stored it here
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ problems: problems });
+
+            } 
+
                 const targetSlug = problems[0];
                 const currentPath = typeof window !== 'undefined' ? window.location.pathname : "";
                 const alreadyOnTarget = currentPath.includes(`/problems/${targetSlug}/`);
@@ -94,11 +102,12 @@ export function useRoomEvents() {
             setRoundEndTime(null);
             setIsRoundStarted(false);
 
-            // Clear nextProblem and TTL state on round end
+            // Clear nextProblem, problems, and TTL state on round end
             setNextProblem(null);
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.remove('nextProblem');
                 chrome.storage.local.remove('roundEndTime');
+                chrome.storage.local.remove('problems');
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
         }
