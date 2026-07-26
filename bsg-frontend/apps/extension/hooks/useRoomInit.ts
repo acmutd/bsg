@@ -201,9 +201,13 @@ export const useRoomInit = () => {
     }
 
     // TODO: Return a boolean to determine if room-choice is loaded
-    const checkActiveRoom = async () => {
+    const checkActiveRoom = async (attempt = 0): Promise<void> => {
         try {
             const res = await fetch(`${SERVER_URL}/rooms/active`, { credentials: 'include' });
+            if (res.status === 429 && attempt < 3) {
+                await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                return checkActiveRoom(attempt + 1);
+            }
             if (res.ok) {
                 const data = await res.json();
                 if (data.id || data.roomID) { // handle potentially different response structure
