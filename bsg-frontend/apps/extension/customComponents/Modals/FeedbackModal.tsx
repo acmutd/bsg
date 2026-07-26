@@ -24,7 +24,7 @@ export const FeedbackModal = ({ isOpen, onClose }: FeedbackModalProps) => {
     setErrorMessage('');
 
     try {
-      const res = await fetch(`${SERVER_URL}/api/feedback`, {
+      const res = await fetch(`http://localhost:5000/api/feedback/`, {
         method: 'POST',
         body: JSON.stringify({ feedbackText: feedbackText.trim() }),
         headers: { 'Content-Type': 'application/json' },

@@ -42,5 +42,5 @@ func (controller *FeedbackController) SubmitFeedbackEndpoint(c echo.Context) err
 
 // InitializeRoutes sets up the feedback routes
 func (controller *FeedbackController) InitializeRoutes(g *echo.Group) {
-    g.POST("/", controller.SubmitFeedbackEndpoint)
+    g.POST("/api/feedback", controller.SubmitFeedbackEndpoint)
 }
