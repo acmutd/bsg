@@ -233,7 +233,7 @@ export const useRoomInit = () => {
                                 console.log("CheckActiveRoom: Saved activeRoomId");
                             });
                             chrome.storage.local.get(['problems'], (result) => {
-                                setProblems(result.problems || null);
+                                setProblems(result.problems || []);
                             });
 
                             
