@@ -145,7 +145,6 @@ export const useRoomInit = () => {
                 numHardProblems: options.hard || 0,
                 tags: options.tags || []
             };
-            console.log("Create round params", roundParams);
             const roundRes = await fetch(`${SERVER_URL}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
                 body: JSON.stringify(roundParams),
@@ -213,7 +212,6 @@ export const useRoomInit = () => {
                     if (roomRes.ok) {
                         const roomData = await roomRes.json();
                         const room = roomData.data;
-                        console.log("CheckActiveRoom: Fetched room details", room);
                         initRoom(
                             room.id,
                             room.shortCode,
@@ -226,22 +224,16 @@ export const useRoomInit = () => {
                         setRoomNotice(null);
 
                         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                            console.log("CheckActiveRoom: Saving activeRoomId to storage", room.id);
-                            chrome.storage.local.set({ activeRoomId: room.id }, () => {
-                                console.log("CheckActiveRoom: Saved activeRoomId");
-                            });
+                            chrome.storage.local.set({ activeRoomId: room.id });
                         } else {
-                            console.warn("CheckActiveRoom: chrome.storage.local not available");
                         }
 
                         router.push('/room-page');
 
                         // Check for active round
-                        console.log("CheckActiveRoom: Rounds:", room.rounds);
                         if (room.rounds && room.rounds.length > 0) {
                             const lastRound = room.rounds[room.rounds.length - 1];
                             const status = lastRound.Status || lastRound.status;
-                            console.log("CheckActiveRoom: Last round status:", status);
                             // remember the round's configured duration (editable while "created")
                             const lastRoundDuration = lastRound.duration || lastRound.Duration;
                             if (typeof lastRoundDuration === 'number') {

@@ -83,12 +83,9 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setRoomNotice: (roomNotice) => set({ roomNotice: roomNotice }),
   setLastParticipantJoinTime: (time) => set({ lastParticipantJoinTime: time }),
   incrementUnread: () => set((state) => {
-    const unreadCount = state.unreadCount + 1;
-    console.log('[BSG unread] increment →', unreadCount);
-    return { unreadCount };
+    return { unreadCount: state.unreadCount + 1 };
   }),
   clearUnread: () => {
-    console.log('[BSG unread] clear → 0');
     set({ unreadCount: 0 });
   },
 

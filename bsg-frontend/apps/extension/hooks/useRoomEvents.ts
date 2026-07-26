@@ -84,19 +84,11 @@ export function useRoomEvents() {
                 }
             }
 
-            console.log("DEBUG: Handling next-problem event", { eventData, userId });
-
             const { nextProblem, userHandle } = eventData;
 
             // userHandle from backend is AuthID. userProfile.id is AuthID.
             if (userId && (userHandle == userId)) {
-                console.log("DEBUG: Redirecting to next problem", nextProblem);
                 window.open(`https://leetcode.com/problems/${nextProblem}/`, '_top');
-            } else {
-                console.log("DEBUG: Not redirecting. ID mismatch or no profile.", {
-                    requiredHandle: userHandle,
-                    myId: userId
-                });
             }
         } else if (lastGameEvent.type === 'round-end') {
             setRoundEndTime(null);
@@ -117,7 +109,6 @@ export function useRoomEvents() {
         const updateState = () => {
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.get(['nextProblem'], (result) => {
-                    console.log("DEBUG EVENT: on mount chrome.storage.local.get nextProblem:", result.nextProblem);
                     setNextProblem(result.nextProblem || null);
                 });
             }
@@ -128,7 +119,6 @@ export function useRoomEvents() {
         // Listen for changes (e.g. background script updates while popup is open)
         const listener = (changes: any, namespace: string) => {
             if (namespace === 'local' && changes.nextProblem) {
-                console.log("DEBUG EVENT: chrome.storage.local nextProblem changed:", changes.nextProblem);
                 setNextProblem(changes.nextProblem.newValue || null);
             }
         };
@@ -143,10 +133,6 @@ export function useRoomEvents() {
             }
         };
     }, []);
-
-    useEffect(() => {
-        console.log("DEBUG EVENT: React state nextProblem is now:", nextProblem);
-    }, [nextProblem]);
 
     const handleStartRound = async () => {
         if (!roomId) return;
@@ -167,7 +153,6 @@ export function useRoomEvents() {
 
     const handleEndRound = async () => {
         if (!roomId) return;
-        console.log('Ending round for room:', roomId);
         try {
             const res = await fetch(`${SERVER_URL}/rooms/${roomId}/end`, {
                 method: 'POST',
@@ -178,7 +163,6 @@ export function useRoomEvents() {
                 console.error('Failed to end round:', res.status, data);
                 alert(`Failed to end round: ${data.error || res.status}`);
             } else {
-                console.log('End round response:', data);
                 // Wait for round-end WS event to reset state.
                 // As a fallback, reset locally after a short delay.
                 setTimeout(() => {

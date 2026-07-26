@@ -89,7 +89,6 @@ export const useChatSocket = () => {
                 ws.send(JSON.stringify(payload));
 
                 joinedRoomIDRef.current = targetRoomID;
-                console.log("Sent join-room on socket open", { roomID: targetRoomID });
             }
         };
 
@@ -101,7 +100,6 @@ export const useChatSocket = () => {
                     const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
-                        console.log('recieved chat message: ' + JSON.stringify(message))
                         setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
@@ -124,16 +122,6 @@ export const useChatSocket = () => {
                         const isNewMessage = !suppressChatSoundsRef.current;
                         const fromOtherUser = message.userHandle !== userEmail;
                         const chatVisible = isChatVisible();
-                        console.log('[BSG unread] message check', {
-                            isNewMessage,
-                            fromOtherUser,
-                            chatVisible,
-                            userHandle: message.userHandle,
-                            userEmail,
-                            activeTab: useRoomStore.getState().activeTab,
-                            isFolded: usePanelStore.getState().isFolded,
-                            currentUnread: useRoomStore.getState().unreadCount,
-                        });
                         if (isNewMessage && fromOtherUser && !chatVisible) {
                             useRoomStore.getState().incrementUnread();
                         }
@@ -149,7 +137,6 @@ export const useChatSocket = () => {
                             useRoomStore.getState().setLastParticipantJoinTime(Date.now());
                             return;
                         }
-                        console.log('recieved system message: ' + message);
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
                             data: message.data,
