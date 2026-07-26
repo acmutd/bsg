@@ -147,7 +147,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		}
 	}
 
-	roundStartTime := time.Now().Add(time.Second * 10)
+	roundStartTime := time.Now()
 	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
 		Status:          constants.ROUND_STARTED,
