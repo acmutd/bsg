@@ -2,17 +2,59 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { SERVER_URL } from '../lib/config'
 import { useUserStore } from '@/stores/useUserStore';
 import { useRouter } from 'next/router';
+import { User } from '@bsg/models/User';
 
 export const useRoomInit = () => {
 
     const router = useRouter();
 
     const initRoom = useRoomStore(s => s.initRoom);
+    const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
+    const setProblems = useRoomStore(s => s.setProblems)
     const userId = useUserStore(s => s.userId);
+    const username = useUserStore(s => s.username);
+    const email = useUserStore(s => s.email);
+    const iconUrl = useUserStore(s => s.iconUrl);
+
+    const mapBackendUser = (user: any): User => ({
+        id: user.authID || String(user.id),
+        name: user.handle || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email || String(user.id),
+        email: user.email || '',
+        photo: user.photoURL || ''
+    });
+
+    const setRoomParticipants = async (roomId: string) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/participants`, {
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                throw new Error(`Failed to load participants (${res.status})`);
+            }
+
+            const data = await res.json();
+            const roomUsers = Array.isArray(data.data) ? data.data.map(mapBackendUser) : [];
+            setParticipants(roomUsers);
+        } catch (error) {
+            console.error('Failed to load room participants', error);
+
+            if (userId) {
+                setParticipants([{
+                    id: userId,
+                    name: username || email || userId,
+                    email: email || '',
+                    photo: iconUrl || ''
+                }]);
+            }
+        }
+    };
+
+
 
     const parseJsonSafe = async (res: Response): Promise<any | null> => {
         try {
@@ -59,6 +101,8 @@ export const useRoomInit = () => {
                 userId === room.adminId,
             );
 
+            await setRoomParticipants(room.id);
+
             setRoomNotice(null);
 
             router.push('/room-page');
@@ -102,7 +146,6 @@ export const useRoomInit = () => {
                 numHardProblems: options.hard || 0,
                 tags: options.tags || []
             };
-            console.log("Create round params", roundParams);
             const roundRes = await fetch(`${SERVER_URL}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
                 body: JSON.stringify(roundParams),
@@ -133,6 +176,8 @@ export const useRoomInit = () => {
                 userId === adminId
             );
 
+            await setRoomParticipants(roomId);
+            
             // round was just created (not started) — remember its duration so the
             // Settings panel can show/edit it before the admin starts the round
             setRoundDuration(roundParams.duration);
@@ -156,9 +201,13 @@ export const useRoomInit = () => {
     }
 
     // TODO: Return a boolean to determine if room-choice is loaded
-    const checkActiveRoom = async () => {
+    const checkActiveRoom = async (attempt = 0): Promise<void> => {
         try {
             const res = await fetch(`${SERVER_URL}/rooms/active`, { credentials: 'include' });
+            if (res.status === 429 && attempt < 3) {
+                await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                return checkActiveRoom(attempt + 1);
+            }
             if (res.ok) {
                 const data = await res.json();
                 if (data.id || data.roomID) { // handle potentially different response structure
@@ -168,32 +217,35 @@ export const useRoomInit = () => {
                     if (roomRes.ok) {
                         const roomData = await roomRes.json();
                         const room = roomData.data;
-                        console.log("CheckActiveRoom: Fetched room details", room);
                         initRoom(
                             room.id,
                             room.shortCode,
                             room.adminId,
                             userId === room.adminId
                         );
+
+                        await setRoomParticipants(room.id);
+
                         setRoomNotice(null);
 
                         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                            console.log("CheckActiveRoom: Saving activeRoomId to storage", room.id);
                             chrome.storage.local.set({ activeRoomId: room.id }, () => {
                                 console.log("CheckActiveRoom: Saved activeRoomId");
                             });
+                            chrome.storage.local.get(['problems'], (result) => {
+                                setProblems(result.problems || []);
+                            });
+
+                            
                         } else {
-                            console.warn("CheckActiveRoom: chrome.storage.local not available");
                         }
 
                         router.push('/room-page');
 
                         // Check for active round
-                        console.log("CheckActiveRoom: Rounds:", room.rounds);
                         if (room.rounds && room.rounds.length > 0) {
                             const lastRound = room.rounds[room.rounds.length - 1];
                             const status = lastRound.Status || lastRound.status;
-                            console.log("CheckActiveRoom: Last round status:", status);
                             // remember the round's configured duration (editable while "created")
                             const lastRoundDuration = lastRound.duration || lastRound.Duration;
                             if (typeof lastRoundDuration === 'number') {
@@ -222,5 +274,5 @@ export const useRoomInit = () => {
         }
     }
 
-    return { joinRoom, createRoom, checkActiveRoom };
+    return { joinRoom, createRoom, checkActiveRoom, setRoomParticipants };
 }

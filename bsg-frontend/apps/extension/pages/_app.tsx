@@ -33,7 +33,6 @@ export default function App({ Component, pageProps }: AppProps) {
   
   useEffect(() => {
     if (activeTab === 'chat' && !isFolded) {
-      console.log('[BSG unread] clearing — chat is active');
       clearUnread();
     }
   }, [activeTab, isFolded, clearUnread]);
