@@ -76,6 +76,12 @@ async function startServer() {
 
 
     //Important Middleware
+    // TLS terminates at Caddy/Cloudflare in front of us; trust the proxy's
+    // X-Forwarded-Proto so secure cookies work in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction) {
+        app.set('trust proxy', 1);
+    }
     app.use(express.json());
     app.use(loggingModule.createValidationMiddleware(logger));
     app.use(loggingModule.createRateLimitMiddleware(logger, {
@@ -92,7 +98,7 @@ async function startServer() {
         cookie: {
             maxAge: 3600000, // 1 hour
             httpOnly: true,
-            secure: false, // Set to true in production with HTTPS
+            secure: isProduction, // HTTPS-only in production (behind Caddy/Cloudflare)
             sameSite: 'lax'
         },
     }));
@@ -113,6 +119,9 @@ async function startServer() {
 
     const submissionRoutes = require('./routes/submission');
     app.use('/submission', submissionRoutes);
+
+    const statisticsRoutes = require('./routes/statistics');
+    app.use('/statistics', statisticsRoutes)
 
     // Healthcheck endpoint
     app.get('/health', async (req, res) => {
