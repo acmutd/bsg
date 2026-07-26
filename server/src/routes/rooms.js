@@ -46,6 +46,29 @@ router.post('/', ensureAuth, async (req, res) => {
     }
 });
 
+// Get Participants in Room
+router.get('/:id/participants', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/participants`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID,
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error getting room participants', error, {
+            user_id: authID,
+            room_id: id,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Create Round
 router.post('/:id/rounds/create', ensureAuth, async (req, res) => {
     const authID = req.user.id;
@@ -232,7 +255,7 @@ router.post('/:id/end', ensureAuth, async (req, res) => {
 router.post('/:id/leave', ensureAuth, async (req, res) => {
     const authId = req.user.id;
     const { id } = req.params;
-    
+
     try {
         const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/leave`, {
             method: 'POST',
@@ -245,11 +268,35 @@ router.post('/:id/leave', ensureAuth, async (req, res) => {
         const data = await response.json()
         res.status(response.status).json(data)
 
-    }catch(error){
+    } catch (error) {
         console.log('Unable to find room to leave')
-        res.status(500).json({error: 'Internal Server Error'})
+        res.status(500).json({ error: 'Internal Server Error' })
 
     }
 })
 
+// Get Leaderboard for a Room
+router.get('/:id/leaderboard', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/leaderboard`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error getting leaderboard', error, {
+            user_id: authID,
+            room_id: id,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;
+

@@ -2,11 +2,12 @@
   "name": "bsg-extension",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build-extension": "next build && shx mv out/_next out/next && shx cp -R ../../extension/* ./out/ && npm run fix-paths && npm run extract-inline",
     "fix-paths": "replace-in-file --configFile=replacementFileConfig.json",
-    "extract-inline": "node scripts/extract-inline.js",
+    "extract-inline": "tsx scripts/extract-inline.ts",
     "start": "next start",
     "lint": "next lint"
   },
@@ -44,6 +45,7 @@
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
     "firebase": "^11.10.0",
+    "glob": "^13.0.6",
     "lucide-react": "^0.298.0",
     "next": "^16.1.6",
     "next-transpile-modules": "^10.0.1",
@@ -61,11 +63,14 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.0.319",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^25.6.0",
     "css-loader": "^7.1.2",
     "postcss-loader": "^8.1.1",
     "replace-in-file": "^8.3.0",
     "shx": "^0.4.0",
-    "style-loader": "^4.0.0"
+    "style-loader": "^4.0.0",
+    "tsx": "^4.21.0"
   },
   "description": "BSG Extension",
   "main": "index.js",
