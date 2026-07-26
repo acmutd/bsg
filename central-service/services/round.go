@@ -147,7 +147,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		}
 	}
 
-	roundStartTime := time.Now().Add(time.Second * 10)
+	roundStartTime := time.Now()
 	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
 		Status:          constants.ROUND_STARTED,
@@ -539,6 +539,18 @@ func (service *RoundService) CreateRoundSubmission(
 	if service.submissionQueue != nil {
 		if err := service.submissionQueue.AddSubmissionToQueue(problem, &newSubmission); err != nil {
 			log.Printf("failed to queue submission: %v", err)
+		}
+	}
+
+	if service.rtcClient != nil {
+		submissionMsg := requests.NewSubmissionRequest{
+			UserHandle: submissionAuthor,
+			RoomID:     round.RoomID.String(),
+			ProblemID:  problem.Slug,
+			Verdict:    submissionParams.Verdict,
+		}
+		if _, err := service.rtcClient.SendMessage("new-submission", submissionMsg); err != nil {
+			log.Printf("Error sending new-submission message: %v", err)
 		}
 	}
 
