@@ -18,6 +18,7 @@ export function useRoomEvents() {
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setResetRoom = useRoomStore(s => s.resetRoom);
+    const setActiveTab = useRoomStore(s => s.setActiveTab)
 
     // Handle Game Events
     useEffect(() => {
@@ -89,6 +90,7 @@ export function useRoomEvents() {
                 });
             }
         } else if (lastGameEvent.type === 'round-end') {
+            console.log("We got inside of the round-end game type ")
             setRoundEndTime(null);
             setIsRoundStarted(false);
 
@@ -99,8 +101,10 @@ export function useRoomEvents() {
                 chrome.storage.local.remove('roundEndTime');
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
+            setActiveTab('leaderboard')
         }
     }, [lastGameEvent, isLoggedIn, isInRoom]);
+
 
     // Check storage for nextProblem state on mount and when extension opens
     useEffect(() => {
