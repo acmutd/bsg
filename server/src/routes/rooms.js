@@ -46,6 +46,29 @@ router.post('/', ensureAuth, async (req, res) => {
     }
 });
 
+// Get Participants in Room
+router.get('/:id/participants', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/participants`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID,
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error getting room participants', error, {
+            user_id: authID,
+            room_id: id,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Create Round
 router.post('/:id/rounds/create', ensureAuth, async (req, res) => {
     const authID = req.user.id;
@@ -64,6 +87,31 @@ router.post('/:id/rounds/create', ensureAuth, async (req, res) => {
         res.status(response.status).json(data);
     } catch (error) {
         logger.error('Error creating round', error, {
+            user_id: authID,
+            room_id: id,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Update Round Timer (pre-start duration edit)
+router.post('/:id/rounds/time', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/rounds/time`, {
+            method: 'POST',
+            body: JSON.stringify(req.body),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error updating round timer', error, {
             user_id: authID,
             room_id: id,
         });

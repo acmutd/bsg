@@ -1,17 +1,13 @@
 const cors = require('cors')
 
-const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
-const allowedOrigins = [...new Set([serverUrl, 'http://localhost:3000'])];
-
-const corsMiddleware = cors({
-    origin: function(origin, callback){
-        if(!origin || origin.startsWith('chrome-extension://') || allowedOrigins.includes(origin)){
-            callback(null, true);
-        } else {
-            callback(null, false);
-        }
-    },
+const allowedOrigins = [
+    `chrome-extension://${process.env.EXTENSION_ID || 'deadeahbgooeggmhfdleelgiaecafhkn' }`,
+    'https://leetcode.com'
+]
+const corsOption = {
+    origin: allowedOrigins,
     credentials: true
-});
+}
+const corsMiddleware = cors(corsOption);
 
 module.exports = corsMiddleware;

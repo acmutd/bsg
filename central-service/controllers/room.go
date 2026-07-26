@@ -12,11 +12,12 @@ import (
 
 type RoomController struct {
 	roomService *services.RoomService
+	userService *services.UserService
 	logger      *utils.StructuredLogger
 }
 
-func InitializeRoomController(service *services.RoomService, logger *utils.StructuredLogger) RoomController {
-	return RoomController{service, logger}
+func InitializeRoomController(roomService *services.RoomService, userService *services.UserService, logger *utils.StructuredLogger) RoomController {
+	return RoomController{roomService, userService, logger}
 }
 
 // Endpoint for creating a new room given an admin and a roomName
@@ -87,6 +88,40 @@ func (controller *RoomController) JoinRoomEndpoint(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, map[string]models.Room{
 		"data": *room,
+	})
+}
+
+func (controller *RoomController) GetRoomParticipantsEndpoint(c echo.Context) error {
+	roomID := c.Param("roomID")
+	authIDs, err := controller.roomService.FindActiveUsers(roomID)
+	if err != nil {
+		controller.logger.Error("Failed to get room participants", err, map[string]interface{}{
+			"room_id": roomID,
+		})
+		if err, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(err.StatusCode, "Failed to get room participants. "+err.Error())
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get room participants. Please try again later")
+	}
+
+	participants := make([]models.User, 0, len(authIDs))
+	for _, authID := range authIDs {
+		user, err := controller.userService.FindUserByAuthID(authID)
+		if err != nil {
+			controller.logger.Warn("Skipping participant lookup failure", map[string]interface{}{
+				"room_id": roomID,
+				"auth_id": authID,
+			})
+			continue
+		}
+		if user == nil {
+			continue
+		}
+		participants = append(participants, *user)
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"data": participants,
 	})
 }
 
@@ -162,6 +197,36 @@ func (controller *RoomController) StartRoundEndpoint(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"startTime": roundStartTime.Unix(),
 		"problems":  problems,
+	})
+}
+
+func (controller *RoomController) UpdateRoundDurationEndpoint(c echo.Context) error {
+	targetRoomID := c.Param("roomID")
+	userAuthID := c.Get("userAuthID").(string)
+	var body struct {
+		Duration int `json:"duration"`
+	}
+	if err := c.Bind(&body); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid data. Please try again")
+	}
+	newDuration, err := controller.roomService.SetRoundDurationByRoomID(targetRoomID, userAuthID, body.Duration)
+	if err != nil {
+		controller.logger.Error("Failed to update round duration", err, map[string]interface{}{
+			"room_id": targetRoomID,
+			"user_id": userAuthID,
+		})
+		if bsgErr, ok := err.(services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to update timer. "+bsgErr.Message)
+		}
+		if bsgErr, ok := err.(*services.BSGError); ok {
+			return echo.NewHTTPError(bsgErr.StatusCode, "Failed to update timer. "+bsgErr.Message)
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update timer. Please try again later")
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"data": map[string]interface{}{
+			"duration": newDuration,
+		},
 	})
 }
 
@@ -271,9 +336,11 @@ func (controller *RoomController) InitializeRoutes(g *echo.Group) {
 	g.POST("/:roomID/join", controller.JoinRoomEndpoint)
 	g.POST("/:roomID/leave", controller.LeaveRoomEndpoint)
 	g.POST("/:roomID/rounds/create", controller.CreateNewRoundEndpoint)
+	g.POST("/:roomID/rounds/time", controller.UpdateRoundDurationEndpoint)
 	g.POST("/:roomID/start", controller.StartRoundEndpoint)
 	g.POST("/:roomID/end", controller.EndRoundEndpoint)
 	g.POST("/:roomID/:problemID", controller.CreateSubmissionEndpoint)
+	g.GET("/:roomID/participants", controller.GetRoomParticipantsEndpoint)
 	g.GET("/:roomID", controller.FindRoomEndpoint)
 	g.GET("/:roomID/leaderboard", controller.GetLeaderboardEndpoint)
 	g.GET("/:roomID/round-details", controller.GetRoundDetailsEndpoint)

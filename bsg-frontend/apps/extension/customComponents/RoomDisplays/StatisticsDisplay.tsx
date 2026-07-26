@@ -24,7 +24,7 @@ const BSG_GREEN_DIM = "#4d7a10";
 // ─── Difficulty config ────────────────────────────────────────────────────────
 
 const difficultyConfig = {
-    Easy: { color: BSG_GREEN, bg: "rgba(114,171,28,0.12)", border: "rgba(114,171,28,0.35)" },
+    Easy: { color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.35)" },
     Medium: { color: "#ffa500", bg: "rgba(255,165,0,0.12)", border: "rgba(255,165,0,0.35)" },
     Hard: { color: "#ff4d4d", bg: "rgba(255,77,77,0.12)", border: "rgba(255,77,77,0.35)" },
 } as const;
@@ -106,7 +106,7 @@ const PlayerTab = ({
             ? "bg-[#72ab1c]/10 border-[#72ab1c] text-[#72ab1c]"
             : "bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#72ab1c]/40 hover:text-gray-200"
             }`}
-        style={active ? { boxShadow: "0 0 14px rgba(114,171,28,0.25)" } : {}}
+        style={active ? { boxShadow: "none" } : {}}
     >
         {name}
     </button>
@@ -333,7 +333,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                     <div className="pl-3">
                         <h1
                             className="text-lg font-bold tracking-tight"
-                            style={{ color: BSG_GREEN, textShadow: `0 0 18px ${BSG_GREEN}55` }}
+                            style={{ color: BSG_GREEN, textShadow: "none" }}
                         >
                             Round Performance
                         </h1>
@@ -364,8 +364,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                         <div
                             className="rounded-xl border border-[#72ab1c]/25 relative overflow-hidden"
                             style={{
-                                background: "rgba(114,171,28,0.04)",
-                                boxShadow: "0 0 0 1px rgba(114,171,28,0.08), 0 0 16px rgba(114,171,28,0.12), inset 0 0 12px rgba(114,171,28,0.04)",
+                                background: "linear-gradient(135deg, #1e1e1e, #141414)",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                             }}
                         >
                             <div className="overflow-x-auto px-4 py-3 pb-2" style={{ scrollbarWidth: "thin" }}>
@@ -387,8 +387,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             <div
                                 className="rounded-xl border border-[#72ab1c]/20 p-3 flex items-center gap-3"
                                 style={{
-                                    background: "linear-gradient(135deg, rgba(114,171,28,0.07), rgba(114,171,28,0.03))",
-                                    boxShadow: "0 0 20px rgba(114,171,28,0.07)",
+                                    background: "linear-gradient(135deg, #2a2a2a, #1a1a1a)",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                                 }}
                             >
                                 <PlayerAvatar participant={selected} size="lg" />
@@ -522,7 +522,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                                 ? "border-[#72ab1c]/30"
                                                 : "border-[#2a2a2a]"
                                                 }`}
-                                            style={isSolved ? { boxShadow: "0 0 12px rgba(114,171,28,0.08)" } : {}}
+                                            style={isSolved ? { boxShadow: "0 1px 2px rgba(0,0,0,0.1)" } : {}}
                                         >
                                             {isSolved && (
                                                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#72ab1c]/30 to-transparent" />
@@ -638,7 +638,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                                                     fill={i === safeIdx ? BSG_GREEN : BSG_GREEN_DIM}
                                                     style={
                                                         i === safeIdx
-                                                            ? { filter: "drop-shadow(0 0 5px rgba(114,171,28,0.5))" }
+                                                            ? { filter: "none" }
                                                             : { opacity: 0.6 }
                                                     }
                                                 />

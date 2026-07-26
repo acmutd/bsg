@@ -69,17 +69,18 @@ services:
       timeout: 3s
       retries: 5
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
+    image: confluentinc/cp-zookeeper:7.7.1
     hostname: zookeeper
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      JDK_JAVA_OPTIONS: "-XX:-UseContainerSupport"
     volumes:
       - zookeeper-data-volume:/var/lib/zookeeper/data
       - zookeeper-log-volume:/var/lib/zookeeper/log
   broker:
-    image: confluentinc/cp-kafka:7.6.1
+    image: confluentinc/cp-kafka:7.7.1
     restart: always
     container_name: broker
     ports:
@@ -95,6 +96,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      JDK_JAVA_OPTIONS: "-XX:-UseContainerSupport"
     volumes:
       - kafka-data-volume:/var/lib/kafka/data
 
@@ -114,8 +116,8 @@ services:
   server:
     build: ./server
     # image: bsg-server
-    ports:
-      - ${PORT_SERVER:-3000}:3000
+    expose:
+      - "3000"
     depends_on:
       - redis-cache
       - central-service
@@ -128,7 +130,9 @@ services:
       - SERVER_SECRET=${SERVER_SECRET}
       - CENTRAL_SERVICE_URL=http://central-service:5000
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SERVER_URL=${SERVER_URL:-http://localhost:3000}
+      - SERVER_URL=${SERVER_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - NODE_ENV=${NODE_ENV:-production}
   web:
     build:
       context: ./bsg-frontend
@@ -140,8 +144,18 @@ services:
         NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
         NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
         NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
-    ports:
-      - ${PORT_WEB:-80}:80
+
+  caddy:
+      image: caddy:latest
+      ports: 
+        - "80:80"
+        - "443:443"
+      volumes:
+        - ./Caddyfile:/etc/caddy/Caddyfile
+        - caddy_data:/data
+      depends_on:
+        - server
+      restart: always
 
   # tunnel:
   #   image: cloudflare/cloudflared:latest
@@ -157,3 +171,4 @@ volumes:
   zookeeper-log-volume:
   redisinsight-volume:
   kafka-data-volume:
+  caddy_data:

@@ -2,7 +2,10 @@ import { RoomInfoDisplay } from '@/customComponents/RoomDisplays/RoomInfoDisplay
 import { ChatDisplay } from '@/customComponents/RoomDisplays/ChatDisplay';
 import { LeaderboardDisplay } from '@/customComponents/RoomDisplays/LeaderboardDisplay';
 import { StatisticsDisplay } from '@/customComponents/RoomDisplays/StatisticsDisplay';
+import { SettingsDisplay } from '@/customComponents/RoomDisplays/SettingsDisplay';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useEffect } from 'react';
 
 export default function RoomPage() {
 
@@ -10,6 +13,10 @@ export default function RoomPage() {
     const roomNotice = useRoomStore(s => s.roomNotice)
     const setRoomNotice = useRoomStore(s => s.setRoomNotice)
 
+    useEffect(() => {
+        useSettingsStore.getState().loadSettings();
+    }, []); // Load settings when the component mounts
+    
     return (
         <>
             {roomNotice && (
@@ -30,6 +37,7 @@ export default function RoomPage() {
             <ChatDisplay isActive={activeTab === 'chat'}/>
             <LeaderboardDisplay isActive={activeTab === 'leaderboard'}/>
             <StatisticsDisplay isActive={activeTab === 'statistics'}/>
+            <SettingsDisplay isActive={activeTab === 'settings'}/>
         </>
     );
 }
