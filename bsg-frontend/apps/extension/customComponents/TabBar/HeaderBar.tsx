@@ -58,6 +58,12 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                         <div
                             ref={scrollRef}
                             className="flex items-center h-full pl-8 pr-14 overflow-x-auto no-scrollbar"
+                            onWheel={(e) => {
+                                if (e.deltaY !== 0) {
+                                    e.preventDefault();
+                                    e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+                                }
+                            }}
                         >
 
                             <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />

@@ -7,20 +7,27 @@ export default function DefaultPopup() {
     const {redirectToLeetCode, isOnLeetCode} = useDefaultPopup();
 
     return (
-        <div className={'my-5 mx-7'}>
-            <Logo/>
-            {isOnLeetCode ? (
-                <>
-                    <p className={"m-2"}>You are on LeetCode. Go to a problem to open up the side panel!</p>
-                </>
-            ) : (
-                <>
-                    <p className={"m-2"}>You are not on LeetCode. Once you go to the website you can open up the side
-                        panel to
-                        start solving!</p>
-                    <Button onClick={redirectToLeetCode}>Go to LeetCode</Button>
-                </>
-            )}
+        <div className="relative p-5 overflow-hidden">
+            {/* Decorative background elements */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-[-30%] left-[-30%] w-[60%] h-[60%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
+                <div className="absolute bottom-[-30%] right-[-30%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
+            </div>
+
+            <div className="relative p-4 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-[inset_0_6px_12px_rgba(255,255,255,0.06),inset_0_-6px_12px_rgba(0,0,0,0.15)]">
+                <div className="flex justify-center mb-3">
+                    <Logo/>
+                </div>
+                {isOnLeetCode ? (
+                    <p className="text-sm text-foreground/70 text-center">You are on LeetCode. Go to a problem to open up the side panel!</p>
+                ) : (
+                    <>
+                        <p className="text-sm text-foreground/70 text-center mb-3">You are not on LeetCode. Once you go to the website you can open up the side
+                            panel to start solving!</p>
+                        <Button onClick={redirectToLeetCode} className="w-full bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] text-white transition-colors">Go to LeetCode</Button>
+                    </>
+                )}
+            </div>
         </div>
     );
 }
