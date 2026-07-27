@@ -1,5 +1,5 @@
 import { useRoomStore } from '@/stores/useRoomStore';
-import { SERVER_URL } from '../lib/config'
+import { getServerUrl } from '../lib/config'
 import { useUserStore } from '@/stores/useUserStore';
 import { useRouter } from 'next/router';
 import { User } from '@bsg/models/User';
@@ -29,7 +29,7 @@ export const useRoomInit = () => {
 
     const setRoomParticipants = async (roomId: string) => {
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/participants`, {
+            const res = await fetch(`${getServerUrl()}/rooms/${roomId}/participants`, {
                 credentials: 'include'
             });
 
@@ -83,7 +83,7 @@ export const useRoomInit = () => {
 
     const joinRoom = async (roomCode: string): Promise<{ success: true } | { success: false; message: string }> => {
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomCode}/join`, {
+            const res = await fetch(`${getServerUrl()}/rooms/${roomCode}/join`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -124,7 +124,7 @@ export const useRoomInit = () => {
     const createRoom = async (roomCode: string, options: any): Promise<{ success: true } | { success: false; message: string }> => {
         try {
             // 1. Create Room
-            const res = await fetch(`${SERVER_URL}/rooms`, {
+            const res = await fetch(`${getServerUrl()}/rooms`, {
                 method: 'POST',
                 body: JSON.stringify({ roomName: roomCode, ttl: 360 }),
                 headers: { 'Content-Type': 'application/json' },
@@ -146,7 +146,7 @@ export const useRoomInit = () => {
                 numHardProblems: options.hard || 0,
                 tags: options.tags || []
             };
-            const roundRes = await fetch(`${SERVER_URL}/rooms/${roomId}/rounds/create`, {
+            const roundRes = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
                 body: JSON.stringify(roundParams),
                 headers: { 'Content-Type': 'application/json' },
@@ -159,7 +159,7 @@ export const useRoomInit = () => {
             }
 
             // 3. Join the room (so creator is in active users list)
-            const joinRes = await fetch(`${SERVER_URL}/rooms/${roomId}/join`, {
+            const joinRes = await fetch(`${getServerUrl()}/rooms/${roomId}/join`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -203,7 +203,7 @@ export const useRoomInit = () => {
     // TODO: Return a boolean to determine if room-choice is loaded
     const checkActiveRoom = async (attempt = 0): Promise<void> => {
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/active`, { credentials: 'include' });
+            const res = await fetch(`${getServerUrl()}/rooms/active`, { credentials: 'include' });
             if (res.status === 429 && attempt < 3) {
                 await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
                 return checkActiveRoom(attempt + 1);
@@ -213,7 +213,7 @@ export const useRoomInit = () => {
                 if (data.id || data.roomID) { // handle potentially different response structure
                     const roomId = data.id || data.roomID;
                     // Fetch room details to get round status
-                    const roomRes = await fetch(`${SERVER_URL}/rooms/${roomId}`, { credentials: 'include' });
+                    const roomRes = await fetch(`${getServerUrl()}/rooms/${roomId}`, { credentials: 'include' });
                     if (roomRes.ok) {
                         const roomData = await roomRes.json();
                         const room = roomData.data;

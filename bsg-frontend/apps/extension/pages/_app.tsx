@@ -11,11 +11,18 @@ import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { messageScript } from '@/utils/messageScript';
 import { useIsActive } from '@/hooks/useIsActive';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { configReady } from '../lib/config';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
 export default function App({ Component, pageProps }: AppProps) {
+
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  useEffect(() => {
+    configReady.then(() => setConfigLoaded(true));
+  }, []);
 
   const isDefaultPopup = (Component === DefaultPopup);
   const isFolded = useIsFolded();
@@ -44,6 +51,11 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component  {...pageProps} />
       </div>
     );
+  }
+
+  // Wait for config (chrome.storage.local) to load before rendering
+  if (!configLoaded) {
+    return <div className={poppins.className} />;
   }
 
   // On Leetcode extension render

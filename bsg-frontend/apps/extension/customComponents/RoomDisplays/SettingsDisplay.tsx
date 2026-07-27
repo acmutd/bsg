@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
-import { SERVER_URL } from '../../lib/config';
+import { getServerUrl } from '../../lib/config';
 import { Label } from '@bsg/ui/label';
 import { Slider } from '@bsg/ui/slider';
 import { NotificationToggle } from '../NotificationToggle';
@@ -56,7 +56,7 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
         setSaving(true);
         setError(null);
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/rounds/time`, {
+            const res = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/time`, {
                 method: 'POST',
                 body: JSON.stringify({ duration: value }),
                 headers: { 'Content-Type': 'application/json' },

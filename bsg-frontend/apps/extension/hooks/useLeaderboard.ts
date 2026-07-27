@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
-import { SERVER_URL } from '../lib/config';
+import { getServerUrl } from '../lib/config';
 import { Participant } from '@bsg/models/Participant';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ export function useLeaderboard() {
         setError(null);
 
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/leaderboard`, {
+            const res = await fetch(`${getServerUrl()}/rooms/${roomId}/leaderboard`, {
                 credentials: 'include',
                 signal: abortController.signal,
             });
