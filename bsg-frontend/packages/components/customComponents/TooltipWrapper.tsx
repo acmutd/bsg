@@ -21,7 +21,7 @@ export const TooltipWrapper = ({
                 </TooltipTrigger>
                 <TooltipContent
                     sideOffset={6}
-                    className="flex bg-[#333333] border border-[#484848] rounded-lg gap-2 text-[#FAFAFA] items-center"
+                    className="flex bg-bsg-surface border border-bsg-hover rounded-lg gap-2 text-foreground items-center"
                 >
                     {text}
                     {shortcuts && shortcuts.length > 0 && (
@@ -29,7 +29,7 @@ export const TooltipWrapper = ({
                             {shortcuts.map((key, index) => (
                                 <div
                                     key={index}
-                                    className="flex items-center h-[20px] min-w-[20px] leading-[20px] px-1 py-0.5 rounded-[0.2rem] border border-[#484848] justify-center"
+                                    className="flex items-center h-[20px] min-w-[20px] leading-[20px] px-1 py-0.5 rounded-[0.2rem] border border-bsg-hover justify-center"
                                 >
                                     {key}
                                 </div>

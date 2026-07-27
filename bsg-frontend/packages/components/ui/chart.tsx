@@ -66,13 +66,10 @@ function ChartContainer({
     if (!el) return
     if (el.offsetWidth > 0 && el.offsetHeight > 0) {
       setReady(true)
-      return
     }
     const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-        setReady(true)
-        observer.disconnect()
-      }
+      const visible = entry.contentRect.width > 0 && entry.contentRect.height > 0
+      setReady(visible)
     })
     observer.observe(el)
     return () => observer.disconnect()

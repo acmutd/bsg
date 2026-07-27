@@ -44,7 +44,7 @@ export const Toolbar = () => {
   
 
     return (
-        <div className="flex h-8 px-1 border-b border-white/10 items-center justify-between">
+        <div className="flex h-8 px-1 border-b border-bsg-glass items-center justify-between">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
@@ -61,7 +61,7 @@ export const Toolbar = () => {
                             }
                           }
                         }}
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
                             className="w-[1em] h-[1em] overflow-visible"
@@ -89,7 +89,7 @@ export const Toolbar = () => {
                           }
                         }
                         }
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
                             className="w-[1em] h-[1em] overflow-visible"
@@ -106,7 +106,7 @@ export const Toolbar = () => {
                         <TooltipWrapper text="End Round">
                             <Button
                                 onClick={handleEndRound}
-                                className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                                className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                             >
                                 <svg
                                     className="w-[1em] h-[1em] overflow-visible"
@@ -125,7 +125,7 @@ export const Toolbar = () => {
                         <TooltipWrapper text="Start Round">
                             <Button
                                 onClick={handleStartRound}
-                                className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                                className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                             >
                                 <svg
                                     className="w-[1em] h-[1em] overflow-visible"
@@ -148,7 +148,7 @@ export const Toolbar = () => {
                     <TooltipWrapper text={(isTimerVisible) ? 'Hide Timer' : 'Show Timer'}>
                         <Button
                             onClick={() => setIsTimerVisible(!isTimerVisible)}
-                            className={`rounded-none p-0 h-6 w-6 flex items-center justify-center text-foreground/60 hover:bg-[#484848] ${(isTimerVisible) ? 'bg-white/10' : 'bg-transparent'}`}
+                            className={`rounded-none p-0 h-6 w-6 flex items-center justify-center text-foreground/60 hover:bg-bsg-hover ${(isTimerVisible) ? 'bg-bsg-glass' : 'bg-transparent'}`}
                         >
                             <svg
                                 className="w-4 h-4 overflow-visible"
@@ -161,13 +161,13 @@ export const Toolbar = () => {
                         </Button>
                     </TooltipWrapper>
 
-                    <div className={`flex px-1.5 items-center bg-white/10 text-foreground/60 text-sm ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
+                    <div className={`flex px-1.5 items-center bg-bsg-glass text-foreground/60 text-sm ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
                 </div>
 
                 <TooltipWrapper text="Settings">
                     <Button
                         onClick={() => setActiveTab('settings')}
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
                             className="w-4 h-4 overflow-visible"
@@ -183,7 +183,7 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Leave Room">
                     <Button
                         onClick={handleLeaveRoom}
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
                             className="w-4 h-4 overflow-visible"

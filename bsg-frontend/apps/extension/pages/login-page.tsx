@@ -33,7 +33,7 @@ export default function LoginPage() {
                 BSG_
             </div>
 
-            <div className="rounded-lg w-full max-w-sm flex flex-col p-8 gap-8 items-center bg-[#333333]">
+            <div className="rounded-lg w-full max-w-sm flex flex-col p-8 gap-8 items-center bg-bsg-surface">
                 <div className="flex flex-col items-center gap-1">
                     <h1 className="text-lg font-medium">Join Now</h1>
                     <p className="text-xs">Create your account to start coding</p>
@@ -51,7 +51,7 @@ export default function LoginPage() {
                         >
                             Email
                         </label>
-                        <div className="bg-[#3C3C3C] w-full rounded-lg flex gap-3 p-3 items-center">
+                        <div className="bg-bsg-surface-input w-full rounded-lg flex gap-3 p-3 items-center">
                             <FontAwesomeIcon icon={faEnvelope}/>
                             <input
                                 className="bg-transparent w-full text-xs"
@@ -73,7 +73,7 @@ export default function LoginPage() {
                         >
                             Password
                         </label>
-                        <div className="bg-[#3C3C3C] w-full rounded-lg flex gap-3 p-3 items-center">
+                        <div className="bg-bsg-surface-input w-full rounded-lg flex gap-3 p-3 items-center">
                             <input
                                 className="bg-transparent w-full text-xs"
                                 type="text"
@@ -105,7 +105,7 @@ export default function LoginPage() {
                     </div>
 
                     <Button
-                        className="flex items-center gap-4 bg-[#454545] w-full rounded-lg"
+                        className="flex items-center gap-4 bg-bsg-border w-full rounded-lg"
                         onClick={async () => {
                             await login('google')
                         }}

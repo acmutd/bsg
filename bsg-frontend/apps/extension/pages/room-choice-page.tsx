@@ -57,7 +57,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
             className={`${poppins.className} relative h-full flex items-center justify-center bg-background px-4 py-4`}>
             <div
                 className="w-full p-4 rounded-2xl bg-inputBackground border-background shadow-lg hover:shadow-xl transition">
-                <h1 className="text-lg text-white font-semibold mb-3">Create a room or join one</h1>
+                <h1 className="text-lg text-foreground font-semibold mb-3">Create a room or join one</h1>
 
                 <div className="space-y-3">
                     {/* Create Room - opens a focused modal dialog (create only) */}
@@ -66,7 +66,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                             setFormError(null)
                             setShowCreateOptions(true)
                         }}
-                        className="px-4 py-2 text-white bg-primary hover:bg-primary/90 transition-colors"
+                        className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                     >
                         <p className='px-2'>Create</p>
                         <FontAwesomeIcon icon={faPlus}/>
@@ -79,12 +79,12 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                             <div
                                 className="w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-4 rounded-2xl bg-inputBackground shadow-lg">
                                 <div className="flex items-start justify-between mb-3">
-                                    <h2 className="text-lg text-white font-semibold">Create Room</h2>
+                                    <h2 className="text-lg text-foreground font-semibold">Create Room</h2>
                                     <button
                                         onClick={() => setShowCreateOptions(false)}
                                         aria-label="Close create dialog"
                                         title="Close"
-                                        className="text-gray-300 hover:text-white rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
+                                        className="text-foreground/60 hover:text-foreground rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
                                     >
                                         <FontAwesomeIcon icon={faX}/>
                                     </button>
@@ -164,11 +164,11 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                     <div className="flex gap-2">
                         <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)}
                                placeholder="Enter room code"
-                               className="flex-1 px-3 py-2 rounded-lg bg-background text-white focus:outline-none focus:ring-2 focus:ring-white transition"/>
+                               className="flex-1 px-3 py-2 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/20 transition"/>
                         <Button
                             onClick={handleJoinRoom}
                             disabled={isSubmittingJoin}
-                            className="px-4 py-2 flex items-center gap-1 text-white bg-primary hover:bg-primary/90 transition-colors"
+                            className="px-4 py-2 flex items-center gap-1 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                         >
                             <p>{isSubmittingJoin ? 'Joining...' : 'Join'}</p>
                             <FontAwesomeIcon icon={faDoorOpen}/>
