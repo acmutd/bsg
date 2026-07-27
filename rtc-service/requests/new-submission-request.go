@@ -64,6 +64,6 @@ func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string
 	}
 
 	problemName := strings.ReplaceAll(r.ProblemID, "-", " ")
-	message := fmt.Sprintf("%s submitted %s successfully!", r.UserHandle, problemName)
+	message := fmt.Sprintf("%s solved %s", r.UserHandle, problemName)
 	return r.responseType(), message, r.RoomID, nil
 }

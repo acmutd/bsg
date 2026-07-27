@@ -69,7 +69,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 // System Message
                                 <div
                                     key={i}
-                                    className="flex justify-center p-2 text-foreground/60"
+                                    className="flex justify-center p-2 text-foreground/60 text-sm text-center max-w-full break-words"
                                 >
                                     {group[0].data}
                                 </div>
