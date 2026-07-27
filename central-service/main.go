@@ -175,8 +175,6 @@ func main() {
 	roomController := controllers.InitializeRoomController(&roomService, logger)
 	lbService := services.InitializeLeaderboardService(db)
 	lbController := controllers.InitializeLeaderboardController(&lbService)
-	feedbackService := services.InitializeFeedbackService(db)
-	feedbackController := controllers.InitializeFeedbackController(&feedbackService, logger)
 
 
 	e.Use(userController.ValidateUserRequest)
@@ -205,7 +203,6 @@ func main() {
 	problemController.InitializeRoutes(e.Group("/api/problems"))
 	roomController.InitializeRoutes(e.Group("/api/rooms"))
 	lbController.InitializeRoutes(e.Group("/api/leaderboard"))
-	feedbackController.InitializeRoutes(e.Group("/api/feedback"))
 	
 
 	logger.Info("Central service started", map[string]interface{}{
