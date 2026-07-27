@@ -12,7 +12,6 @@ export const useRoomInit = () => {
     const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
-    const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
     const setProblems = useRoomStore(s => s.setProblems)
     const userId = useUserStore(s => s.userId);

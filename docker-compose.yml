@@ -1,4 +1,4 @@
-version: '3.7'
+
 services:
   central-service:
     build:
@@ -79,6 +79,11 @@ services:
     volumes:
       - zookeeper-data-volume:/var/lib/zookeeper/data
       - zookeeper-log-volume:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
   broker:
     image: confluentinc/cp-kafka:7.7.1
     restart: always
@@ -90,7 +95,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:${PORT_KAFKA:-29092}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:${PORT_KAFKA:-29092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -130,9 +135,7 @@ services:
       - SERVER_SECRET=${SERVER_SECRET}
       - CENTRAL_SERVICE_URL=http://central-service:5000
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SERVER_URL=${SERVER_URL}
-      - FRONTEND_URL=${FRONTEND_URL}
-      - NODE_ENV=${NODE_ENV:-production}
+      - SERVER_URL=${SERVER_URL:-http://localhost:3000}
   web:
     build:
       context: ./bsg-frontend
@@ -144,18 +147,8 @@ services:
         NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
         NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
         NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
-
-  caddy:
-      image: caddy:latest
-      ports: 
-        - "80:80"
-        - "443:443"
-      volumes:
-        - ./Caddyfile:/etc/caddy/Caddyfile
-        - caddy_data:/data
-      depends_on:
-        - server
-      restart: always
+    ports:
+      - ${PORT_WEB:-80}:80
 
   # tunnel:
   #   image: cloudflare/cloudflared:latest
@@ -171,4 +164,3 @@ volumes:
   zookeeper-log-volume:
   redisinsight-volume:
   kafka-data-volume:
-  caddy_data:

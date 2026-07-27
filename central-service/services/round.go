@@ -251,42 +251,6 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 	return &roundStartTime, round.ProblemSet, nil
 }
 
-// Allowed round duration range (minutes), matching the create-round Slider in the UI.
-const (
-	MIN_ROUND_DURATION = 5
-	MAX_ROUND_DURATION = 120
-)
-
-// UpdateRoundDuration sets the duration (in minutes) of a round that has not started yet.
-// The timer only begins on round start, so before then this is a plain column update that
-// the eventual InitiateRoundStart will read — nothing needs to be rescheduled or broadcast.
-func (service *RoundService) UpdateRoundDuration(round *models.Round, newDuration int) (int, error) {
-	if round == nil {
-		return 0, &BSGError{
-			Message:    "Round not found",
-			StatusCode: 404,
-		}
-	}
-	if round.Status != constants.ROUND_CREATED {
-		return 0, &BSGError{
-			Message:    "Timer can only be edited before the round starts",
-			StatusCode: 400,
-		}
-	}
-	if newDuration < MIN_ROUND_DURATION || newDuration > MAX_ROUND_DURATION {
-		return 0, &BSGError{
-			Message:    fmt.Sprintf("Duration must be between %d and %d minutes", MIN_ROUND_DURATION, MAX_ROUND_DURATION),
-			StatusCode: 400,
-		}
-	}
-	// Explicit column update: GORM's Updates(struct) skips zero values, Update does not.
-	if err := service.db.Model(round).Update("duration", newDuration).Error; err != nil {
-		return 0, err
-	}
-	round.Duration = newDuration
-	return newDuration, nil
-}
-
 // Adds a user to a round leaderboard
 // Member values are a compression of the user's score and last submission timestamp
 // User's initial score will be 0 with the current timestamp
@@ -341,34 +305,20 @@ func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, e
 	return service.getLeaderboardByRoundID(uint(roundID))
 }
 
-// First 10 bits will represent the user score and the remaining 43 bits represent the user's submission timestamp
-// The total length is 53 bits to safely fit into Redis's float64 mantissa without precision loss.
+// First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
 func compressScoreAndTimeStamp(score uint64, timestamp time.Time) uint64 {
 	const scoreBits = 10
-	const totalBits = 53
-	const timeBits = totalBits - scoreBits
-
-	score <<= timeBits
+	score <<= (64 - scoreBits)
 	time := timestamp.Unix()
-
-	// Invert time bits for reverse chronological sorting
-	invTime := uint64(^time)
-
-	// Mask out the top bits of invTime so it doesn't bleed into the score
-	invTime &= (1 << timeBits) - 1
-
-	return score | invTime
+	time &= (1 << (64 - scoreBits)) - 1
+	return score | uint64(^time)
 }
 
-// DecompressScore extracts the raw point value from the Redis-stored compressed score.
-// The top 10 bits hold the score; the lower 43 bits are the inverted timestamp.
-func DecompressScore(compressedScore float64) uint64 {
+func decompressScoreOnly(compressedScore float64) uint64 {
 	// compressedScore is stored as float64 in Redis ZSet
 	val := uint64(compressedScore)
 	const scoreBits = 10
-	const totalBits = 53
-	const timeBits = totalBits - scoreBits
-	return val >> timeBits
+	return val >> (64 - scoreBits)
 }
 
 func (service *RoundService) UpdateLeaderboardScore(roundID uint, userID string, scoreToAdd uint) error {
@@ -384,7 +334,7 @@ func (service *RoundService) UpdateLeaderboardScore(roundID uint, userID string,
 		}
 	}
 
-	points := DecompressScore(currentScore)
+	points := decompressScoreOnly(currentScore)
 	newPoints := points + uint64(scoreToAdd)
 	newCompressedScore := float64(compressScoreAndTimeStamp(newPoints, time.Now()))
 

@@ -18,47 +18,40 @@ module.exports = {
         },
         extend: {
             colors: {
-                border: "rgba(var(--border))",
-                input: "rgba(var(--input))",
-                ring: "rgba(var(--ring))",
-                background: "rgba(var(--background))",
-                foreground: "rgba(var(--foreground))",
-                inputBackground: "rgba(var(--inputBackground))",
-                brand: "rgba(var(--brand))",
+                border: "hsl(var(--border))",
+                input: "hsl(var(--input))",
+                ring: "hsl(var(--ring))",
+                background: "hsl(var(--background))",
+                foreground: "hsl(var(--foreground))",
+                inputBackground: "hsl(var(--inputBackground))",
+                brand: "hsl(var(--brand))",
                 primary: {
-                    DEFAULT: "rgba(var(--primary))",
-                    foreground: "rgba(var(--primary-foreground))",
+                    DEFAULT: "hsl(var(--primary))",
+                    foreground: "hsl(var(--primary-foreground))",
                 },
                 secondary: {
-                    DEFAULT: "rgba(var(--secondary))",
-                    foreground: "rgba(var(--secondary-foreground))",
+                    DEFAULT: "hsl(var(--secondary))",
+                    foreground: "hsl(var(--secondary-foreground))",
                 },
                 destructive: {
-                    DEFAULT: "rgba(var(--destructive))",
-                    foreground: "rgba(var(--destructive-foreground))",
+                    DEFAULT: "hsl(var(--destructive))",
+                    foreground: "hsl(var(--destructive-foreground))",
                 },
                 muted: {
-                    DEFAULT: "rgba(var(--muted))",
-                    foreground: "rgba(var(--muted-foreground))",
+                    DEFAULT: "hsl(var(--muted))",
+                    foreground: "hsl(var(--muted-foreground))",
                 },
                 accent: {
-                    DEFAULT: "rgba(var(--accent))",
-                    foreground: "rgba(var(--accent-foreground))",
+                    DEFAULT: "hsl(var(--accent))",
+                    foreground: "hsl(var(--accent-foreground))",
                 },
                 popover: {
-                    DEFAULT: "rgba(var(--popover))",
-                    foreground: "rgba(var(--popover-foreground))",
+                    DEFAULT: "hsl(var(--popover))",
+                    foreground: "hsl(var(--popover-foreground))",
                 },
                 card: {
-                    DEFAULT: "rgba(var(--card))",
-                    foreground: "rgba(var(--card-foreground))",
-                },
-                customGreen: {
-                    DEFAULT: "#3C5721",
-                    dark: "#2e4317", // for hover
-                },
-                fontFamily: {
-                    sans: ["Inter", "ui-sans-serif", "system-ui"],
+                    DEFAULT: "hsl(var(--card))",
+                    foreground: "hsl(var(--card-foreground))",
                 },
                 neutral: {
                     550: '#636363',
@@ -92,4 +85,3 @@ module.exports = {
     },
     plugins: [require("tailwindcss-animate")],
 }
-

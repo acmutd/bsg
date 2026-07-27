@@ -16,13 +16,12 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@bsg/ui/chart"
+import { User } from "@bsg/models/User";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@bsg/ui/button";
-import { useStatistics } from "../../hooks/useStatistics";
 
 export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
-    const { statistics } = useStatistics();
     const isAnimationsActive = true;
 
     type ActiveChart = 'score' | 'percentile' | 'solveTime' | 'runTime' | 'memory';
@@ -80,11 +79,11 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     const radarData: MetricEntry[] = [];
 
     const radialData: SubmissionEntry[] = [{
-        username: 'me',
-        solveTime: 0,
-        runTime: 0,
-        memory: 0,
-        score: statistics?.score ?? 0
+        username: 'test1',
+        solveTime: 1000,
+        runTime: 1000,
+        memory: 1000,
+        score: 3000
     }];
 
     const maxPoints = 5000;
