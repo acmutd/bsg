@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@bsg/ui/button';
-import { SERVER_URL } from '@/lib/config';
+import { getServerUrl } from '@/lib/config';
 
 interface FeedbackModalProps {
   isOpen: boolean;
