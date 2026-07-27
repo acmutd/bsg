@@ -15,7 +15,7 @@ const SignUpForm = () => {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="w-96">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
                 <div className={'space-y-3'}>
                     <div className={'flex justify-center'}>
                         <p className={'text-4xl mb-6 font-medium'}>Sign Up</p>

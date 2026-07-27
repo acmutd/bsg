@@ -12,7 +12,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
     const roomCode = useRoomStore(s => s.roomCode);
 
     return (
-        <div className="flex p-1 items-center justify-between">
+        <div className="bg-[#333333] h-9 flex px-1 items-center justify-between">
 
             <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
                 <Button
