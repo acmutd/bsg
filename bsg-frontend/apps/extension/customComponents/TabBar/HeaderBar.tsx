@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Button } from '@bsg/ui/button';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { messageScript } from '@/utils/messageScript';
@@ -11,10 +11,29 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
 
     const [hoveredTab, setHoveredTab] = useState<TabName | null>(null);
     const { scrollRef, isScrolledX } = useIsScrolled<HTMLDivElement>();
+    const wheelCleanupRef = useRef<(() => void) | null>(null);
 
     const activeTab = useRoomStore(s => s.activeTab);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const isPanelHovered = usePanelStore(s => s.isPanelHovered);
+
+    const combinedRef = useCallback((node: HTMLDivElement | null) => {
+        wheelCleanupRef.current?.();
+        wheelCleanupRef.current = null;
+
+        scrollRef(node);
+
+        if (node) {
+            const handler = (e: WheelEvent) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    node.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+                }
+            };
+            node.addEventListener('wheel', handler, { passive: false });
+            wheelCleanupRef.current = () => node.removeEventListener('wheel', handler);
+        }
+    }, [scrollRef]);
 
     return (
         <div
@@ -56,14 +75,8 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
 
                         {/* Tabs */}
                         <div
-                            ref={scrollRef}
+                            ref={combinedRef}
                             className="flex items-center h-full pl-8 pr-14 overflow-x-auto no-scrollbar"
-                            onWheel={(e) => {
-                                if (e.deltaY !== 0) {
-                                    e.preventDefault();
-                                    e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'smooth' });
-                                }
-                            }}
                         >
 
                             <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
