@@ -54,12 +54,12 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
     
     return (
         <div
-            className={`${poppins.className} relative min-h-screen flex items-center justify-center bg-background px-4 py-8`}>
+            className={`${poppins.className} relative h-full flex items-center justify-center bg-background px-4 py-4`}>
             <div
-                className="w-full max-w-lg p-8 rounded-2xl bg-inputBackground border-background shadow-lg hover:shadow-xl transition">
-                <h1 className="text-2xl text-white font-semibold mb-4">Create a room or join one</h1>
+                className="w-full p-4 rounded-2xl bg-inputBackground border-background shadow-lg hover:shadow-xl transition">
+                <h1 className="text-lg text-white font-semibold mb-3">Create a room or join one</h1>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {/* Create Room - opens a focused modal dialog (create only) */}
                     <Button
                         onClick={() => {
@@ -75,11 +75,11 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
                     {/* Modal for create options only */}
                     {showCreateOptions && (
-                        <div className="absolute inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background p-3 sm:p-4">
+                        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background p-3">
                             <div
-                                className="mt-2 w-full max-w-lg max-h-[calc(100vh-1rem)] overflow-y-auto p-6 rounded-2xl bg-inputBackground shadow-lg">
-                                <div className="flex items-start justify-between mb-4">
-                                    <h2 className="text-xl text-white font-semibold">Create Room</h2>
+                                className="w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-4 rounded-2xl bg-inputBackground shadow-lg">
+                                <div className="flex items-start justify-between mb-3">
+                                    <h2 className="text-lg text-white font-semibold">Create Room</h2>
                                     <button
                                         onClick={() => setShowCreateOptions(false)}
                                         aria-label="Close create dialog"
@@ -90,7 +90,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                                     </button>
                                 </div>
 
-                                <div className="grid gap-4 py-2">
+                                <div className="grid gap-3 py-1">
                                     <div className="flex items-center justify-between">
                                         <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Easy}
                                                                              num={numberOfEasyProblems}/>
@@ -114,7 +114,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                                     </div>
 
                                     <div>
-                                        <Label className="text-lg">Select Topics</Label>
+                                        <Label className="text-base">Select Topics</Label>
                                         <ScrollArea
                                             className="max-h-32 overflow-y-auto rounded-md p-2 mt-2 bg-background">
                                             <div className="flex flex-wrap gap-2">
@@ -125,7 +125,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                                     </div>
 
                                     <div>
-                                        <Label className="text-lg">Duration: {duration} mins</Label>
+                                        <Label className="text-base">Duration: {duration} mins</Label>
                                         <Slider min={5} max={120} step={5} value={[duration]}
                                                 onValueChange={(v) => setDuration(v[0])} className={'pt-2'}/>
                                     </div>
@@ -161,7 +161,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                     )}
 
                     {/* Join Room */}
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-2">
                         <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)}
                                placeholder="Enter room code"
                                className="flex-1 px-3 py-2 rounded-lg bg-background text-white focus:outline-none focus:ring-2 focus:ring-white transition"/>
@@ -170,7 +170,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                             disabled={isSubmittingJoin}
                             className="px-4 py-2 flex items-center gap-1 text-white bg-primary hover:bg-primary/90 transition-colors"
                         >
-                            <p className='px-2'>{isSubmittingJoin ? 'Joining...' : 'Join'}</p>
+                            <p>{isSubmittingJoin ? 'Joining...' : 'Join'}</p>
                             <FontAwesomeIcon icon={faDoorOpen}/>
                         </Button>
 
