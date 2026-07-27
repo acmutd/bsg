@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
-import { SERVER_URL } from '../lib/config'
+import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
@@ -163,7 +163,7 @@ export function useRoomEvents() {
     const handleStartRound = async () => {
         if (!roomId) return;
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/start`, {
+            const res = await fetch(`${getServerUrl()}/rooms/${roomId}/start`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -180,7 +180,7 @@ export function useRoomEvents() {
     const handleEndRound = async () => {
         if (!roomId) return;
         try {
-            const res = await fetch(`${SERVER_URL}/rooms/${roomId}/end`, {
+            const res = await fetch(`${getServerUrl()}/rooms/${roomId}/end`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -211,7 +211,7 @@ export function useRoomEvents() {
         if(!roomId && !userId) return;
 
         try {
-            const response = await fetch(`${SERVER_URL}/rooms/${roomId}/leave`, {
+            const response = await fetch(`${getServerUrl()}/rooms/${roomId}/leave`, {
                     method: 'POST',
                     credentials: 'include'
             });

@@ -1,6 +1,7 @@
 # binarysearchgang.com (apex + www) is served by Vercel — do not route it here.
-# This subdomain serves the API backend and WebSocket service.
-api.binarysearchgang.com {
+# This serves the API backend and WebSocket service.
+# lane: 'localhost' <-> 'api.binarysearchgang.com'.
+localhost {
     @websocket path /ws
     @adminer   path /admin
     reverse_proxy @websocket rtc-service:8080

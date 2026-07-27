@@ -1,7 +1,9 @@
-const CONFIG = {
+const PRODUCTION_CONFIG = {
   SERVER_URL: 'https://api.binarysearchgang.com',
   RTC_SERVICE_URL: 'wss://api.binarysearchgang.com/ws',
 };
+
+const CONFIG = { ...PRODUCTION_CONFIG };
 
 let offscreenCreated = false;
 
@@ -193,9 +195,22 @@ let socket = null;
 let activeRoomId = null;
 let userProfile = null;
 
-chrome.storage.local.get(['activeRoomId', 'user'], (result) => {
+chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
+  if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
+  if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
+
+  // Auto-detect local dev: if no explicit override, probe localhost:3000
+  if (!result.configServerUrl) {
+    fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) })
+      .then(() => {
+        CONFIG.SERVER_URL = 'http://localhost:3000';
+        CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+        chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
+      })
+      .catch(() => {});
+  }
 
   if (activeRoomId && userProfile) {
     connectWebSocket();

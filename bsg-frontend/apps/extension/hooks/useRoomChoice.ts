@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import {Topic} from "@/pages/room-choice-page";
-import { SERVER_URL } from '../lib/config';
+import { getServerUrl } from '../lib/config';
 
 type ProblemTagStat = {
     id: number;
@@ -36,7 +36,7 @@ export const useRoomChoice = (props: {
     useEffect(() => {
         const loadTopics = async (attempt = 0): Promise<void> => {
             try {
-                const response = await fetch(`${SERVER_URL}/problems/tags`, {
+                const response = await fetch(`${getServerUrl()}/problems/tags`, {
                     credentials: 'include'
                 });
 
