@@ -116,8 +116,8 @@ services:
   server:
     build: ./server
     # image: bsg-server
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     depends_on:
       - redis-cache
       - central-service

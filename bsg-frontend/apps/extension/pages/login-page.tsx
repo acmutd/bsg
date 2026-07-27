@@ -59,7 +59,7 @@ export default function LoginPage() {
                         >
                             Email
                         </label>
-                        <div className="bg-[#3C3C3C] w-full rounded-lg flex gap-3 p-3 items-center">
+                        <div className="bg-bsg-surface-input w-full rounded-lg flex gap-3 p-3 items-center">
                             <FontAwesomeIcon icon={faEnvelope}/>
                             <input
                                 className="bg-transparent w-full text-xs"
@@ -81,7 +81,7 @@ export default function LoginPage() {
                         >
                             Password
                         </label>
-                        <div className="bg-[#3C3C3C] w-full rounded-lg flex gap-3 p-3 items-center">
+                        <div className="bg-bsg-surface-input w-full rounded-lg flex gap-3 p-3 items-center">
                             <input
                                 className="bg-transparent w-full text-xs"
                                 type="text"

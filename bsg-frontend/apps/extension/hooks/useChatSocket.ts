@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { usePanelStore } from '@/stores/usePanelStore';
-import { RTC_SERVICE_URL } from '../lib/config';
+import { getRtcUrl } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 
@@ -64,7 +64,7 @@ export const useChatSocket = () => {
     useEffect(() => {
         if (!userEmail) return;
 
-        const ws = new WebSocket(RTC_SERVICE_URL);
+        const ws = new WebSocket(getRtcUrl());
         socketRef.current = ws;
 
         ws.onopen = () => {

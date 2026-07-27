@@ -53,9 +53,11 @@ func main() {
 // Handles websocket connections.
 // This is the main entry point for the service.
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	logging.Info("WebSocket upgrade request from ", r.RemoteAddr, " Host:", r.Host, " UA:", r.UserAgent())
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logging.Error("Failed to upgrade connection: ", err)
+		logging.Error("Failed to upgrade connection from ", r.RemoteAddr, ": ", err)
 		return
 	}
 
@@ -63,7 +65,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	// Service name will be changed when a new message is received.
 	// The random service name is to ensure that if two new services try to connect,
 	// the connection would not be overridden.
-	client := servicesmanager.NewClient(uuid.New().String(), conn, serviceManager)
+	clientID := uuid.New().String()
+	logging.Info("WebSocket connected: ", clientID, " from ", r.RemoteAddr)
+	client := servicesmanager.NewClient(clientID, conn, serviceManager)
 
 	// Add the service to the service manager.
 	serviceManager.AddService(client)

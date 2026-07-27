@@ -96,11 +96,13 @@
     });
 
     // Create visible handle bar centered inside the hit area
+    const DARK_HANDLE = '#343434';
+    const LIGHT_HANDLE = '#d4d4d4';
     const handleBar = document.createElement('div');
     Object.assign(handleBar.style, {
       width: '0.125rem',
       height: '1.25rem',
-      backgroundColor: 'rgba(255, 255, 255, 0.14) #ffffff24',
+      backgroundColor: DARK_HANDLE,
       borderRadius: '1px',
       transition: 'background-color 0.12s ease',
     });
@@ -126,6 +128,62 @@
     panel.appendChild(iframe);
     panelWrapper.appendChild(panel);
     wrapper.appendChild(panelWrapper);
+
+    // --- Theme detection and sync ---
+    const DARK_BG = '#262626';
+    const LIGHT_BG = '#ffffff';
+
+    function getResolvedTheme() {
+      const stored = localStorage.getItem('lc-theme');
+      if (stored === 'dark' || stored === 'light') return stored;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function sendThemeToIframe(theme) {
+      if (iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'BSG_THEME_UPDATE', theme: theme }, '*');
+      }
+      panel.style.backgroundColor = theme === 'light' ? LIGHT_BG : DARK_BG;
+    }
+
+    function syncTheme() {
+      chrome.storage.local.get(['themePreference'], (result) => {
+        const pref = result.themePreference;
+        if (pref && pref !== 'auto') {
+          sendThemeToIframe(pref);
+        } else {
+          sendThemeToIframe(getResolvedTheme());
+        }
+      });
+    }
+
+    iframe.addEventListener('load', syncTheme);
+
+    // Observe LeetCode's <html> class changes (theme toggle updates class)
+    const themeObserver = new MutationObserver(() => {
+      chrome.storage.local.get(['themePreference'], (result) => {
+        if (!result.themePreference || result.themePreference === 'auto') {
+          sendThemeToIframe(getResolvedTheme());
+        }
+      });
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    // Listen for system theme preference changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      chrome.storage.local.get(['themePreference'], (result) => {
+        if (!result.themePreference || result.themePreference === 'auto') {
+          sendThemeToIframe(getResolvedTheme());
+        }
+      });
+    });
+
+    // Listen for manual theme changes from extension settings
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.themePreference) {
+        syncTheme();
+      }
+    });
 
     // TODO: Handle window size change (vertical/horizontal)
 
@@ -179,8 +237,12 @@
       }
       isDragging = false;
       iframe.style.pointerEvents = 'auto';
-      handleBar.style.backgroundColor = '#343434';
       handleBar.style.height = '20px';
+      chrome.storage.local.get(['themePreference'], (r) => {
+        const pref = r.themePreference;
+        const isLight = pref === 'light' || (!pref && !window.matchMedia('(prefers-color-scheme: dark)').matches);
+        handleBar.style.backgroundColor = isLight ? LIGHT_HANDLE : DARK_HANDLE;
+      });
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     }
@@ -196,8 +258,12 @@
     });
     handle.addEventListener('pointerleave', () => {
       if (!isDragging) {
-        handleBar.style.backgroundColor = '#343434';
         handleBar.style.height = '20px';
+        chrome.storage.local.get(['themePreference'], (r) => {
+          const pref = r.themePreference;
+          const isLight = pref === 'light' || (!pref && !window.matchMedia('(prefers-color-scheme: dark)').matches);
+          handleBar.style.backgroundColor = isLight ? LIGHT_HANDLE : DARK_HANDLE;
+        });
       }
     });
 

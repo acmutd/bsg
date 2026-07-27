@@ -69,7 +69,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 // System Message
                                 <div
                                     key={i}
-                                    className="flex justify-center p-2 text-foreground/60"
+                                    className="flex justify-center p-2 text-foreground/60 text-sm text-center max-w-full break-words"
                                 >
                                     {group[0].data}
                                 </div>
@@ -87,7 +87,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                             {group.map((msg, j) => (
                                                 <div
                                                     key={j}
-                                                    className={`max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-[#333333] rounded-2xl border border-white/10 ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
+                                                    className={`max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-bsg-surface rounded-2xl border border-bsg-glass ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
                                                 >
                                                     {msg.data}
                                                 </div>
@@ -110,7 +110,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                                 {group.map((msg, j) => (
                                                     <div
                                                         key={j}
-                                                        className={`w-fit max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-[#333333] rounded-2xl rounded-tl-sm border border-white/10 ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
+                                                        className={`w-fit max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-bsg-surface rounded-2xl rounded-tl-sm border border-bsg-glass ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
                                                     >
                                                         {msg.data}
                                                     </div>
@@ -128,13 +128,13 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                 <div className="sticky bottom-0 w-full flex flex-col">
 
                     {/*  */}
-                    <div className="relative flex justify-center p-4 bg-gradient-to-t from-[#262626] to-transparent">
+                    <div className="relative flex justify-center p-4 bg-gradient-to-t from-[rgb(var(--bsg-bg))] to-transparent">
                         {/* Jump to bottom (shows when scroll > 200px from bottom) */}
                         {showJump &&
                             <TooltipWrapper text="Jump to bottom">
                                 <Button
                                     onClick={jumpToBottom}
-                                    className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-[#333333] hover:bg-[#484848] text-foreground/60 border border-white/10 shadow-lg animate-bounce"
+                                    className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-bsg-surface hover:bg-bsg-hover text-foreground/60 border border-bsg-glass shadow-lg animate-bounce"
                                 >
                                     <svg
                                         className="w-4 h-4 overflow-visible"
@@ -150,7 +150,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
                         <div
                             ref={containerRef}
-                            className='flex w-full bg-[#333333] rounded-[21px] px-4 py-3 gap-3 border border-white/10 shadow-lg'
+                            className='flex w-full bg-bsg-surface rounded-[21px] px-4 py-3 gap-3 border border-bsg-glass shadow-lg'
                         >
                             <textarea
                                 ref={inputRef}
@@ -216,7 +216,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
             {/* emojis */}
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${displayEmojis ? 'h-[10.25rem]' : 'h-0'}`}>
-                <div className="flex h-9 px-3 gap-2 items-center border-t border-white/10 bg-[#262626]" >
+                <div className="flex h-9 px-3 gap-2 items-center border-t border-bsg-glass bg-bsg-bg" >
                     <svg
                         className="w-[1em] h-[1em] overflow-visible text-foreground/60"
                         viewBox="0 0 21 21"
@@ -235,8 +235,8 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                     />
                 </div>
 
-                <div className="flex h-32 bg-[#333333]">
-                    <div className="flex flex-col w-9 p-1 gap-1 items-center overflow-y-auto no-scrollbar border-r border-white/10">
+                <div className="flex h-32 bg-bsg-surface">
+                    <div className="flex flex-col w-9 p-1 gap-1 items-center overflow-y-auto no-scrollbar border-r border-bsg-glass">
                         <TooltipWrapper
                             key="recent"
                             text="Recent"
@@ -244,7 +244,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             <Button
                                 key="recent"
                                 onClick={() => scrollToCategory("recent")}
-                                className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848] text-foreground/60 hover:text-foreground"
+                                className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover text-foreground/60 hover:text-foreground"
                             >
                                 <svg className="h-[1em] w-[1em]" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm1-18a1 1 0 1 0-2 0v7c0 .27.1.52.3.7l3 3a1 1 0 0 0 1.4-1.4L13 11.58V5Z" clip-rule="evenodd"></path></svg>
                             </Button>
@@ -258,7 +258,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 <Button
                                     key={category.key}
                                     onClick={() => scrollToCategory(category.key)}
-                                    className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848] text-foreground/60 hover:text-foreground"
+                                    className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover text-foreground/60 hover:text-foreground"
                                 >
                                     {category.icon}
                                 </Button>
@@ -278,14 +278,14 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             >
                                 <div className="flex items-center text-foreground/60 px-1 gap-2">
                                     {category.name}
-                                    <div className="flex-1 border-t border-white/10" />
+                                    <div className="flex-1 border-t border-bsg-glass" />
                                 </div>
                                 <div className="grid grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-1">
                                     {emojiMap[category.key].map(emoji => (
                                         <Button
                                             key={emoji.name}
                                             onClick={() => insertEmoji(emoji.emoji)}
-                                            className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
+                                            className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover"
                                         >
                                             {emoji.emoji}
                                         </Button>
@@ -301,7 +301,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 <Button
                                     key={emoji.name}
                                     onClick={() => insertEmoji(emoji.emoji)}
-                                    className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-[#484848]"
+                                    className="p-0 h-auto flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover"
                                 >
                                     {emoji.emoji}
                                 </Button>
