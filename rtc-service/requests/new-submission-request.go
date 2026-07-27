@@ -3,6 +3,7 @@ package requests
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
@@ -58,6 +59,11 @@ func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string
 
 	// Triggering a leader board update will be determined in a later implementation.
 
-	message := fmt.Sprint("New submission from ", r.UserHandle, "\nProblem: ", r.ProblemID, "\nVerdict: ", r.Verdict)
+	if r.Verdict != "Accepted" {
+		return r.responseType(), "", r.RoomID, nil
+	}
+
+	problemName := strings.ReplaceAll(r.ProblemID, "-", " ")
+	message := fmt.Sprintf("%s submitted %s successfully!", r.UserHandle, problemName)
 	return r.responseType(), message, r.RoomID, nil
 }
