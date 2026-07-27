@@ -11,16 +11,38 @@ import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { messageScript } from '@/utils/messageScript';
 import { useIsActive } from '@/hooks/useIsActive';
+import { useEffect, useState } from 'react';
+import { configReady } from '../lib/config';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
 export default function App({ Component, pageProps }: AppProps) {
+
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  useEffect(() => {
+    configReady.then(() => setConfigLoaded(true));
+  }, []);
 
   const isDefaultPopup = (Component === DefaultPopup);
   const isFolded = useIsFolded();
   const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
   const { isActive, setIsActive } = useIsActive();
+  const activeTab = useRoomStore(s => s.activeTab);
+  const clearUnread = useRoomStore(s => s.clearUnread);
+
+  const setIsFolded = usePanelStore(s => s.setIsFolded);
+
+  useEffect(() => {
+    setIsFolded(isFolded);
+  }, [isFolded, setIsFolded]);
+  
+  useEffect(() => {
+    if (activeTab === 'chat' && !isFolded) {
+      clearUnread();
+    }
+  }, [activeTab, isFolded, clearUnread]);
 
   // Redirect popup render
   if (isDefaultPopup) {
@@ -29,6 +51,11 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component  {...pageProps} />
       </div>
     );
+  }
+
+  // Wait for config (chrome.storage.local) to load before rendering
+  if (!configLoaded) {
+    return <div className={poppins.className} />;
   }
 
   // On Leetcode extension render

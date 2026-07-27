@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
-import { RTC_SERVICE_URL } from '../lib/config';
+import { usePanelStore } from '@/stores/usePanelStore';
+import { getRtcUrl } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
 
 export type Message = {
@@ -44,7 +45,7 @@ export const useChatSocket = () => {
     useEffect(() => {
         if (!userEmail) return;
 
-        const ws = new WebSocket(RTC_SERVICE_URL);
+        const ws = new WebSocket(getRtcUrl());
         socketRef.current = ws;
 
         ws.onopen = () => {
@@ -67,7 +68,6 @@ export const useChatSocket = () => {
                 };
                 ws.send(JSON.stringify(payload));
                 joinedRoomIDRef.current = targetRoomID;
-                console.log("Sent join-room on socket open", { roomID: targetRoomID });
             }
         };
 
@@ -79,7 +79,6 @@ export const useChatSocket = () => {
                     const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
-                        console.log('recieved chat message: ' + JSON.stringify(message))
                         setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
@@ -88,12 +87,35 @@ export const useChatSocket = () => {
                             roomID: message.roomID,
                             isSystem: false
                         }]);
+
+                        // checks user handle to know if the message is sent by the user or received from others
+                        if (!suppressChatSoundsRef.current) {
+                            if (message.userHandle === userEmail) {
+                                playChatSound('message-sent.mp3');
+                            } else {
+                                playChatSound('message-recieved.mp3');
+                            }
+                        }
+
+                        // for chat notification count - increment
+                        const isNewMessage = !suppressChatSoundsRef.current;
+                        const fromOtherUser = message.userHandle !== userEmail;
+                        const chatVisible = isChatVisible();
+                        if (isNewMessage && fromOtherUser && !chatVisible) {
+                            useRoomStore.getState().incrementUnread();
+                        }
                     } else if (responseType === 'system-announcement') {
-                        // Ignore connection-level join acks to avoid repeated chat noise on reconnects.
-                        if (message?.data === 'Join Room Request') {
+                        // Trigger participant refresh on join/leave, but don't add to chat to avoid noise.
+                        const messageData = message?.data || '';
+                        if (messageData === 'Join Room Request') {
+                            useRoomStore.getState().setLastParticipantJoinTime(Date.now());
+                            suppressChatSoundsRef.current = false;
                             return;
                         }
-                        console.log('recieved system message: ' + message);
+                        if (messageData === 'Leave Room Request') {
+                            useRoomStore.getState().setLastParticipantJoinTime(Date.now());
+                            return;
+                        }
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
                             data: message.data,

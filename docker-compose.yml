@@ -69,12 +69,13 @@ services:
       timeout: 3s
       retries: 5
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.3
+    image: confluentinc/cp-zookeeper:7.7.1
     hostname: zookeeper
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      JDK_JAVA_OPTIONS: "-XX:-UseContainerSupport"
     volumes:
       - zookeeper-data-volume:/var/lib/zookeeper/data
       - zookeeper-log-volume:/var/lib/zookeeper/log
@@ -84,7 +85,7 @@ services:
       timeout: 5s
       retries: 6
   broker:
-    image: confluentinc/cp-kafka:7.5.3
+    image: confluentinc/cp-kafka:7.7.1
     restart: always
     container_name: broker
     ports:
@@ -100,6 +101,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      JDK_JAVA_OPTIONS: "-XX:-UseContainerSupport"
     volumes:
       - kafka-data-volume:/var/lib/kafka/data
 
@@ -120,7 +122,7 @@ services:
     build: ./server
     # image: bsg-server
     ports:
-      - ${PORT_SERVER:-3000}:3000
+      - "3000:3000"
     depends_on:
       - redis-cache
       - central-service

@@ -2,6 +2,7 @@ package requests
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
@@ -11,8 +12,8 @@ import (
 type RoundStartRequest struct {
 	RoomID      string   `json:"roomID" validate:"required"`
 	ProblemList []string `json:"problemList" validate:"required"`
-	StartTime   int64    `json:"startTime"`  // Unix seconds when the round starts
-	Duration    int      `json:"duration"`   // Duration in minutes
+	StartTime   int64    `json:"startTime"` // Unix seconds when the round starts
+	Duration    int      `json:"duration"`  // Duration in minutes
 }
 
 func init() {
@@ -41,8 +42,9 @@ func (r *RoundStartRequest) responseType() response.ResponseType {
 
 // roundStartBroadcast is the data broadcast to all room members on round start.
 type roundStartBroadcast struct {
-	StartTime int64    `json:"startTime"` // Unix seconds
-	Duration  int      `json:"duration"`  // Minutes
+	StartTime int64    `json:"startTime"`
+	ServerNow int64    `json:"serverNow"`
+	Duration  int      `json:"duration"`
 	Problems  []string `json:"problems"`
 }
 
@@ -62,6 +64,7 @@ func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, s
 
 	broadcast := roundStartBroadcast{
 		StartTime: r.StartTime,
+		ServerNow: time.Now().Unix(),
 		Duration:  r.Duration,
 		Problems:  r.ProblemList,
 	}

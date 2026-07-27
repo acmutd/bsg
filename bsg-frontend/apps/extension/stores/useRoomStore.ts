@@ -16,6 +16,9 @@ interface roomStoreState {
   roundEndTime: number | null;
   lastGameEvent: GameEvent | null;
   roomNotice: string | null;
+  problems: string[];
+  lastParticipantJoinTime: number | null;
+  unreadCount: number; // for chat notification count
 
   setIsInRoom: (isInRoom: boolean) => void;
   setRoomId: (roomId: string | null) => void;
@@ -29,6 +32,8 @@ interface roomStoreState {
   setRoundEndTime: (roundEndTime: number | null) => void;
   setLastGameEvent: (lastGameEvent: GameEvent | null) => void;
   setRoomNotice: (roomNotice: string | null) => void;
+  setProblems: (problems: string[]) => void;
+  setLastParticipantJoinTime: (time: number | null) => void;
 
   initRoom: (
     roomId: string,
@@ -52,6 +57,9 @@ const roomStoreInit = {
   roundEndTime: null,
   lastGameEvent: null,
   roomNotice: null,
+  problems: [],
+  lastParticipantJoinTime: null,
+  unreadCount: 0, // set to 0 initially
 };
 
 export const useRoomStore = create<roomStoreState>((set) => ({
@@ -69,6 +77,15 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
   setLastGameEvent: (lastGameEvent) => set({ lastGameEvent: lastGameEvent }),
   setRoomNotice: (roomNotice) => set({ roomNotice: roomNotice }),
+  setProblems: (problems) => set({ problems: problems }),
+  setLastParticipantJoinTime: (time) => set({ lastParticipantJoinTime: time }),
+  incrementUnread: () => set((state) => {
+    return { unreadCount: state.unreadCount + 1 };
+  }),
+  clearUnread: () => {
+    set({ unreadCount: 0 });
+  },
+
 
   initRoom: (
     roomId,
