@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from "./useRoomInit";
+import { SERVER_URL } from "../lib/config";
 
 export type AuthProvider = 'google' | 'github';
 
@@ -28,13 +29,13 @@ export const useLogin = () => {
         try {
 
             //Open the OAuth Window
-            const popup = window.open(`http://localhost:3000/auth/${Provider}`)
+            const popup = window.open(`${SERVER_URL}/auth/${Provider}`)
 
             //Keep polling to see if auth is done or not
             const checkAuth = async () => {
 
                 //wait for response from the server
-                const response = await fetch(`http://localhost:3000/auth/user`, {
+                const response = await fetch(`${SERVER_URL}/auth/user`, {
                     method: "GET",
                     credentials: "include"
                 });

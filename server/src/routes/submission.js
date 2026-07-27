@@ -89,6 +89,24 @@ router.post('/', async (req, res) => {
             return res.status(500).json({ error: 'Failed to submit score' });
         }
 
+        const difficulty = problemData.data?.difficulty;
+        const statsRes = await fetch(`${centralServiceUrl}/api/statistics/${roomID}/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID,
+            },
+            body: JSON.stringify({ runtime, difficulty })
+        });
+
+        if (!statsRes.ok) {
+            logger.error('Failed to update statistics', new Error(await statsRes.text()), {
+                user_id: authID,
+                room_id: roomID,
+            });
+        }
+
         logger.info('Submission processed successfully', {
             user_id: authID,
             room_id: roomID,
