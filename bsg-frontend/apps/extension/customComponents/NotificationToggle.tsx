@@ -20,7 +20,7 @@ export const NotificationToggle = ({
             relative h-9 w-[4.625rem] shrink-0 rounded-full
             transition-colors duration-200 ease-in-out
             disabled:cursor-not-allowed disabled:opacity-50
-            ${enabled ? 'bg-primary' : 'border border-white/80 bg-transparent'}
+            ${enabled ? 'bg-primary' : 'border border-bsg-border bg-transparent'}
         `}
     >
         {/* Label sits in the empty half, opposite the knob */}
@@ -28,7 +28,7 @@ export const NotificationToggle = ({
             className={`
                 pointer-events-none absolute inset-0 z-0 flex items-center
                 text-[11px] font-bold tracking-wide
-                ${enabled ? 'justify-start pl-2.5 text-[#262626]' : 'justify-end pr-2.5 text-white'}
+                ${enabled ? 'justify-start pl-2.5 text-[#262626]' : 'justify-end pr-2.5 text-foreground'}
             `}
         >
             {enabled ? 'ON' : 'OFF'}

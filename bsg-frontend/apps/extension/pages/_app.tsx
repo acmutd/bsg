@@ -16,9 +16,49 @@ import { configReady } from '../lib/config';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
+function useThemeSync() {
+  useEffect(() => {
+    function applyTheme(theme: string) {
+      const root = document.documentElement;
+      root.classList.remove('dark', 'light');
+      root.classList.add(theme === 'light' ? 'light' : 'dark');
+    }
+
+    // Listen for theme messages from contentScript
+    function handleMessage(e: MessageEvent) {
+      if (e.data?.type === 'BSG_THEME_UPDATE') {
+        applyTheme(e.data.theme);
+      }
+    }
+    window.addEventListener('message', handleMessage);
+
+    // Listen for manual theme changes from extension settings
+    function handleStorageChange(changes: { [key: string]: chrome.storage.StorageChange }) {
+      if (changes.themePreference) {
+        const pref = changes.themePreference.newValue;
+        if (pref && pref !== 'auto') {
+          applyTheme(pref);
+        }
+      }
+    }
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+    }
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+      }
+    };
+  }, []);
+}
+
 export default function App({ Component, pageProps }: AppProps) {
 
   const [configLoaded, setConfigLoaded] = useState(false);
+
+  useThemeSync();
 
   useEffect(() => {
     configReady.then(() => setConfigLoaded(true));

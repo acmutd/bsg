@@ -27,6 +27,8 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
 
     const chatNotificationsEnabled = useSettingsStore(s => s.chatNotificationsEnabled);
     const setChatNotificationsEnabled = useSettingsStore(s => s.setChatNotificationsEnabled);
+    const themePreference = useSettingsStore(s => s.themePreference);
+    const setThemePreference = useSettingsStore(s => s.setThemePreference);
     const loadSettings = useSettingsStore(s => s.loadSettings);
 
     useEffect(() => {
@@ -94,7 +96,7 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
             <div className="flex flex-col gap-2 w-full">
                 <div className="text-sm text-foreground/60 font-medium">Edit Timer</div>
 
-                <div className="rounded-lg border border-[#454545] p-4">
+                <div className="rounded-lg border border-bsg-border p-4">
                     {!isAdmin ? (
                         <p className="text-sm text-foreground/50">
                             Only the room admin can change the timer.
@@ -133,6 +135,30 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
                 />
             </div>
 
+            <div className="flex flex-col gap-2 w-full">
+                <div className="text-sm text-foreground/60 font-medium">Theme</div>
+                <div className="flex gap-1 rounded-lg border border-bsg-border p-1">
+                    {(['auto', 'dark', 'light'] as const).map((pref) => (
+                        <button
+                            key={pref}
+                            onClick={() => setThemePreference(pref)}
+                            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                themePreference === pref
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-transparent text-foreground/60 hover:bg-bsg-hover'
+                            }`}
+                        >
+                            {pref === 'auto' ? 'Auto' : pref === 'dark' ? 'Dark' : 'Light'}
+                        </button>
+                    ))}
+                </div>
+                <span className="text-xs text-foreground/50">
+                    {themePreference === 'auto'
+                        ? 'Follows LeetCode\'s theme setting'
+                        : `Locked to ${themePreference} mode`}
+                </span>
+            </div>
+
             {isAdmin && !isRoundStarted && (
                 <div className="mt-auto">
                     {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
@@ -143,7 +169,7 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
                         type="button"
                         onClick={onSave}
                         disabled={saving || !dirty}
-                        className="w-full rounded-md bg-white/10 py-2 text-sm font-medium hover:bg-[#484848] disabled:opacity-30"
+                        className="w-full rounded-md bg-bsg-glass py-2 text-sm font-medium hover:bg-bsg-hover disabled:opacity-30"
                     >
                         {saving ? 'Saving…' : 'Save'}
                     </button>
