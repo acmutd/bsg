@@ -545,8 +545,8 @@ func (service *RoundService) CreateRoundSubmission(
 	if service.rtcClient != nil {
 		var userHandle string
 		var user models.User
-		if err := service.db.Where("auth_id = ?", submissionAuthor).First(&user).Error; err == nil && user.Email != "" {
-			userHandle = user.Email
+		if err := service.db.Where("auth_id = ?", submissionAuthor).First(&user).Error; err == nil && user.Handle != "" {
+			userHandle = user.Handle
 		} else {
 			userHandle = submissionAuthor
 		}
