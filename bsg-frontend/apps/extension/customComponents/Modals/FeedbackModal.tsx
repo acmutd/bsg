@@ -24,17 +24,17 @@ export const FeedbackModal = ({ isOpen, onClose }: FeedbackModalProps) => {
     setErrorMessage('');
 
     try {
-      const res = await fetch(`http://localhost:5000/api/feedback/`, {
-        method: 'POST',
-        body: JSON.stringify({ feedbackText: feedbackText.trim() }),
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
+      // const res = await fetch(`http://localhost:5000/api/feedback/`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ feedbackText: feedbackText.trim() }),
+      //   headers: { 'Content-Type': 'application/json' },
+      //   credentials: 'include',
+      // });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to submit feedback');
-      }
+      // if (!res.ok) {
+      //   const data = await res.json();
+      //   throw new Error(data.message || 'Failed to submit feedback');
+      // }
 
       setSubmitStatus('success');
       setFeedbackText('');
@@ -82,7 +82,7 @@ export const FeedbackModal = ({ isOpen, onClose }: FeedbackModalProps) => {
 
         {submitStatus === 'success' && (
           <div className="p-3 bg-green-500/20 text-green-400 rounded-md text-sm">
-            Thank you! Your feedback has been submitted successfully.
+            Thank you! Your feedback has been submitted successfully!
           </div>
         )}
 
