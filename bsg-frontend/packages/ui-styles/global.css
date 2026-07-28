@@ -53,12 +53,42 @@
     --bsg-dark: 26 26 26;
     --bsg-glass: rgba(255 255 255 / 0.1);
     --bsg-glass-strong: rgba(255 255 255 / 0.22);
+    --bsg-glass-shadow: inset 0 6px 12px rgba(255, 255, 255, 0.06), inset 0 -6px 12px rgba(0, 0, 0, 0.15);
   }
 
   .light {
     color-scheme: light;
 
     --foreground: 26 26 26;
+
+    --card: 255 255 255;
+    --card-foreground: 26 26 26;
+
+    --popover: 255 255 255;
+    --popover-foreground: 26 26 26;
+
+    --primary: 114 171 28;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 220 220 220;
+    --secondary-foreground: 17 24 39;
+
+    --muted: 240 240 240;
+    --muted-foreground: 87 87 87;
+
+    --accent: 238 238 238;
+    --accent-foreground: 17 24 39;
+
+    --destructive: 220 38 38;
+    --destructive-foreground: 255 255 255;
+
+    --border: 212 212 212;
+    --input: 212 212 212;
+
+    --inputBackground: 245 245 245;
+    --ring: 26 26 26;
+
+    --brand: 100 100 100;
 
     --background: 255 255 255;
 
@@ -74,10 +104,7 @@
     --bsg-dark: 240 240 240;
     --bsg-glass: rgba(0 0 0 / 0.08);
     --bsg-glass-strong: rgba(0 0 0 / 0.22);
-
-    --inputBackground: 245 245 245;
-
-    --secondary: 220 220 220;
+    --bsg-glass-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.04), inset 0 -6px 12px rgba(0, 0, 0, 0.08);
   }
 
   * {

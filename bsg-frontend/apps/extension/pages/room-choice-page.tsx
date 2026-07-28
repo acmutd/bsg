@@ -64,7 +64,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
             {/* Main card */}
             <div
-                className={`relative w-full p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-[inset_0_6px_12px_rgba(255,255,255,0.06),inset_0_-6px_12px_rgba(0,0,0,0.15)] ${showCreateOptions ? 'invisible' : ''}`}>
+                className={`relative w-full p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
                 <h1 className="text-lg text-foreground font-semibold mb-4">Create a room or join one</h1>
 
                 <div className="space-y-4">
@@ -118,7 +118,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
             {showCreateOptions && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-3">
                     <div
-                        className="w-full max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-[inset_0_6px_12px_rgba(255,255,255,0.06),inset_0_-6px_12px_rgba(0,0,0,0.15)]">
+                        className="w-full max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
                         <div className="flex items-start justify-between mb-5">
                             <h2 className="text-lg text-foreground font-semibold">Create Room</h2>
                             <button

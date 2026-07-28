@@ -14,7 +14,7 @@ export default function DefaultPopup() {
                 <div className="absolute bottom-[-30%] right-[-30%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
             </div>
 
-            <div className="relative p-4 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-[inset_0_6px_12px_rgba(255,255,255,0.06),inset_0_-6px_12px_rgba(0,0,0,0.15)]">
+            <div className="relative p-4 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
                 <div className="flex justify-center mb-3">
                     <Logo/>
                 </div>
