@@ -22,6 +22,8 @@ export function useRoomEvents() {
     const setResetRoom = useRoomStore(s => s.resetRoom);
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
+    const isAdmin = useRoomStore(s => s.isAdmin)
+    const adminId = useRoomStore(s => s.adminId)
 
     // Refresh participants when someone joins or leaves
     useEffect(() => {
@@ -218,11 +220,10 @@ export function useRoomEvents() {
             const message = await response.json()
             if(response.ok){
 
-
                 if(typeof chrome !== 'undefined' && chrome.runtime?.id){
                     chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
                 }
-                
+
                 setResetRoom();
 
                 router.push('/start-page')
