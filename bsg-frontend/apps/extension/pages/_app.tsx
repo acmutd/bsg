@@ -24,6 +24,18 @@ function useThemeSync() {
       root.classList.add(theme === 'light' ? 'light' : 'dark');
     }
 
+    // Apply initial theme from storage (configReady ensures chrome.storage is ready)
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get(['themePreference'], (result) => {
+        const pref = result.themePreference;
+        if (pref && pref !== 'auto') {
+          applyTheme(pref);
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          applyTheme('light');
+        }
+      });
+    }
+
     // Listen for theme messages from contentScript
     function handleMessage(e: MessageEvent) {
       if (e.data?.type === 'BSG_THEME_UPDATE') {

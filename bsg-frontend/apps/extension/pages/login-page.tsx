@@ -16,7 +16,7 @@ export default function LoginPage() {
             </div>
 
             {/* Main card */}
-            <div className="relative w-full max-w-[320px] flex flex-col items-center p-8 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-[inset_0_6px_12px_rgba(255,255,255,0.06),inset_0_-6px_12px_rgba(0,0,0,0.15)] gap-8">
+            <div className="relative w-full max-w-[320px] flex flex-col items-center p-8 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass gap-8">
 
                 {/* Logo + title */}
                 <div className="flex flex-col items-center gap-4">

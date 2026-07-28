@@ -87,6 +87,9 @@ const config: Config = {
             },
             spacing: {
                 "22": "5.5rem"
+            },
+            boxShadow: {
+                "bsg-glass": "var(--bsg-glass-shadow)",
             }
         },
     },
