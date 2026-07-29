@@ -116,6 +116,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true;
   }
+  
+  //to handle leaving room properly and removing the activeRoomId from the local storage
+  //to stay in sync 
+  if(request.type === 'LEAVE_ROOM'){
+    const activeRoomId = request.data
+    chrome.storage.local.remove('activeRoomId')
+    
+    return false;
+  }
 
   // submission intercept logic
   if (request.type === 'SUBMISSION_PENDING') {
