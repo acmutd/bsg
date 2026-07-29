@@ -16,6 +16,10 @@ type RoomController struct {
 	logger      *utils.StructuredLogger
 }
 
+type newAdmin struct {
+	AdminID string `json:"adminId"`
+}
+
 func InitializeRoomController(roomService *services.RoomService, userService *services.UserService, logger *utils.StructuredLogger) RoomController {
 	return RoomController{roomService, userService, logger}
 }
@@ -129,6 +133,12 @@ func (controller *RoomController) GetRoomParticipantsEndpoint(c echo.Context) er
 func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	roomID := c.Param("roomID")
+	var adminId newAdmin
+
+	if err := c.Bind(&adminId); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
 	err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
 		controller.logger.Error("Failed to leave room", err, map[string]interface{}{

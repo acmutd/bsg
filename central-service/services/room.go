@@ -645,3 +645,5 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 	}
 	return nil
 }
+
+//updating roomAdmin

@@ -213,13 +213,15 @@ router.get('/:id', ensureAuth, async (req, res) => {
 router.post('/:id/leave', ensureAuth, async (req, res) => {
     const authID = req.user.id;
     const { id } = req.params;
+    const body = req.body;
     try {
         const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/leave`, {
             method: 'POST',
             headers: {
                 'X-Server-Secret': serverSecret,
                 'X-User-Auth-ID': authID
-            }
+            },
+            body: body,
         });
         const data = await response.json();
         res.status(response.status).json(data);

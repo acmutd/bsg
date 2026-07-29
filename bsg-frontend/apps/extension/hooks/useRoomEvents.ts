@@ -4,6 +4,7 @@ import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
+import next from "next";
 
 export function useRoomEvents() {
 
@@ -22,8 +23,9 @@ export function useRoomEvents() {
     const setResetRoom = useRoomStore(s => s.resetRoom);
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
-    const isAdmin = useRoomStore(s => s.isAdmin)
-    const adminId = useRoomStore(s => s.adminId)
+    const setIsAdmin = useRoomStore(s => s.setIsAdmin)
+    const setAdminId = useRoomStore(s => s.setAdminId)
+    const participants = useRoomStore(s => s.participants)
 
     // Refresh participants when someone joins or leaves
     useEffect(() => {
@@ -212,30 +214,68 @@ export function useRoomEvents() {
 
         if(!roomId && !userId) return;
 
-        try {
-            const response = await fetch(`${getServerUrl()}/rooms/${roomId}/leave`, {
-                    method: 'POST',
-                    credentials: 'include'
-            });
-            const message = await response.json()
-            if(response.ok){
+        //if only one participant then leave room and delete room
+        if(participants.length == 1){
+            try {
+                const response = await fetch(`${getServerUrl()}/rooms/${roomId}/leave`, {
+                            method: 'POST',
+                            credentials: 'include'
+                    });
+                const message = await response.json()
 
-                if(typeof chrome !== 'undefined' && chrome.runtime?.id){
-                    chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
+                if(response.ok){
+
+                    router.push('/start-page')
+
+                    if(typeof chrome !== 'undefined' && chrome.runtime?.id){
+                        chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
+                    }
+
+                    //reset Room completely when no more participants in the room
+                    setResetRoom();
+                } else {
+                    console.log(message.message)
                 }
 
-                setResetRoom();
-
-                router.push('/start-page')
-            } else{
-                console.error(message)
+            } catch(error){
+                console.warn("Unexpected error trying to leave room, Please try again")
             }
 
-        } catch(error){
-            console.warn('Unable to send request to leave room')
-        }
+        } else {
 
+            const nextParticipant = participants[1]
+            setAdminId(nextParticipant.id)
+            setIsAdmin(true)
+            if(typeof chrome !== 'undefined' && chrome.storage.local){
+                chrome.storage.local.set({ currentAdminId:nextParticipant})
+            }
+
+            const payload = {
+                adminId: nextParticipant
+            }
+            
+            try {
+                const response = await fetch(`${getServerUrl}/rooms/${roomId}/leave`, {
+                    method: 'POST',
+                    headers: {
+                        content: "application/json"
+                    },
+                    body: JSON.stringify(payload),
+                    credentials: "include"
+                })
+                
+
+
+
+            } catch(error){
+
+
+            }
+
+
+        }
     }
+    
 
     return { handleStartRound, handleEndRound, handleLeaveRoom };
 }
