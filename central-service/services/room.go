@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -12,6 +13,7 @@ import (
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -69,13 +71,14 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		expiresAt = &t
 	}
 	newRoom := models.Room{
-		ID:        uuid.New(),
-		ShortCode: shortCode,
-		Name:      room.Name,
-		Admin:     adminID,
-		TTL:       room.TTL,
-		ExpiresAt: expiresAt,
-		Rounds:    []models.Round{},
+		ID:          uuid.New(),
+		ShortCode:   shortCode,
+		Name:        room.Name,
+		Admin:       adminID,
+		TTL:         room.TTL,
+		ExpiresAt:   expiresAt,
+		Rounds:      []models.Round{},
+		RoomMembers: []string{},
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
@@ -216,6 +219,14 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err != nil {
 		return nil, err
 	}
+
+	if userID != room.Admin {
+		err := service.addRoomMembers(userID, roomID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
@@ -643,5 +654,23 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 			log.Printf("Error sending round-end message: %v", err)
 		}
 	}
+	return nil
+}
+
+func (service *RoomService) addRoomMembers(userID string, roomId string) error {
+
+	room, err := service.FindRoomByID(roomId)
+	if err != nil {
+		var bsgErr BSGError
+		if errors.As(err, &bsgErr) {
+			return echo.NewHTTPError(bsgErr.StatusCode, bsgErr.Message)
+		} else {
+			return echo.NewHTTPError(500, "Internal Server Error")
+		}
+	}
+	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("room_members", userID).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
