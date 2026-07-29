@@ -22,6 +22,7 @@ export function useRoomEvents() {
     const setResetRoom = useRoomStore(s => s.resetRoom);
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
+    const setAdminID = useRoomStore(s => s.setAdminId);
 
     // Refresh participants when someone joins or leaves
     useEffect(() => {
@@ -215,12 +216,29 @@ export function useRoomEvents() {
                     method: 'POST',
                     credentials: 'include'
             });
-            const message = await response.json()
+            const data = await response.json()
+
             if(response.ok){
-                setResetRoom();
+
+                const newAdminId = data.userId
+
+                if(typeof chrome !== 'undefined' && chrome.runtime?.id){
+                    chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
+                }
+
+                if(newAdminId !== ""){
+                    setAdminID(newAdminId)
+                    if(typeof chrome !== 'undefined' && chrome.storage.local){
+                        chrome.storage.local.set({currentAdmin:newAdminId})
+                    }
+                } else {
+                    //reset entire room since no new admin
+                    setResetRoom();
+                }
                 router.push('/start-page')
             } else{
-                console.error(message)
+                console.error(data.message)
+                console.log("got to the other part somethings up")
             }
 
         } catch(error){
