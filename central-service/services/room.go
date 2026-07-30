@@ -659,7 +659,7 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 
 func (service *RoomService) addRoomMembers(userID string, roomId string) error {
 
-	room, err := service.FindRoomByID(roomId)
+	room, err := service.FindRoomByShortCode(roomId)
 	if err != nil {
 		var bsgErr BSGError
 		if errors.As(err, &bsgErr) {
