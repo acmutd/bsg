@@ -2,11 +2,13 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
@@ -179,7 +181,9 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
+	fmt.Println(roomID)
 	uuid, err := uuid.Parse(roomID)
+	fmt.Println(uuid)
 	if err != nil {
 		return nil, BSGError{
 			StatusCode: 400,
@@ -187,6 +191,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 		}
 	}
 	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
+	fmt.Println(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -658,19 +663,28 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 }
 
 func (service *RoomService) addRoomMembers(userID string, roomId string) error {
-
-	room, err := service.FindRoomByShortCode(roomId)
+	room, err := service.FindRoomByID(roomId)
 	if err != nil {
 		var bsgErr BSGError
 		if errors.As(err, &bsgErr) {
 			return echo.NewHTTPError(bsgErr.StatusCode, bsgErr.Message)
-		} else {
-			return echo.NewHTTPError(500, "Internal Server Error")
 		}
-	}
-	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("room_members", userID).Error; err != nil {
-		return err
+		return echo.NewHTTPError(500, "Internal Server Error")
 	}
 
+	// skip if already a member
+	if slices.Contains(room.RoomMembers, userID) {
+		return nil
+	}
+
+	room.RoomMembers = append(room.RoomMembers, userID) // <-- this was missing
+
+	data, err := json.Marshal(room.RoomMembers)
+	if err != nil {
+		return err
+	}
+	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("room_members", string(data)).Error; err != nil {
+		return err
+	}
 	return nil
 }
