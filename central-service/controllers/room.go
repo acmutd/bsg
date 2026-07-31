@@ -129,7 +129,7 @@ func (controller *RoomController) GetRoomParticipantsEndpoint(c echo.Context) er
 func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 	userAuthID := c.Get("userAuthID").(string)
 	roomID := c.Param("roomID")
-	err := controller.roomService.LeaveRoom(roomID, userAuthID)
+	newAdmin, err := controller.roomService.LeaveRoom(roomID, userAuthID)
 	if err != nil {
 		controller.logger.Error("Failed to leave room", err, map[string]interface{}{
 			"user_id": userAuthID,
@@ -141,14 +141,9 @@ func (controller *RoomController) LeaveRoomEndpoint(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to leave room. Please try again later")
 	}
 
-	newAdminID, err := controller.roomService.FindRightfulRoomAdmin(roomID)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	}
-
 	return c.JSON(http.StatusOK, map[string]string{
-		"message": "Successfully Left Room",
-		"userId":  newAdminID,
+		"message":  "Successfully Left Room",
+		"newAdmin": newAdmin,
 	})
 }
 
