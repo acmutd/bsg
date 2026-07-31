@@ -1,8 +1,8 @@
 const PRODUCTION_SERVER_URL = 'https://api.binarysearchgang.com';
 const PRODUCTION_RTC_URL = 'wss://api.binarysearchgang.com/ws';
 
-let _serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || PRODUCTION_SERVER_URL;
-let _rtcUrl = process.env.NEXT_PUBLIC_RTC_SERVICE_URL || PRODUCTION_RTC_URL;
+let _serverUrl = 'http://localhost:3000' //process.env.NEXT_PUBLIC_SERVER_URL || PRODUCTION_SERVER_URL;
+let _rtcUrl = 'ws://localhost:5001/ws' //process.env.NEXT_PUBLIC_RTC_SERVICE_URL || PRODUCTION_RTC_URL;
 
 let _resolve!: () => void;
 export const configReady: Promise<void> = new Promise<void>((resolve) => {
