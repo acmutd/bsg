@@ -199,26 +199,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 // redirect logic
-const RTC_SERVICE_URL = CONFIG.RTC_SERVICE_URL;
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
 
-chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
-  if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
-  if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
+chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], async (result) => {
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
 
-  // Auto-detect local dev: if no explicit override, probe localhost:3000
-  if (!result.configServerUrl) {
-    fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) })
-      .then(() => {
-        CONFIG.SERVER_URL = 'http://localhost:3000';
-        CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
-        chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
-      })
-      .catch(() => {});
+  // Auto-detect local dev: always probe localhost first and prefer it when reachable
+  try {
+    await fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) });
+    CONFIG.SERVER_URL = 'http://localhost:3000';
+    CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+    chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
+  } catch (e) {
+    if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
+    if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
   }
 
   if (activeRoomId && userProfile) {
@@ -251,7 +248,7 @@ function connectWebSocket() {
     return;
   }
 
-  socket = new WebSocket(RTC_SERVICE_URL);
+  socket = new WebSocket(CONFIG.RTC_SERVICE_URL);
 
   socket.onopen = () => {
     if (activeRoomId && userProfile) {
