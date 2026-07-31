@@ -313,12 +313,13 @@ export function useRoomEvents() {
                 if(typeof chrome !== 'undefined' && chrome.runtime?.id){
                     chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
                 }
-
+                //transfer ownership of admin
                 if(newAdminId !== ""){
                     setAdminID(newAdminId)
                     if(typeof chrome !== 'undefined' && chrome.storage.local){
                         chrome.storage.local.set({currentAdmin:newAdminId})
                     }
+
                 } else {
                     //reset entire room since no new admin
                     setResetRoom();
