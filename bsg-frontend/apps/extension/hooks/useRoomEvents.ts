@@ -220,8 +220,8 @@ export function useRoomEvents() {
 
             if(response.ok){
 
-                const newAdminId = data.userId
-
+                const newAdminId = data.newAdmin
+                
                 if(typeof chrome !== 'undefined' && chrome.runtime?.id){
                     chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
                 }
