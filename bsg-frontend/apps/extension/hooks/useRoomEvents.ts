@@ -300,6 +300,7 @@ export function useRoomEvents() {
 
             if(response.ok){
 
+
                 if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
                     chrome.storage.local.remove("activeRoomId");
                     chrome.storage.local.remove('roundEndTime');
@@ -307,8 +308,8 @@ export function useRoomEvents() {
                     chrome.storage.local.remove("problems");
                 }
 
-                const newAdminId = data.userId
-
+                const newAdminId = data.newAdmin
+                
                 if(typeof chrome !== 'undefined' && chrome.runtime?.id){
                     chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
                 }
