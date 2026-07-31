@@ -249,12 +249,10 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			UserHandle: userID,
 			RoomID:     roomID,
 		}
+		// Non-fatal: RTC is a real-time notification layer; Redis/DB is the
+		// source of truth. If RTC is unavailable the room still works.
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
-			log.Printf("Error sending join-room message: %v", err)
-			return nil, BSGError{
-				StatusCode: 500,
-				Message:    "Internal Server Error",
-			}
+			log.Printf("Error sending join-room message (non-fatal): %v", err)
 		}
 	}
 	return room, nil
@@ -276,12 +274,11 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (string, err
 			UserHandle: userID,
 			RoomID:     roomID,
 		}
+		// Non-fatal: Redis membership is already removed above; RTC is a
+		// notification layer and may legitimately not know the user
+		// (e.g. after rtc-service restart loses in-memory state).
 		if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
-			log.Printf("Error sending leave-room message: %v", err)
-			return "", BSGError{
-				StatusCode: 500,
-				Message:    "Internal Server Error",
-			}
+			log.Printf("Error sending leave-room message (non-fatal): %v", err)
 		}
 	}
 	// Delete room if room is now empty

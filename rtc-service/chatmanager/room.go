@@ -32,10 +32,10 @@ func (r *Room) AddUser(user *User) {
 	r.Lock()
 	defer r.Unlock()
 
-	// Check user already exists
+	// Replace any stale entry from a previous connection so reconnects
+	// don't get rejected while the old one is being cleaned up.
 	if _, ok := r.Users[user.Handle]; ok {
-		logging.Error("User already exists")
-		return
+		logging.Info("Replacing existing user: ", user.Handle)
 	}
 
 	r.Users[user.Handle] = user

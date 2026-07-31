@@ -123,6 +123,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const activeRoomId = request.data
     chrome.storage.local.remove('activeRoomId')
     
+    // leave the RTC room so the server cleans up our membership immediately
+    if (socket && socket.readyState === WebSocket.OPEN && userProfile && joinedRoomId) {
+      socket.send(JSON.stringify({
+        name: userProfile.id + '_bg',
+        "request-type": "leave-room",
+        data: JSON.stringify({
+          userHandle: userProfile.id + '_bg',
+          roomID: joinedRoomId
+        })
+      }));
+    }
+    joinedRoomId = null;
     return false;
   }
 
@@ -202,6 +214,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
+let joinedRoomId = null;
 
 chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], async (result) => {
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
@@ -242,7 +255,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 function connectWebSocket() {
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     // if already open, ensure we are in the correct room
-    if (socket.readyState === WebSocket.OPEN && activeRoomId && userProfile) {
+    if (socket.readyState === WebSocket.OPEN && activeRoomId && userProfile && joinedRoomId !== activeRoomId) {
       sendJoinRoom();
     }
     return;
@@ -289,6 +302,7 @@ function connectWebSocket() {
 
   socket.onclose = () => {
     socket = null;
+    joinedRoomId = null;
     setTimeout(() => {
       if (activeRoomId) connectWebSocket();
     }, 5000);
@@ -301,6 +315,7 @@ function connectWebSocket() {
 
 function sendJoinRoom() {
   if (!socket || socket.readyState !== WebSocket.OPEN || !activeRoomId || !userProfile) return;
+  if (joinedRoomId === activeRoomId) return;
 
   const payload = {
     name: userProfile.id + '_bg',
@@ -312,6 +327,7 @@ function sendJoinRoom() {
   };
 
   socket.send(JSON.stringify(payload));
+  joinedRoomId = activeRoomId;
 }
 
 

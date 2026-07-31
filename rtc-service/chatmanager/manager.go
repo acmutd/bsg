@@ -48,6 +48,28 @@ func (sm *ChatManager) GetRoom(roomID string) *Room {
 	return nil
 }
 
+// Remove a user handle from every room they are a member of.
+// Called when a service disconnects so stale memberships don't accumulate.
+func (cm *ChatManager) RemoveUserFromAllRooms(handle string) {
+	cm.RLock()
+	rooms := make([]*Room, 0, len(cm.Rooms))
+	for room := range cm.Rooms {
+		rooms = append(rooms, room)
+	}
+	cm.RUnlock()
+
+	for _, room := range rooms {
+		user := room.GetUser(handle)
+		if user == nil {
+			continue
+		}
+		room.RemoveUser(user)
+		if room.IsEmpty() {
+			cm.RemoveRoom(room)
+		}
+	}
+}
+
 // Remove a room from the list of rooms.
 // Only remove a room if it is empty.
 func (sm *ChatManager) RemoveRoom(room *Room) {

@@ -1,15 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
 
+// Minimum gap between announcement-triggered participant refreshes.
+// Prevents join/leave announcement storms from hammering the API.
+const PARTICIPANTS_REFRESH_THROTTLE_MS = 5000;
+
 export function useRoomEvents() {
 
     const [ nextProblem, setNextProblem ] = useState<string | null>(null);
 
     const router = useRouter();
+
+    const lastParticipantsRefresh = useRef<number>(0);
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const isInRoom = useRoomStore(s => s.isInRoom);
@@ -27,6 +33,9 @@ export function useRoomEvents() {
     // Refresh participants when someone joins or leaves
     useEffect(() => {
         if (!lastParticipantJoinTime || !roomId) return;
+        const now = Date.now();
+        if (now - lastParticipantsRefresh.current < PARTICIPANTS_REFRESH_THROTTLE_MS) return;
+        lastParticipantsRefresh.current = now;
         setRoomParticipants(roomId);
     }, [lastParticipantJoinTime, roomId]);
 

@@ -48,6 +48,7 @@ func NewClient(name string, conn *websocket.Conn, manager *ServiceManager) *Serv
 func (s *Service) ReadMessages() {
 	defer func() {
 		s.ServiceManager.RemoveService(s)
+		chatmanager.RTCChatManager.RemoveUserFromAllRooms(s.Name)
 	}()
 
 	if err := s.Connection.SetReadDeadline(time.Now().Add(PONG_WAIT)); err != nil {
