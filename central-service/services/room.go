@@ -181,9 +181,9 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
-	fmt.Println(roomID)
+
 	uuid, err := uuid.Parse(roomID)
-	fmt.Println(uuid)
+
 	if err != nil {
 		return nil, BSGError{
 			StatusCode: 400,
@@ -262,13 +262,13 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 
 // Allows a user to leave a room
 // If the departing user is the room leader, a new leader will be assigned
-func (service *RoomService) LeaveRoom(roomID string, userID string) error {
+func (service *RoomService) LeaveRoom(roomID string, userID string) (string, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := service.removeJoinMember(roomID, userID); err != nil {
-		return err
+		return "", err
 	}
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
@@ -278,32 +278,37 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 		}
 		if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
 			log.Printf("Error sending leave-room message: %v", err)
-			return BSGError{
+			return "", BSGError{
 				StatusCode: 500,
 				Message:    "Internal Server Error",
 			}
 		}
 	}
-	// Delete room if creator leaves or room is now empty
+	// Delete room if room is now empty
 	users, err := service.FindActiveUsers(roomID)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if room.Admin == userID || len(users) == 0 {
+
+	if len(users) == 0 {
 		service.cancelRoomExpiry(roomID)
-		return service.deleteRoom(*room)
+		return "", service.deleteRoom(*room)
 	}
-	if wasAdmin, err := service.IsRoomAdmin(roomID, userID); err != nil {
-		return err
-	} else if wasAdmin {
-		if result, err := service.FindRightfulRoomAdmin(roomID); err != nil {
-			return err
-		} else if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
-			log.Printf("Error updating room admin in the database: %v\n", err)
-			return err
+
+	if room.Admin == userID {
+		newAdmin, err := service.FindRightfulRoomAdmin(roomID)
+		if err != nil {
+			return "", err
 		}
+		if err := service.db.Model(&room).Update("Admin", newAdmin).Error; err != nil {
+			return "", err
+		}
+
+		return newAdmin, nil
+
 	}
-	return nil
+
+	return "", nil
 }
 
 // Adds a user's join timestamp to the Redis cache
@@ -677,7 +682,7 @@ func (service *RoomService) addRoomMembers(userID string, roomId string) error {
 		return nil
 	}
 
-	room.RoomMembers = append(room.RoomMembers, userID) // <-- this was missing
+	room.RoomMembers = append(room.RoomMembers, userID)
 
 	data, err := json.Marshal(room.RoomMembers)
 	if err != nil {
@@ -686,5 +691,19 @@ func (service *RoomService) addRoomMembers(userID string, roomId string) error {
 	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("room_members", string(data)).Error; err != nil {
 		return err
 	}
+	return nil
+}
+
+func (service *RoomService) UpdateAdmin(userID string, roomId string) error {
+	room, err := service.FindRoomByID(roomId)
+	if err != nil {
+		return err
+	}
+	room.Admin = userID
+
+	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("admin", room.Admin).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
