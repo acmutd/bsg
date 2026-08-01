@@ -22,7 +22,7 @@ import { useStatistics } from "../../hooks/useStatistics";
 
 export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
-    const { statistics } = useStatistics();
+    const { statistics } = useStatistics(isActive);
     const isAnimationsActive = true;
 
     type ActiveChart = 'score' | 'percentile' | 'solveTime' | 'runTime' | 'memory';

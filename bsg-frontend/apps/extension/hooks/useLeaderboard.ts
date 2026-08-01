@@ -26,7 +26,7 @@ const POLL_INTERVAL_MS = 15_000;
  * - Triggers an extra fetch when a round ends (so final standings display).
  * - Maps backend `LeaderboardEntry[]` → frontend `Participant[]`.
  */
-export function useLeaderboard() {
+export function useLeaderboard(isActive: boolean) {
     const roomId = useRoomStore((s) => s.roomId);
     const isRoundStarted = useRoomStore((s) => s.isRoundStarted);
     const lastGameEvent = useRoomStore((s) => s.lastGameEvent);
@@ -91,10 +91,12 @@ export function useLeaderboard() {
         }
     }, [roomId]);
 
-    // ── Initial fetch whenever the room changes ──────────────────────────────
+    // ── Initial fetch whenever the room changes or the tab becomes active ─────
     useEffect(() => {
-        fetchLeaderboard();
-    }, [fetchLeaderboard]);
+        if (isActive) {
+            fetchLeaderboard();
+        }
+    }, [fetchLeaderboard, isActive]);
 
     // ── Polling: active while a round is running ─────────────────────────────
     useEffect(() => {
@@ -103,7 +105,7 @@ export function useLeaderboard() {
             intervalRef.current = null;
         }
 
-        if (isRoundStarted && roomId) {
+        if (isRoundStarted && roomId && isActive) {
             intervalRef.current = setInterval(fetchLeaderboard, POLL_INTERVAL_MS);
         }
 
@@ -113,14 +115,14 @@ export function useLeaderboard() {
                 intervalRef.current = null;
             }
         };
-    }, [isRoundStarted, roomId, fetchLeaderboard]);
+    }, [isRoundStarted, roomId, isActive, fetchLeaderboard]);
 
     // ── Extra fetch on round-end so final standings appear immediately ────────
     useEffect(() => {
-        if (lastGameEvent?.type === 'round-end') {
+        if (isActive && lastGameEvent?.type === 'round-end') {
             fetchLeaderboard();
         }
-    }, [lastGameEvent, fetchLeaderboard]);
+    }, [lastGameEvent, isActive, fetchLeaderboard]);
 
     return { participants, isLoading, error, refresh: fetchLeaderboard };
 }
