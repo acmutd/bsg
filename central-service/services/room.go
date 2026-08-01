@@ -190,7 +190,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 			Message:    "roomID could not be parsed",
 		}
 	}
-	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", uuid).Limit(1).Find(&room)
 	fmt.Println(&room)
 	if result.Error != nil {
 		return nil, result.Error
@@ -207,7 +207,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 // finds a room by its short code (e.g. "A3K9PQ")
 func (service *RoomService) FindRoomByShortCode(code string) (*models.Room, error) {
 	var room models.Room
-	result := service.db.Preload("Rounds").Where("short_code = ?", code).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("short_code = ?", code).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}

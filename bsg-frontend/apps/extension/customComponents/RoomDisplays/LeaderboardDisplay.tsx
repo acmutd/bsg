@@ -210,7 +210,7 @@ const LeaderboardSkeleton = () => (
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
-    const { participants, isLoading, error, refresh } = useLeaderboard();
+    const { participants, isLoading, error, refresh } = useLeaderboard(isActive);
 
     // Backend already returns entries sorted by rank; treat them as sorted.
     const sorted = participants;
