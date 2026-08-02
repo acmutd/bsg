@@ -26,7 +26,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
     return (
         <div
             onDoubleClick={() => messageScript('UNFOLD')}
-            className="bg-[#262626] w-9 flex flex-col relative items-center"
+            className="bg-bsg-bg w-9 flex flex-col relative items-center"
         >
             {
                 isInRoom ?
@@ -37,7 +37,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                         <div className="flex flex-col absolute top-0 w-full items-center pointer-events-none z-10">
 
                             {/* Logo */}
-                            <div className="flex flex-col w-full items-center bg-[#262626] pointer-events-auto">
+                            <div className="flex flex-col w-full items-center bg-bsg-bg pointer-events-auto">
                                 <div className="flex pt-2 px-1 gap-1 font-medium text-sm">
                                     <div className="relative w-5 h-5 flex items-center justify-center">
                                         <svg
@@ -91,7 +91,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             </div>
 
                             {/* Fade */}
-                            <div className={`h-8 w-full bg-[linear-gradient(to_bottom,#262626_33.3%,transparent)] ${(isScrolledY) ? '' : 'hidden'}`} />
+                            <div className={`h-8 w-full bg-[linear-gradient(to_bottom,rgb(var(--bsg-bg))_33.3%,transparent)] ${(isScrolledY) ? '' : 'hidden'}`} />
                         </div>
 
                         {/* Tabs */}
@@ -100,13 +100,13 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             className="flex flex-col items-center w-full pt-8 pb-14 overflow-y-auto no-scrollbar"
                         >
 
-                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('roomInfo')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => selectTabAndUnfold('roomInfo')}
-                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'roomInfo') ? '' : 'opacity-60'}`}>
                                     <div className={`[writing-mode:vertical-lr] rotate-180 ${(activeTab === 'roomInfo') ? 'font-medium' : 'font-normal'}`}>Room</div>
@@ -128,13 +128,13 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 </div>
                             </Button>
 
-                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'roomInfo' || hoveredTab === 'chat') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'roomInfo' || hoveredTab === 'chat') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('chat')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => selectTabAndUnfold('chat')}
-                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'chat') ? '' : 'opacity-60'}`}>
                                     <div className={`[writing-mode:vertical-lr] rotate-180 ${(activeTab === 'chat') ? 'font-medium' : 'font-normal'}`}>Chat</div>
@@ -152,13 +152,13 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 </div>
                             </Button>
 
-                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => selectTabAndUnfold('leaderboard')}
-                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'leaderboard') ? '' : 'opacity-60'}`}>
                                     <div className={`[writing-mode:vertical-lr] rotate-180 ${(activeTab === 'leaderboard') ? 'font-medium' : 'font-normal'}`}>Leaderboard</div>
@@ -181,13 +181,13 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 </div>
                             </Button>
 
-                            <div className={`min-h-[1px] w-3 bg-[#505050] ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('statistics')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => selectTabAndUnfold('statistics')}
-                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'statistics') ? '' : 'opacity-60'}`}>
                                     <div className={`[writing-mode:vertical-lr] rotate-180 ${(activeTab === 'statistics') ? 'font-medium' : 'font-normal'}`}>Statistics</div>
@@ -243,15 +243,15 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
             <div className="flex flex-col absolute bottom-0 w-full pointer-events-none">
 
                 {/* Fade */}
-                <div className="h-8 w-full bg-[linear-gradient(to_top,#262626_33.3%,transparent)]" />
+                <div className="h-8 w-full bg-[linear-gradient(to_top,rgb(var(--bsg-bg))_33.3%,transparent)]" />
 
-                <div className={`flex flex-col items-center gap-1 py-1.5 bg-[#262626] pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
+                <div className={`flex flex-col items-center gap-1 py-1.5 bg-bsg-bg pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize Button */}
                     <TooltipWrapper text="Maximize" shortcuts={["Alt", "+"]}>
                         <Button
                             onClick={() => messageScript('MAXIMIZE')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em]"
@@ -268,7 +268,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text="Unfold" shortcuts={["Alt", "-"]}>
                         <Button
                             onClick={() => messageScript('UNFOLD')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em]"

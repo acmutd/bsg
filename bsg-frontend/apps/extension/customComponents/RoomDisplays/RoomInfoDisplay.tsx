@@ -16,14 +16,7 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
         photo: useUserStore(s => s.iconUrl)
     };
 
-    const users: User[] = [
-        user,
-        { id: "1", name: "test", email: "", photo: "" },
-        { id: "2", name: "test", email: "", photo: "" },
-        { id: "3", name: "test", email: "", photo: "" },
-        { id: "4", name: "test", email: "", photo: "" },
-        { id: "5", name: "test", email: "", photo: "" },
-    ];
+    const users: User[] = useRoomStore(s => s.participants);
 
     const isConnected = true;
 
@@ -39,7 +32,7 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
                         <Button
                             //onClick={}
                             key={user.id}
-                            className="rounded-none p-2 pr-4 h-fit w-full flex items-center justify-between text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            className="rounded-none p-2 pr-4 h-fit w-full flex items-center justify-between text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
                             <div className='flex gap-2 items-center text-foreground/60'>
                                 <img

@@ -11,11 +11,70 @@ import { Footer } from '@/customComponents/Footer/Footer';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { messageScript } from '@/utils/messageScript';
 import { useIsActive } from '@/hooks/useIsActive';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { configReady } from '../lib/config';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
+function useThemeSync() {
+  useEffect(() => {
+    function applyTheme(theme: string) {
+      const root = document.documentElement;
+      root.classList.remove('dark', 'light');
+      root.classList.add(theme === 'light' ? 'light' : 'dark');
+    }
+
+    // Apply initial theme from storage (configReady ensures chrome.storage is ready)
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get(['themePreference'], (result) => {
+        const pref = result.themePreference;
+        if (pref && pref !== 'auto') {
+          applyTheme(pref);
+        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          applyTheme('light');
+        }
+      });
+    }
+
+    // Listen for theme messages from contentScript
+    function handleMessage(e: MessageEvent) {
+      if (e.data?.type === 'BSG_THEME_UPDATE') {
+        applyTheme(e.data.theme);
+      }
+    }
+    window.addEventListener('message', handleMessage);
+
+    // Listen for manual theme changes from extension settings
+    function handleStorageChange(changes: { [key: string]: chrome.storage.StorageChange }) {
+      if (changes.themePreference) {
+        const pref = changes.themePreference.newValue;
+        if (pref && pref !== 'auto') {
+          applyTheme(pref);
+        }
+      }
+    }
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+    }
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+      }
+    };
+  }, []);
+}
+
 export default function App({ Component, pageProps }: AppProps) {
+
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  useThemeSync();
+
+  useEffect(() => {
+    configReady.then(() => setConfigLoaded(true));
+  }, []);
 
   const isDefaultPopup = (Component === DefaultPopup);
   const isFolded = useIsFolded();
@@ -33,7 +92,6 @@ export default function App({ Component, pageProps }: AppProps) {
   
   useEffect(() => {
     if (activeTab === 'chat' && !isFolded) {
-      console.log('[BSG unread] clearing — chat is active');
       clearUnread();
     }
   }, [activeTab, isFolded, clearUnread]);
@@ -45,6 +103,11 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component  {...pageProps} />
       </div>
     );
+  }
+
+  // Wait for config (chrome.storage.local) to load before rendering
+  if (!configLoaded) {
+    return <div className={poppins.className} />;
   }
 
   // On Leetcode extension render

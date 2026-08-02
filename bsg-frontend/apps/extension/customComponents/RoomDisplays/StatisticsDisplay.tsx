@@ -16,12 +16,13 @@ import {
     ChartTooltipContent,
     type ChartConfig,
 } from "@bsg/ui/chart"
-import { User } from "@bsg/models/User";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@bsg/ui/button";
+import { useStatistics } from "../../hooks/useStatistics";
 
 export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
+    const { statistics } = useStatistics();
     const isAnimationsActive = true;
 
     type ActiveChart = 'score' | 'percentile' | 'solveTime' | 'runTime' | 'memory';
@@ -79,11 +80,11 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     const radarData: MetricEntry[] = [];
 
     const radialData: SubmissionEntry[] = [{
-        username: 'test1',
-        solveTime: 1000,
-        runTime: 1000,
-        memory: 1000,
-        score: 3000
+        username: 'me',
+        solveTime: 0,
+        runTime: 0,
+        memory: 0,
+        score: statistics?.score ?? 0
     }];
 
     const maxPoints = 5000;
@@ -94,15 +95,15 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                 <div className="flex flex-col gap-2 text-base font-medium">
                     Submission Details
 
-                    <div className="flex rounded-lg text-sm border border-[#454545]">
-                        <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-[#454545]">
+                    <div className="flex rounded-lg text-sm border border-bsg-border">
+                        <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-bsg-border">
                             Solve Time
                             <div className="text-lg font-medium">
                                 00:23:41
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-[#454545]">
+                        <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-bsg-border">
                             Run Time
                             <div className="text-lg font-medium">
                                 0 ms
@@ -120,7 +121,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
                 <ChartContainer
                     config={chartConfig}
-                    className='h-28 w-48 [&_.recharts-radial-bar-background-sector]:fill-[#333333]'
+                    className='h-28 w-48 [&_.recharts-radial-bar-background-sector]:fill-[rgb(var(--bsg-surface))]'
                     onMouseMove={() => { if (hasAnimated) setShowBreakdown(true) }}
                     onMouseLeave={() => setShowBreakdown(false)}
                 >
@@ -209,14 +210,14 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                     Room Statistics
                 </div>
 
-                <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden">
+                <div className="flex flex-col rounded-lg border border-bsg-border overflow-hidden">
                     {/* Could move tabs to left or bottom */}
                     <div className="flex items-center p-2 overflow-x-auto no-scrollbar">
                         <Button
                             onMouseEnter={() => setHoveredTab('score')}
                             onMouseLeave={() => setHoveredTab(null)}
                             onClick={() => setActiveChart('score')}
-                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'score') ? 'bg-[#373737] hover:bg-[#373737]' : ''}`}
+                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'score') ? 'bg-bsg-surface-mid hover:bg-bsg-surface-mid' : ''}`}
                         >
                             <div className={`flex gap-1 text-sm hover:opacity-100 font-normal ${(activeChart === 'score') ? '' : 'opacity-60'}`}>
                                 <div className="w-5 h-5 flex items-center justify-center text-[rgb(255,157,20)]">
@@ -238,13 +239,13 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
                         </Button>
 
-                        <div className={`min-w-[1px] h-3 bg-[#505050] ${(activeChart === 'score' || activeChart === 'solveTime') ? 'invisible' : ''}`} />
+                        <div className={`min-w-[1px] h-3 bg-bsg-separator ${(activeChart === 'score' || activeChart === 'solveTime') ? 'invisible' : ''}`} />
 
                         <Button
                             onMouseEnter={() => setHoveredTab('solveTime')}
                             onMouseLeave={() => setHoveredTab(null)}
                             onClick={() => setActiveChart('solveTime')}
-                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'solveTime') ? 'bg-[#373737] hover:bg-[#373737]' : ''}`}
+                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'solveTime') ? 'bg-bsg-surface-mid hover:bg-bsg-surface-mid' : ''}`}
                         >
                             <div className={`flex gap-1 text-sm hover:opacity-100 font-normal ${(activeChart === 'solveTime') ? '' : 'opacity-60'}`}>
                                 <div className="w-5 h-5 flex items-center justify-center text-[rgb(0,123,255)]">
@@ -262,13 +263,13 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
                         </Button>
 
-                        <div className={`min-w-[1px] h-3 bg-[#505050] ${(activeChart === 'solveTime' || activeChart === 'runTime') ? 'invisible' : ''}`} />
+                        <div className={`min-w-[1px] h-3 bg-bsg-separator ${(activeChart === 'solveTime' || activeChart === 'runTime') ? 'invisible' : ''}`} />
 
                         <Button
                             onMouseEnter={() => setHoveredTab('runTime')}
                             onMouseLeave={() => setHoveredTab(null)}
                             onClick={() => setActiveChart('runTime')}
-                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'runTime') ? 'bg-[#373737] hover:bg-[#373737]' : ''}`}
+                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'runTime') ? 'bg-bsg-surface-mid hover:bg-bsg-surface-mid' : ''}`}
                         >
                             <div className={`flex gap-1 text-sm hover:opacity-100 font-normal ${(activeChart === 'runTime') ? '' : 'opacity-60'}`}>
                                 <div className="w-5 h-5 flex items-center justify-center text-[rgb(255,183,0)]">
@@ -291,13 +292,13 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
                         </Button>
 
-                        <div className={`min-w-[1px] h-3 bg-[#505050] ${(activeChart === 'runTime' || activeChart === 'memory') ? 'invisible' : ''}`} />
+                        <div className={`min-w-[1px] h-3 bg-bsg-separator ${(activeChart === 'runTime' || activeChart === 'memory') ? 'invisible' : ''}`} />
 
                         <Button
                             onMouseEnter={() => setHoveredTab('memory')}
                             onMouseLeave={() => setHoveredTab(null)}
                             onClick={() => setActiveChart('memory')}
-                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'memory') ? 'bg-[#373737] hover:bg-[#373737]' : ''}`}
+                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'memory') ? 'bg-bsg-surface-mid hover:bg-bsg-surface-mid' : ''}`}
                         >
                             <div className={`flex gap-1 text-sm hover:opacity-100 font-normal ${(activeChart === 'memory') ? '' : 'opacity-60'}`}>
                                 <div className="w-5 h-5 flex items-center justify-center text-[rgb(2,177,40)]">
@@ -320,13 +321,13 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
                         </Button>
 
-                        <div className={`min-w-[1px] h-3 bg-[#505050] ${(activeChart === 'memory' || activeChart === 'percentile') ? 'invisible' : ''}`} />
+                        <div className={`min-w-[1px] h-3 bg-bsg-separator ${(activeChart === 'memory' || activeChart === 'percentile') ? 'invisible' : ''}`} />
 
                         <Button
                             onMouseEnter={() => setHoveredTab('percentile')}
                             onMouseLeave={() => setHoveredTab(null)}
                             onClick={() => setActiveChart('percentile')}
-                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'percentile') ? 'bg-[#373737] hover:bg-[#373737]' : ''}`}
+                            className={`flex h-auto px-2 py-1 bg-transparent rounded-[5px] ${(activeChart === 'percentile') ? 'bg-bsg-surface-mid hover:bg-bsg-surface-mid' : ''}`}
                         >
                             <div className={`flex gap-1 text-sm hover:opacity-100 font-normal ${(activeChart === 'percentile') ? '' : 'opacity-60'}`}>
                                 <div className="w-5 h-5 flex items-center justify-center text-[rgb(255,157,20)]">
@@ -411,11 +412,11 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
             <div className="flex flex-col gap-2 w-full">
                 <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">
                     Code
-                    <div className='min-w-[1px] h-3 bg-[#505050]' />
+                    <div className='min-w-[1px] h-3 bg-bsg-separator' />
                     C++
                 </div>
 
-                <div className="rounded-lg bg-[#333333] h-64">
+                <div className="rounded-lg bg-bsg-surface h-64">
 
                 </div>
             </div>

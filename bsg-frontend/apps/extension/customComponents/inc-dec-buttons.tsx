@@ -8,10 +8,10 @@ export const IncDecButtons = ({decrementOnClick, incrementOnClick}: {
 }) => (
     <div className="flex items-center gap-2">
         <Button size="icon" onClick={decrementOnClick} className="bg-background border-0">
-            <FontAwesomeIcon icon={faChevronDown}/>
+            <FontAwesomeIcon icon={faChevronDown} className="text-foreground"/>
         </Button>
         <Button size="icon" onClick={incrementOnClick} className="bg-background border-0">
-            <FontAwesomeIcon icon={faChevronUp}/>
+            <FontAwesomeIcon icon={faChevronUp} className="text-foreground"/>
         </Button>
     </div>
 )

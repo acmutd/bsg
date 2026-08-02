@@ -147,7 +147,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 		}
 	}
 
-	roundStartTime := time.Now().Add(time.Second * 10)
+	roundStartTime := time.Now()
 	result := service.db.Model(round).Updates(models.Round{
 		LastUpdatedTime: roundStartTime,
 		Status:          constants.ROUND_STARTED,
@@ -341,20 +341,34 @@ func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, e
 	return service.getLeaderboardByRoundID(uint(roundID))
 }
 
-// First 10 bits will represent the user score and the remaining 24 bits represent the user's submission timestamp
+// First 10 bits will represent the user score and the remaining 43 bits represent the user's submission timestamp
+// The total length is 53 bits to safely fit into Redis's float64 mantissa without precision loss.
 func compressScoreAndTimeStamp(score uint64, timestamp time.Time) uint64 {
 	const scoreBits = 10
-	score <<= (64 - scoreBits)
+	const totalBits = 53
+	const timeBits = totalBits - scoreBits
+
+	score <<= timeBits
 	time := timestamp.Unix()
-	time &= (1 << (64 - scoreBits)) - 1
-	return score | uint64(^time)
+
+	// Invert time bits for reverse chronological sorting
+	invTime := uint64(^time)
+
+	// Mask out the top bits of invTime so it doesn't bleed into the score
+	invTime &= (1 << timeBits) - 1
+
+	return score | invTime
 }
 
-func decompressScoreOnly(compressedScore float64) uint64 {
+// DecompressScore extracts the raw point value from the Redis-stored compressed score.
+// The top 10 bits hold the score; the lower 43 bits are the inverted timestamp.
+func DecompressScore(compressedScore float64) uint64 {
 	// compressedScore is stored as float64 in Redis ZSet
 	val := uint64(compressedScore)
 	const scoreBits = 10
-	return val >> (64 - scoreBits)
+	const totalBits = 53
+	const timeBits = totalBits - scoreBits
+	return val >> timeBits
 }
 
 func (service *RoundService) UpdateLeaderboardScore(roundID uint, userID string, scoreToAdd uint) error {
@@ -370,7 +384,7 @@ func (service *RoundService) UpdateLeaderboardScore(roundID uint, userID string,
 		}
 	}
 
-	points := decompressScoreOnly(currentScore)
+	points := DecompressScore(currentScore)
 	newPoints := points + uint64(scoreToAdd)
 	newCompressedScore := float64(compressScoreAndTimeStamp(newPoints, time.Now()))
 
@@ -525,6 +539,25 @@ func (service *RoundService) CreateRoundSubmission(
 	if service.submissionQueue != nil {
 		if err := service.submissionQueue.AddSubmissionToQueue(problem, &newSubmission); err != nil {
 			log.Printf("failed to queue submission: %v", err)
+		}
+	}
+
+	if service.rtcClient != nil {
+		var userHandle string
+		var user models.User
+		if err := service.db.Where("auth_id = ?", submissionAuthor).First(&user).Error; err == nil && user.Handle != "" {
+			userHandle = user.Handle
+		} else {
+			userHandle = submissionAuthor
+		}
+		newSubmissionReq := requests.NewSubmissionRequest{
+			UserHandle: userHandle,
+			RoomID:     round.RoomID.String(),
+			ProblemID:  problem.Slug,
+			Verdict:    submissionParams.Verdict,
+		}
+		if _, err := service.rtcClient.SendMessage("new-submission", newSubmissionReq); err != nil {
+			log.Printf("Error sending new-submission message: %v", err)
 		}
 	}
 

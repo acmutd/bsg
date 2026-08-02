@@ -53,6 +53,18 @@ const config: Config = {
                     DEFAULT: "rgba(var(--card))",
                     foreground: "rgba(var(--card-foreground))",
                 },
+                "bsg-bg": "rgb(var(--bsg-bg))",
+                "bsg-surface": "rgb(var(--bsg-surface))",
+                "bsg-surface-alt": "rgb(var(--bsg-surface-alt))",
+                "bsg-surface-mid": "rgb(var(--bsg-surface-mid))",
+                "bsg-surface-input": "rgb(var(--bsg-surface-input))",
+                "bsg-border": "rgb(var(--bsg-border))",
+                "bsg-separator": "rgb(var(--bsg-separator))",
+                "bsg-hover": "rgb(var(--bsg-hover))",
+                "bsg-hover-subtle": "rgb(var(--bsg-hover-subtle))",
+                "bsg-dark": "rgb(var(--bsg-dark))",
+                "bsg-glass": "var(--bsg-glass)",
+                "bsg-glass-strong": "var(--bsg-glass-strong)",
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -75,6 +87,9 @@ const config: Config = {
             },
             spacing: {
                 "22": "5.5rem"
+            },
+            boxShadow: {
+                "bsg-glass": "var(--bsg-glass-shadow)",
             }
         },
     },

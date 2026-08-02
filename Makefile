@@ -53,3 +53,6 @@ test-rtc:
 test-worker:
 	@echo "Running worker-service tests..."
 	@cd worker-service && go test ./... -v
+
+run:
+	docker compose --env-file ./.env up --build --force-recreate

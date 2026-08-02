@@ -11,7 +11,7 @@ export const HoverCardContent = ({
         <ShadCnHoverCardContent
             sideOffset={10}
             className={cn(
-                'ring-0 bg-[#333333] border border-[#484848] rounded-lg',
+                'ring-0 bg-bsg-surface border border-bsg-hover rounded-lg',
                 className
             )}
             {...props}

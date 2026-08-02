@@ -58,10 +58,27 @@ function ChartContainer({
 }) {
   const uniqueId = React.useId()
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [ready, setReady] = React.useState(false)
+
+  React.useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+      setReady(true)
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      const visible = entry.contentRect.width > 0 && entry.contentRect.height > 0
+      setReady(visible)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <ChartContext.Provider value={{ config }}>
       <div
+        ref={containerRef}
         data-slot="chart"
         data-chart={chartId}
         className={cn(
@@ -71,11 +88,13 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        <RechartsPrimitive.ResponsiveContainer
-          initialDimension={initialDimension}
-        >
-          {children}
-        </RechartsPrimitive.ResponsiveContainer>
+        {ready && (
+          <RechartsPrimitive.ResponsiveContainer
+            initialDimension={initialDimension}
+          >
+            {children}
+          </RechartsPrimitive.ResponsiveContainer>
+        )}
       </div>
     </ChartContext.Provider>
   )
