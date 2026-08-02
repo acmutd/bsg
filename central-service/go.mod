@@ -6,8 +6,8 @@ require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/acmutd/bsg/rtc-service v0.0.0-20240402145408-434f26651f08
-	github.com/confluentinc/confluent-kafka-go v1.9.2
-	github.com/google/uuid v1.3.1
+	github.com/alicebob/miniredis/v2 v2.38.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/madflojo/tasks v1.1.0
@@ -46,15 +46,18 @@ require (
 	github.com/jackc/pgx/v5 v5.4.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.6.1 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
