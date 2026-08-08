@@ -116,6 +116,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true;
   }
+  
+  //to handle leaving room properly and removing the activeRoomId from the local storage
+  //to stay in sync 
+  if(request.type === 'LEAVE_ROOM'){
+    const activeRoomId = request.data
+    chrome.storage.local.remove('activeRoomId')
+    
+    // leave the RTC room so the server cleans up our membership immediately
+    if (socket && socket.readyState === WebSocket.OPEN && userProfile && joinedRoomId) {
+      socket.send(JSON.stringify({
+        name: userProfile.id + '_bg',
+        "request-type": "leave-room",
+        data: JSON.stringify({
+          userHandle: userProfile.id + '_bg',
+          roomID: joinedRoomId
+        })
+      }));
+    }
+    joinedRoomId = null;
+    return false;
+  }
 
   // submission intercept logic
   if (request.type === 'SUBMISSION_PENDING') {
@@ -190,26 +211,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 // redirect logic
-const RTC_SERVICE_URL = CONFIG.RTC_SERVICE_URL;
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
+let joinedRoomId = null;
 
-chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
-  if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
-  if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
+chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], async (result) => {
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
 
-  // Auto-detect local dev: if no explicit override, probe localhost:3000
-  if (!result.configServerUrl) {
-    fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) })
-      .then(() => {
-        CONFIG.SERVER_URL = 'http://localhost:3000';
-        CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
-        chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
-      })
-      .catch(() => {});
+  // Auto-detect local dev: always probe localhost first and prefer it when reachable
+  try {
+    await fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) });
+    CONFIG.SERVER_URL = 'http://localhost:3000';
+    CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+    chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
+  } catch (e) {
+    if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
+    if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
   }
 
   if (activeRoomId && userProfile) {
@@ -236,13 +255,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 function connectWebSocket() {
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
     // if already open, ensure we are in the correct room
-    if (socket.readyState === WebSocket.OPEN && activeRoomId && userProfile) {
+    if (socket.readyState === WebSocket.OPEN && activeRoomId && userProfile && joinedRoomId !== activeRoomId) {
       sendJoinRoom();
     }
     return;
   }
 
-  socket = new WebSocket(RTC_SERVICE_URL);
+  socket = new WebSocket(CONFIG.RTC_SERVICE_URL);
 
   socket.onopen = () => {
     if (activeRoomId && userProfile) {
@@ -283,6 +302,7 @@ function connectWebSocket() {
 
   socket.onclose = () => {
     socket = null;
+    joinedRoomId = null;
     setTimeout(() => {
       if (activeRoomId) connectWebSocket();
     }, 5000);
@@ -295,6 +315,7 @@ function connectWebSocket() {
 
 function sendJoinRoom() {
   if (!socket || socket.readyState !== WebSocket.OPEN || !activeRoomId || !userProfile) return;
+  if (joinedRoomId === activeRoomId) return;
 
   const payload = {
     name: userProfile.id + '_bg',
@@ -306,6 +327,7 @@ function sendJoinRoom() {
   };
 
   socket.send(JSON.stringify(payload));
+  joinedRoomId = activeRoomId;
 }
 
 

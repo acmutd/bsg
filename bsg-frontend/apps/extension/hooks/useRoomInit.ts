@@ -81,6 +81,45 @@ export const useRoomInit = () => {
         return message;
     };
 
+    // Hydrate round state (isRoundStarted, roundEndTime, roundDuration, problems)
+    // from a Room object returned by the backend. Handles both started and
+    // created-only rounds, so a user joining AFTER the round started sees the
+    // full round state (problems list included).
+    const applyRoundFromRoom = (room: any) => {
+        if (!room?.rounds || room.rounds.length === 0) return;
+
+        const lastRound = room.rounds[room.rounds.length - 1];
+        const status = lastRound.Status || lastRound.status;
+        const duration = lastRound.duration || lastRound.Duration;
+
+        if (typeof duration === 'number') {
+            setRoundDuration(duration);
+        }
+
+        if (status !== 'started') return;
+
+        const startTimeStr = lastRound.LastUpdatedTime || lastRound.lastUpdatedTime;
+        const startTime = new Date(startTimeStr).getTime();
+        const endTime = startTime + ((duration || 30) * 60 * 1000);
+
+        if (endTime > Date.now()) {
+            setIsRoundStarted(true);
+            setRoundEndTime(endTime);
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ roundEndTime: endTime });
+            }
+        }
+
+        const rawProblems = lastRound.problems || lastRound.ProblemSet || [];
+        const slugs = rawProblems.map((p: any) => p.slug || p.Slug).filter(Boolean);
+        if (slugs.length > 0) {
+            setProblems(slugs);
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ problems: slugs });
+            }
+        }
+    };
+
     const joinRoom = async (roomCode: string): Promise<{ success: true } | { success: false; message: string }> => {
         try {
             const res = await fetch(`${getServerUrl()}/rooms/${roomCode}/join`, {
@@ -100,6 +139,9 @@ export const useRoomInit = () => {
                 room.adminId,
                 userId === room.adminId,
             );
+
+            // If the round was already started, restore round state + problems
+            applyRoundFromRoom(room);
 
             await setRoomParticipants(room.id);
 
@@ -224,6 +266,8 @@ export const useRoomInit = () => {
                             userId === room.adminId
                         );
 
+                        applyRoundFromRoom(room);
+
                         await setRoomParticipants(room.id);
 
                         setRoomNotice(null);
@@ -232,40 +276,15 @@ export const useRoomInit = () => {
                             chrome.storage.local.set({ activeRoomId: room.id }, () => {
                                 console.log("CheckActiveRoom: Saved activeRoomId");
                             });
+                            // Fallback for problems if the room response didn't include them
                             chrome.storage.local.get(['problems'], (result) => {
-                                setProblems(result.problems || []);
+                                if (useRoomStore.getState().problems.length === 0 && result.problems?.length) {
+                                    setProblems(result.problems);
+                                }
                             });
-
-                            
-                        } else {
                         }
 
                         router.push('/room-page');
-
-                        // Check for active round
-                        if (room.rounds && room.rounds.length > 0) {
-                            const lastRound = room.rounds[room.rounds.length - 1];
-                            const status = lastRound.Status || lastRound.status;
-                            // remember the round's configured duration (editable while "created")
-                            const lastRoundDuration = lastRound.duration || lastRound.Duration;
-                            if (typeof lastRoundDuration === 'number') {
-                                setRoundDuration(lastRoundDuration);
-                            }
-                            // ROUND_STARTED = "started" (need to verify constant value, assuming string)
-                            if (status === "started") {
-                                setIsRoundStarted(true);
-                                const startTimeStr = lastRound.LastUpdatedTime || lastRound.lastUpdatedTime;
-                                const startTime = new Date(startTimeStr).getTime();
-                                const duration = lastRound.duration || lastRound.Duration;
-                                const endTime = startTime + (duration * 60 * 1000);
-                                if (endTime > Date.now()) {
-                                    setRoundEndTime(endTime);
-                                    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                                        chrome.storage.local.set({ roundEndTime: endTime });
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }

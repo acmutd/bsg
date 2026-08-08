@@ -2,16 +2,20 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
 	"github.com/acmutd/bsg/rtc-service/requests"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/madflojo/tasks"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -69,13 +73,14 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		expiresAt = &t
 	}
 	newRoom := models.Room{
-		ID:        uuid.New(),
-		ShortCode: shortCode,
-		Name:      room.Name,
-		Admin:     adminID,
-		TTL:       room.TTL,
-		ExpiresAt: expiresAt,
-		Rounds:    []models.Round{},
+		ID:          uuid.New(),
+		ShortCode:   shortCode,
+		Name:        room.Name,
+		Admin:       adminID,
+		TTL:         room.TTL,
+		ExpiresAt:   expiresAt,
+		Rounds:      []models.Round{},
+		RoomMembers: []string{},
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
@@ -176,14 +181,17 @@ func (service *RoomService) deleteRoom(room models.Room) error {
 // Returns a RoomServiceError if roomID could not be parsed or could not be found
 func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 	var room models.Room
+
 	uuid, err := uuid.Parse(roomID)
+
 	if err != nil {
 		return nil, BSGError{
 			StatusCode: 400,
 			Message:    "roomID could not be parsed",
 		}
 	}
-	result := service.db.Preload("Rounds").Where("ID = ?", uuid).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("ID = ?", uuid).Limit(1).Find(&room)
+	fmt.Println(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -199,7 +207,7 @@ func (service *RoomService) FindRoomByID(roomID string) (*models.Room, error) {
 // finds a room by its short code (e.g. "A3K9PQ")
 func (service *RoomService) FindRoomByShortCode(code string) (*models.Room, error) {
 	var room models.Room
-	result := service.db.Preload("Rounds").Where("short_code = ?", code).Limit(1).Find(&room)
+	result := service.db.Preload("Rounds.ProblemSet").Where("short_code = ?", code).Limit(1).Find(&room)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -216,6 +224,14 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err != nil {
 		return nil, err
 	}
+
+	if userID != room.Admin {
+		err := service.addRoomMembers(userID, roomID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
@@ -233,12 +249,10 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			UserHandle: userID,
 			RoomID:     roomID,
 		}
+		// Non-fatal: RTC is a real-time notification layer; Redis/DB is the
+		// source of truth. If RTC is unavailable the room still works.
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
-			log.Printf("Error sending join-room message: %v", err)
-			return nil, BSGError{
-				StatusCode: 500,
-				Message:    "Internal Server Error",
-			}
+			log.Printf("Error sending join-room message (non-fatal): %v", err)
 		}
 	}
 	return room, nil
@@ -246,13 +260,13 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 
 // Allows a user to leave a room
 // If the departing user is the room leader, a new leader will be assigned
-func (service *RoomService) LeaveRoom(roomID string, userID string) error {
+func (service *RoomService) LeaveRoom(roomID string, userID string) (string, error) {
 	room, err := service.FindRoomByID(roomID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := service.removeJoinMember(roomID, userID); err != nil {
-		return err
+		return "", err
 	}
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
@@ -260,34 +274,38 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			UserHandle: userID,
 			RoomID:     roomID,
 		}
+		// Non-fatal: Redis membership is already removed above; RTC is a
+		// notification layer and may legitimately not know the user
+		// (e.g. after rtc-service restart loses in-memory state).
 		if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
-			log.Printf("Error sending leave-room message: %v", err)
-			return BSGError{
-				StatusCode: 500,
-				Message:    "Internal Server Error",
-			}
+			log.Printf("Error sending leave-room message (non-fatal): %v", err)
 		}
 	}
-	// Delete room if creator leaves or room is now empty
+	// Delete room if room is now empty
 	users, err := service.FindActiveUsers(roomID)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if room.Admin == userID || len(users) == 0 {
+
+	if len(users) == 0 {
 		service.cancelRoomExpiry(roomID)
-		return service.deleteRoom(*room)
+		return "", service.deleteRoom(*room)
 	}
-	if wasAdmin, err := service.IsRoomAdmin(roomID, userID); err != nil {
-		return err
-	} else if wasAdmin {
-		if result, err := service.FindRightfulRoomAdmin(roomID); err != nil {
-			return err
-		} else if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
-			log.Printf("Error updating room admin in the database: %v\n", err)
-			return err
+
+	if room.Admin == userID {
+		newAdmin, err := service.FindRightfulRoomAdmin(roomID)
+		if err != nil {
+			return "", err
 		}
+		if err := service.db.Model(&room).Update("Admin", newAdmin).Error; err != nil {
+			return "", err
+		}
+
+		return newAdmin, nil
+
 	}
-	return nil
+
+	return "", nil
 }
 
 // Adds a user's join timestamp to the Redis cache
@@ -643,5 +661,46 @@ func (service *RoomService) EndRoundByRoomID(roomID string, userID string) error
 			log.Printf("Error sending round-end message: %v", err)
 		}
 	}
+	return nil
+}
+
+func (service *RoomService) addRoomMembers(userID string, roomId string) error {
+	room, err := service.FindRoomByID(roomId)
+	if err != nil {
+		var bsgErr BSGError
+		if errors.As(err, &bsgErr) {
+			return echo.NewHTTPError(bsgErr.StatusCode, bsgErr.Message)
+		}
+		return echo.NewHTTPError(500, "Internal Server Error")
+	}
+
+	// skip if already a member
+	if slices.Contains(room.RoomMembers, userID) {
+		return nil
+	}
+
+	room.RoomMembers = append(room.RoomMembers, userID)
+
+	data, err := json.Marshal(room.RoomMembers)
+	if err != nil {
+		return err
+	}
+	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("room_members", string(data)).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (service *RoomService) UpdateAdmin(userID string, roomId string) error {
+	room, err := service.FindRoomByID(roomId)
+	if err != nil {
+		return err
+	}
+	room.Admin = userID
+
+	if err := service.db.Model(&room).Where("id = ?", room.ID).Update("admin", room.Admin).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

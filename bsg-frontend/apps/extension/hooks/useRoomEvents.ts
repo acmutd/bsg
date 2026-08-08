@@ -1,15 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
 
+// Minimum gap between announcement-triggered participant refreshes.
+// Prevents join/leave announcement storms from hammering the API.
+const PARTICIPANTS_REFRESH_THROTTLE_MS = 5000;
+
 export function useRoomEvents() {
 
     const [ nextProblem, setNextProblem ] = useState<string | null>(null);
 
     const router = useRouter();
+
+    const lastParticipantsRefresh = useRef<number>(0);
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const isInRoom = useRoomStore(s => s.isInRoom);
@@ -22,10 +28,15 @@ export function useRoomEvents() {
     const setResetRoom = useRoomStore(s => s.resetRoom);
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
+    const setAdminID = useRoomStore(s => s.setAdminId);
+    const setProblems = useRoomStore(s => s.setProblems);
 
     // Refresh participants when someone joins or leaves
     useEffect(() => {
         if (!lastParticipantJoinTime || !roomId) return;
+        const now = Date.now();
+        if (now - lastParticipantsRefresh.current < PARTICIPANTS_REFRESH_THROTTLE_MS) return;
+        lastParticipantsRefresh.current = now;
         setRoomParticipants(roomId);
     }, [lastParticipantJoinTime, roomId]);
 
@@ -119,6 +130,7 @@ export function useRoomEvents() {
 
             // Clear nextProblem, problems, and TTL state on round end
             setNextProblem(null);
+            setProblems([]);
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.remove('nextProblem');
                 chrome.storage.local.remove('roundEndTime');
@@ -215,12 +227,30 @@ export function useRoomEvents() {
                     method: 'POST',
                     credentials: 'include'
             });
-            const message = await response.json()
+            const data = await response.json()
+
             if(response.ok){
-                setResetRoom();
+
+                const newAdminId = data.newAdmin
+                
+                if(typeof chrome !== 'undefined' && chrome.runtime?.id){
+                    chrome.runtime.sendMessage({ type: 'LEAVE_ROOM', data: roomId})
+                }
+                //transfer ownership of admin
+                if(newAdminId !== ""){
+                    setAdminID(newAdminId)
+                    if(typeof chrome !== 'undefined' && chrome.storage.local){
+                        chrome.storage.local.set({currentAdmin:newAdminId})
+                    }
+
+                } else {
+                    //reset entire room since no new admin
+                    setResetRoom();
+                }
                 router.push('/start-page')
             } else{
-                console.error(message)
+                console.error(data.message)
+                console.log("got to the other part somethings up")
             }
 
         } catch(error){
