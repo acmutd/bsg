@@ -35,7 +35,7 @@ func (r *RoundEndRequest) validate() error {
 
 // Returns the response type for the request.
 func (r *RoundEndRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
+	return response.ROUND_END
 }
 
 // Handles the request and returns a response.

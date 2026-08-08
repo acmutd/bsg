@@ -45,7 +45,7 @@ func expectedResponseType(requestType string) response.ResponseType {
 	case "round-start":
 		return response.ROUND_START
 	case "round-end":
-		return response.SYSTEM_ANNOUNCEMENT
+		return response.ROUND_END
 	case "next-problem":
 		return response.NEXT_PROBLEM
 	case "room-expired":
