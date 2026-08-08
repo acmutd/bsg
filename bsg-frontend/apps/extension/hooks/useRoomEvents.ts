@@ -29,6 +29,7 @@ export function useRoomEvents() {
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
     const setAdminID = useRoomStore(s => s.setAdminId);
+    const setProblems = useRoomStore(s => s.setProblems);
 
     // Refresh participants when someone joins or leaves
     useEffect(() => {
@@ -129,6 +130,7 @@ export function useRoomEvents() {
 
             // Clear nextProblem, problems, and TTL state on round end
             setNextProblem(null);
+            setProblems([]);
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.remove('nextProblem');
                 chrome.storage.local.remove('roundEndTime');
