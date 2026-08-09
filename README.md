@@ -56,7 +56,7 @@ To run locally do not add CADDY_SITE_ADDRESS= to the env file and run
 make run
 ```
 
-All you have to do is run
+All you have to do is run regardless of local or production
 ```
 cd bsg-frontend/ && npm run build-extension
 ```
