@@ -86,31 +86,9 @@ func main() {
 		logger.Fatal("Error migrating Statistics schema", err, nil)
 	}
 
-	// Initialize Kafka-related components
-	kafkaManager := services.NewKafkaManagerService()
-	defer kafkaManager.Cleanup()
-	// connecting to kafka was occasionally failing so added retry logic
-	var kafkaErr error
-	for i := 0; i < 15; i++ {
-		kafkaErr = kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_INGRESS_TOPIC"))
-		if kafkaErr == nil {
-			kafkaErr = kafkaManager.CreateKafkaTopicIfNotExists(os.Getenv("KAFKA_EGRESS_TOPIC"))
-			if kafkaErr == nil {
-				break
-			}
-		}
-		logger.Warn("Kafka connection failed, retrying", map[string]interface{}{
-			"attempt": i + 1,
-			"error":   kafkaErr.Error(),
-		})
-		time.Sleep(5 * time.Second)
-	}
-	if kafkaErr != nil {
-		logger.Fatal("Error creating Kafka topics after retries", kafkaErr, nil)
-	}
-	ingressQueue := services.NewSubmissionIngressQueueService(&kafkaManager)
+	ingressQueue := services.NewSubmissionIngressQueueService(rdb)
 
-	logger.Info("Kafka connection established", nil)
+	logger.Info("Redis queue initialized", nil)
 
 	// seeding Service
 	seedingService := services.InitializeSeedingService(db)
@@ -143,11 +121,10 @@ func main() {
 	defer roundScheduler.Stop()
 
 	roundService := services.InitializeRoundService(db, rdb, roundScheduler, &problemAccessor, &ingressQueue, rtcClient)
-	egressQueue := services.NewSubmissionEgressQueueService(db, &roundService)
+	egressQueue := services.NewSubmissionEgressQueueService(db, &roundService, rdb)
 
 	// co routine to listen for submission data
 	go egressQueue.ListenForSubmissionData()
-	go ingressQueue.MessageDeliveryHandler()
 
 	e := echo.New()
 	e.IPExtractor = echo.ExtractIPFromXFFHeader()

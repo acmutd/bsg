@@ -5,8 +5,6 @@ services:
       context: .
       dockerfile: central-service/Dockerfile
     depends_on:
-      - broker
-      - zookeeper
       - db
       - redis-cache
       - rtc-service
@@ -20,10 +18,8 @@ services:
       DB_NAME: ${POSTGRES_DB}
       MAX_NUM_ROUND_PER_ROOM: ${MAX_NUM_ROUND_PER_ROOM}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      KAFKA_BROKER: ${KAFKA_BROKER}
-      KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
-      KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
-      KAFKA_CENTRAL_SERVICE_GID: ${KAFKA_CENTRAL_SERVICE_GID}
+      REDIS_SUBMISSION_QUEUE: ${REDIS_SUBMISSION_QUEUE:-submission-ingress}
+      REDIS_EGRESS_QUEUE: ${REDIS_EGRESS_QUEUE:-submission-egress}
       SERVER_SECRET: ${SERVER_SECRET}
       RTC_SERVICE_URL: ws://rtc-service:8080/ws
       REDIS_ADDR: redis-cache:6379
@@ -39,14 +35,14 @@ services:
   worker-service:
     build: ./worker-service
     depends_on:
-      - broker
+      - redis-cache
     environment:
       LEETCODE_USERNAME: ${LEETCODE_USERNAME}
       LEETCODE_PASSWORD: ${LEETCODE_PASSWORD}
-      KAFKA_BROKER: ${KAFKA_BROKER}
-      KAFKA_INGRESS_TOPIC: ${KAFKA_INGRESS_TOPIC}
-      KAFKA_EGRESS_TOPIC: ${KAFKA_EGRESS_TOPIC}
-      KAFKA_WORKER_GROUP_ID: "worker-service-group"
+      REDIS_ADDR: redis-cache:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_SUBMISSION_QUEUE: ${REDIS_SUBMISSION_QUEUE:-submission-ingress}
+      REDIS_EGRESS_QUEUE: ${REDIS_EGRESS_QUEUE:-submission-egress}
   db:
     image: postgres
     restart: always
@@ -68,38 +64,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.7.1
-    hostname: zookeeper
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      JDK_JAVA_OPTIONS: "-XX:-UseContainerSupport"
-    volumes:
-      - zookeeper-data-volume:/var/lib/zookeeper/data
-      - zookeeper-log-volume:/var/lib/zookeeper/log
-  broker:
-    image: confluentinc/cp-kafka:7.7.1
-    restart: always
-    container_name: broker
-    ports:
-      - "${PORT_KAFKA:-29092}:29092"
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:${PORT_KAFKA:-29092}
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      JDK_JAVA_OPTIONS: "-XX:-UseContainerSupport"
-    volumes:
-      - kafka-data-volume:/var/lib/kafka/data
-
   adminer:
     image: adminer
     restart: always
@@ -169,8 +133,5 @@ volumes:
   db-volume:
   redis-volume:
     driver: local
-  zookeeper-data-volume:
-  zookeeper-log-volume:
   redisinsight-volume:
-  kafka-data-volume:
   caddy_data:

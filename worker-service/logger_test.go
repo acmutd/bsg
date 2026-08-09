@@ -64,21 +64,21 @@ func TestWorkerLoggerSubmissionError(t *testing.T) {
 	})
 }
 
-// TestWorkerLoggerKafkaEvent tests Kafka event logging
-func TestWorkerLoggerKafkaEvent(t *testing.T) {
+// TestWorkerLoggerQueueEvent tests queue event logging
+func TestWorkerLoggerQueueEvent(t *testing.T) {
 	logger := NewWorkerLogger("worker-service")
 	// Test that this doesn't panic
-	logger.LogKafkaEvent("message_consumed", "submissions_ingress", map[string]interface{}{
-		"offset": 12345,
+	logger.LogQueueEvent("message_consumed", "submission-ingress", map[string]interface{}{
+		"count": 1,
 	})
 }
 
-// TestWorkerLoggerKafkaError tests Kafka error logging
-func TestWorkerLoggerKafkaError(t *testing.T) {
+// TestWorkerLoggerQueueError tests queue error logging
+func TestWorkerLoggerQueueError(t *testing.T) {
 	logger := NewWorkerLogger("worker-service")
 	err := &ProcessingError{Message: "connection timeout"}
 	// Test that this doesn't panic
-	logger.LogKafkaError("consume_failed", "submissions_ingress", err, map[string]interface{}{
+	logger.LogQueueError("consume_failed", "submission-ingress", err, map[string]interface{}{
 		"retry_count": 3,
 	})
 }
@@ -151,21 +151,6 @@ func TestLoggerConcurrency(t *testing.T) {
 	// Wait for all goroutines
 	for i := 0; i < 10; i++ {
 		<-done
-	}
-}
-
-// TestMessageQueueError tests message queue error handling
-func TestMessageQueueError(t *testing.T) {
-	err := &MessageQueueError{
-		Topic:   "submissions",
-		Message: "failed to produce",
-	}
-
-	if err.Message != "failed to produce" {
-		t.Errorf("Message = %s, want failed to produce", err.Message)
-	}
-	if err.Topic != "submissions" {
-		t.Errorf("Topic = %s, want submissions", err.Topic)
 	}
 }
 

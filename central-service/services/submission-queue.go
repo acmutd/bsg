@@ -2,110 +2,66 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
-	kafka_utils "github.com/acmutd/bsg/central-service/kafka"
+	"github.com/acmutd/bsg/central-service/dto"
 	"github.com/acmutd/bsg/central-service/models"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	queuepkg "github.com/acmutd/bsg/central-service/queue"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-const MIN_COMMIT_COUNT = 100
-const DELIVERY_CHANNEL_SIZE = 10000
-
 type SubmissionIngressQueueService struct {
-	managerService     *KafkaManagerService
-	producer           *kafka.Producer
-	ingressChannelName string
-	deliveryChannel    chan kafka.Event
+	redisQueue *queuepkg.RedisQueue
 }
 
-func NewSubmissionIngressQueueService(kafkaManagerService *KafkaManagerService) SubmissionIngressQueueService {
-	producer, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": os.Getenv("KAFKA_BROKER"),
-		"acks":              "all",
-	})
-	if err != nil {
-		log.Fatalf("Failed to create ingress service producer: %v\n", err)
+func NewSubmissionIngressQueueService(rdb *redis.Client) SubmissionIngressQueueService {
+	queueName := os.Getenv("REDIS_SUBMISSION_QUEUE")
+	if queueName == "" {
+		queueName = "submission-ingress"
 	}
 	return SubmissionIngressQueueService{
-		producer:           producer,
-		managerService:     kafkaManagerService,
-		ingressChannelName: os.Getenv("KAFKA_INGRESS_TOPIC"),
-		deliveryChannel:    make(chan kafka.Event, DELIVERY_CHANNEL_SIZE),
+		redisQueue: queuepkg.NewRedisQueue(rdb, queueName),
 	}
 }
 
 func (ingressQueueService *SubmissionIngressQueueService) AddSubmissionToQueue(problem *models.Problem, submission *models.RoundSubmission) error {
-	kafkaPayload := kafka_utils.NewKafkaIngressDTO(problem, submission)
-	marshalledData, err := json.Marshal(kafkaPayload)
+	ingressPayload := dto.NewSubmissionIngressDTO(problem, submission)
+	marshalledData, err := json.Marshal(ingressPayload)
 	if err != nil {
 		return err
 	}
-	err = ingressQueueService.producer.Produce(
-		&kafka.Message{
-			TopicPartition: kafka.TopicPartition{
-				Topic:     &ingressQueueService.ingressChannelName,
-				Partition: int32(0), // 1 partition should be enough for now
-			},
-			Value: marshalledData,
-		},
-		ingressQueueService.deliveryChannel,
-	)
-	if err != nil {
-		return fmt.Errorf("Error adding submission to Kafka Queue: %v", err)
+	if err := ingressQueueService.redisQueue.Publish(marshalledData); err != nil {
+		return fmt.Errorf("Error adding submission to Redis Queue: %v", err)
 	}
 	return nil
 }
 
-func (ingressQueueService *SubmissionIngressQueueService) MessageDeliveryHandler() {
-	for e := range ingressQueueService.producer.Events() {
-		switch ev := e.(type) {
-		case *kafka.Message:
-			if ev.TopicPartition.Error != nil {
-				fmt.Printf("Failed to deliver message: %v\n", ev.TopicPartition)
-			} else {
-				fmt.Printf("Successfully produced message to topic %s partition [%d] @ offset %v\n",
-					*ev.TopicPartition.Topic,
-					ev.TopicPartition.Partition,
-					ev.TopicPartition.Offset,
-				)
-			}
-		}
-	}
-}
-
 type SubmissionEgressQueueService struct {
-	consumer     *kafka.Consumer
+	redisQueue   *queuepkg.RedisQueue
 	db           *gorm.DB
 	roundService *RoundService
 }
 
-func NewSubmissionEgressQueueService(db *gorm.DB, roundService *RoundService) SubmissionEgressQueueService {
-	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": os.Getenv("KAFKA_BROKER"),
-		"group.id":          os.Getenv("KAFKA_CENTRAL_SERVICE_GID"),
-		"auto.offset.reset": "smallest",
-	})
-	if err != nil {
-		log.Fatalf("Error creating egress queue consumer: %v\n", err)
-	}
-	err = consumer.Subscribe(os.Getenv("KAFKA_EGRESS_TOPIC"), nil)
-	if err != nil {
-		log.Fatalf("Error subscribing to egress topic: %v\n", err)
+func NewSubmissionEgressQueueService(db *gorm.DB, roundService *RoundService, rdb *redis.Client) SubmissionEgressQueueService {
+	queueName := os.Getenv("REDIS_EGRESS_QUEUE")
+	if queueName == "" {
+		queueName = "submission-egress"
 	}
 	return SubmissionEgressQueueService{
-		consumer:     consumer,
+		redisQueue:   queuepkg.NewRedisQueue(rdb, queueName),
 		db:           db,
 		roundService: roundService,
 	}
 }
 
 func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(rawSubmissionData []byte) error {
-	var payload kafka_utils.KafkaEgressDTO
+	var payload dto.SubmissionEgressDTO
 	if err := json.Unmarshal(rawSubmissionData, &payload); err != nil {
 		return err
 	}
@@ -209,28 +165,36 @@ func (egressQueueService *SubmissionEgressQueueService) ProcessSubmissionData(ra
 }
 
 func (egressQueueService *SubmissionEgressQueueService) ListenForSubmissionData() {
-	run := true
-	msg_count := 0
-	for run {
-		ev := egressQueueService.consumer.Poll(100)
-		switch e := ev.(type) {
-		case *kafka.Message:
-			msg_count += 1
-			if msg_count%MIN_COMMIT_COUNT == 0 {
-				egressQueueService.consumer.Commit()
-			}
-			err := egressQueueService.ProcessSubmissionData(e.Value)
-			if err != nil {
-				fmt.Printf("Error processing message at Kafka Egress Queue: %v\n", err)
-			}
-		case kafka.Error:
-			fmt.Printf("Error detected at Kafka Egress Consumer: %v\n", e)
-			run = false
-		default:
-			if e != nil {
-				fmt.Printf("Unexpected message at Kafka Egress Consumer: %v\n", e)
+	if recovered, err := egressQueueService.redisQueue.Recover(); err != nil {
+		log.Printf("Error recovering in-flight egress messages: %v", err)
+	} else if recovered > 0 {
+		log.Printf("Recovered %d in-flight egress messages from previous run", recovered)
+	}
+	for {
+		rawSubmissionData, err := egressQueueService.redisQueue.Consume(time.Second)
+		if err != nil {
+			log.Printf("Error consuming from Redis egress queue: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		if len(rawSubmissionData) == 0 {
+			continue
+		}
+		if err := egressQueueService.ProcessSubmissionData(rawSubmissionData); err != nil {
+			log.Printf("Error processing message at Redis Egress Queue: %v", err)
+			// retry transient (5xx) failures like a DB outage; drop everything
+			// else (bad payload, missing submission) as permanent
+			var bsgErr *BSGError
+			if errors.As(err, &bsgErr) && bsgErr.StatusCode >= 500 {
+				if err := egressQueueService.redisQueue.Requeue(rawSubmissionData); err != nil {
+					log.Printf("Error requeueing egress message: %v", err)
+				}
+				time.Sleep(time.Second)
+				continue
 			}
 		}
+		if err := egressQueueService.redisQueue.Ack(rawSubmissionData); err != nil {
+			log.Printf("Error acking egress message: %v", err)
+		}
 	}
-	egressQueueService.consumer.Close()
 }
