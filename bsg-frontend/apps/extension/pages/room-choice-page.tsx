@@ -64,7 +64,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
             {/* Main card */}
             <div
-                className={`relative m-auto w-full p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
+                className={`relative m-auto w-full min-w-[18rem] p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
                 <h1 className="text-lg text-foreground font-semibold mb-4">Create a room or join one</h1>
 
                 <div className="space-y-4">

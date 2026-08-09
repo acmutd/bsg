@@ -47,6 +47,10 @@
     // shrinks proportionally when the window is resized horizontally (matching
     // how LeetCode's own panels behave).
     const MIN_PANEL_WIDTH = 36;
+    // Below this width the panel is not usable, so snap it to the 2.25rem sidebar.
+    const COLLAPSE_WIDTH = 200;
+    // Guarantees Unfold expands past the collapse threshold even on small windows.
+    const MIN_EXPAND_WIDTH = COLLAPSE_WIDTH + 40;
     let panelFolded = false;
     let panelWidthFraction = 0.25;
 
@@ -68,7 +72,12 @@
         chrome.storage.local.set({ panelWidthFraction: panelWidthFraction });
       }
 
-      return isPanelFolded ? `${MIN_PANEL_WIDTH / 16}rem` : `${(panelWidthFraction * window.innerWidth) / 16}rem`;
+      const expandedPx = Math.round(panelWidthFraction * window.innerWidth);
+      if (isPanelFolded || expandedPx <= COLLAPSE_WIDTH) {
+        panelFolded = true;
+        return `${MIN_PANEL_WIDTH / 16}rem`;
+      }
+      return `${expandedPx / 16}rem`;
     }
 
     // Apply a pixel width to the panel without persisting anything.
@@ -78,11 +87,25 @@
       return widthPx;
     }
 
+    // The single decision point for panel width: if the requested width is too
+    // narrow to be usable, snap to the 2.25rem sidebar instead of leaving the
+    // layout squeezed in the dead zone between 36px and COLLAPSE_WIDTH.
+    function requestWidth(px) {
+      if (px <= COLLAPSE_WIDTH) {
+        setPanelWidth(MIN_PANEL_WIDTH, true);
+      } else {
+        setPanelWidth(px, false);
+      }
+    }
+
     // Set the panel width (pixels) and persist it as a window-relative fraction.
+    // When folding, the last expanded fraction is preserved so Unfold can restore it.
     function setPanelWidth(px, isFolded) {
       panelFolded = !!isFolded;
       const widthPx = isFolded ? MIN_PANEL_WIDTH : applyPanelWidth(px);
-      panelWidthFraction = Math.min(1, widthPx / window.innerWidth);
+      if (!isFolded) {
+        panelWidthFraction = Math.min(1, widthPx / window.innerWidth);
+      }
       chrome.storage.local.set({
         isPanelFolded: !!isFolded,
         panelWidthFraction: panelWidthFraction,
@@ -93,7 +116,7 @@
     // Keep the panel width proportional to the window on horizontal resizes.
     function syncPanelWidth() {
       if (panelFolded) return;
-      applyPanelWidth(Math.round(panelWidthFraction * window.innerWidth));
+      requestWidth(Math.round(panelWidthFraction * window.innerWidth));
     }
 
     // Create the main panel
@@ -256,7 +279,7 @@
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
         const widthPx = clampWidth(rightEdge - e.clientX);
-        setPanelWidth(widthPx, widthPx === MIN_PANEL_WIDTH);
+        requestWidth(widthPx);
       } catch (err) {
         // ignore
       }
@@ -307,7 +330,7 @@
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
       const widthPx = clampWidth(rightEdge - e.clientX);
-      setPanelWidth(widthPx, widthPx === MIN_PANEL_WIDTH);
+      requestWidth(widthPx);
     });
 
     // End drag on pointerup or when pointer leaves
@@ -337,7 +360,7 @@
     // Initial sync
     syncHandleHeight();
 
-    // Observe qd for size changes
+    // Observe qd for size changes (covers LeetCode layout changes too).
     if (window.ResizeObserver) {
       let frameId = null;
       const ro = new ResizeObserver(() => {
@@ -347,6 +370,7 @@
         frameId = requestAnimationFrame(() => {
           frameId = null;
           syncHandleHeight();
+          if (!isDragging) syncPanelWidth();
         });
       });
       ro.observe(qd);
@@ -385,7 +409,8 @@
           }
           panelFolded = false;
           chrome.storage.local.set({ isPanelFolded: false });
-          applyPanelWidth(Math.round(panelWidthFraction * window.innerWidth));
+          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(panelWidthFraction * window.innerWidth));
+          requestWidth(target);
         });
       }
 
@@ -393,7 +418,7 @@
         panelFolded = false;
         panelWidthFraction = 1;
         chrome.storage.local.set({ isPanelFolded: false, panelWidthFraction: 1 });
-        applyPanelWidth(window.innerWidth);
+        requestWidth(window.innerWidth);
       }
 
       if (message.type === "ACTIVE") {
