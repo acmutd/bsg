@@ -6,17 +6,17 @@ export default function LoginPage() {
     const { login } = useLogin()
 
     return (
-        <div className="h-full flex flex-col items-center justify-center px-6 relative overflow-hidden">
+        <div className="min-h-full flex flex-col px-6 py-4 relative">
 
             {/* Decorative background elements */}
-            <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {/* Subtle gradient orbs */}
                 <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
                 <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
             </div>
 
             {/* Main card */}
-            <div className="relative w-full max-w-[320px] flex flex-col items-center p-8 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass gap-8">
+            <div className="relative m-auto w-full max-w-[320px] flex flex-col items-center p-8 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass gap-8">
 
                 {/* Logo + title */}
                 <div className="flex flex-col items-center gap-4">

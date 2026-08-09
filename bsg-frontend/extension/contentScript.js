@@ -43,16 +43,57 @@
       position: 'relative',
     });
 
+    // Panel width is stored as a fraction of the window width so it grows and
+    // shrinks proportionally when the window is resized horizontally (matching
+    // how LeetCode's own panels behave).
+    const MIN_PANEL_WIDTH = 36;
+    let panelFolded = false;
+    let panelWidthFraction = 0.25;
+
     const initPanelWidth = async () => {
-      const result = await chrome.storage.local.get(["panelWidth", "isPanelFolded"]);
+      const result = await chrome.storage.local.get(["panelWidth", "panelWidthFraction", "isPanelFolded"]);
 
-      const panelWidth = result.panelWidth ?? '24rem';
       const isPanelFolded = result.isPanelFolded ?? false;
-
-      if (result.panelWidth === undefined) chrome.storage.local.set({ panelWidth: '24rem' });
       if (result.isPanelFolded === undefined) chrome.storage.local.set({ isPanelFolded: false });
+      panelFolded = isPanelFolded;
 
-      return isPanelFolded ? '2.25rem' : panelWidth;
+      if (typeof result.panelWidthFraction === 'number' && result.panelWidthFraction > 0) {
+        panelWidthFraction = result.panelWidthFraction;
+      } else {
+        // Back-compat: derive a fraction from the previously stored absolute width
+        const legacy = result.panelWidth ?? '24rem';
+        const rem = parseFloat(legacy);
+        const px = (Number.isFinite(rem) && rem > 0 ? rem * 16 : 384);
+        panelWidthFraction = Math.max(0.05, Math.min(1, px / window.innerWidth));
+        chrome.storage.local.set({ panelWidthFraction: panelWidthFraction });
+      }
+
+      return isPanelFolded ? `${MIN_PANEL_WIDTH / 16}rem` : `${(panelWidthFraction * window.innerWidth) / 16}rem`;
+    }
+
+    // Apply a pixel width to the panel without persisting anything.
+    function applyPanelWidth(px) {
+      const widthPx = Math.max(MIN_PANEL_WIDTH, Math.min(window.innerWidth, px));
+      panel.style.width = `${widthPx}px`;
+      return widthPx;
+    }
+
+    // Set the panel width (pixels) and persist it as a window-relative fraction.
+    function setPanelWidth(px, isFolded) {
+      panelFolded = !!isFolded;
+      const widthPx = isFolded ? MIN_PANEL_WIDTH : applyPanelWidth(px);
+      panelWidthFraction = Math.min(1, widthPx / window.innerWidth);
+      chrome.storage.local.set({
+        isPanelFolded: !!isFolded,
+        panelWidthFraction: panelWidthFraction,
+        panelWidth: isFolded ? '24rem' : `${widthPx}px`,
+      });
+    }
+
+    // Keep the panel width proportional to the window on horizontal resizes.
+    function syncPanelWidth() {
+      if (panelFolded) return;
+      applyPanelWidth(Math.round(panelWidthFraction * window.innerWidth));
     }
 
     // Create the main panel
@@ -189,9 +230,7 @@
 
     // Add resize functionality using pointer events and pointer capture
     function clampWidth(width) {
-      const MIN_WIDTH = 36;
-      const MAX_WIDTH = 900;
-      return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+      return Math.max(MIN_PANEL_WIDTH, Math.min(window.innerWidth, width));
     }
 
     let isDragging = false;
@@ -217,12 +256,7 @@
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
         const widthPx = clampWidth(rightEdge - e.clientX);
-        const panelWidth = `${widthPx / 16}rem`;
-        const isFolded = widthPx === 36;
-
-        panel.style.width = panelWidth;
-        chrome.storage.local.set({ "isPanelFolded": isFolded });
-        chrome.storage.local.set({ "panelWidth": isFolded ? '24rem' : panelWidth });
+        setPanelWidth(widthPx, widthPx === MIN_PANEL_WIDTH);
       } catch (err) {
         // ignore
       }
@@ -273,12 +307,7 @@
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
       const widthPx = clampWidth(rightEdge - e.clientX);
-      const panelWidth = `${widthPx / 16}rem`;
-      const isFolded = widthPx === 36;
-
-      panel.style.width = panelWidth;
-      chrome.storage.local.set({ "isPanelFolded": isFolded });
-      chrome.storage.local.set({ "panelWidth": isFolded ? '24rem' : panelWidth });
+      setPanelWidth(widthPx, widthPx === MIN_PANEL_WIDTH);
     });
 
     // End drag on pointerup or when pointer leaves
@@ -323,8 +352,16 @@
       ro.observe(qd);
     }
 
-    // Also sync on window resize
-    window.addEventListener('resize', syncHandleHeight);
+    // Also sync on window resize (handle height + proportional panel width)
+    let resizeFrame = null;
+    window.addEventListener('resize', () => {
+      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        syncHandleHeight();
+        syncPanelWidth();
+      });
+    });
 
     // append handle between existing page content and the panel wrapper
     console.log('panel injected with resize handle (handle placed between content and panel)');
@@ -338,19 +375,25 @@
       }
 
       if (message.type === "FOLD") {
-        panel.style.width = "2.25rem";
-        chrome.storage.local.set({ "isPanelFolded": true });
+        setPanelWidth(MIN_PANEL_WIDTH, true);
       }
 
       if (message.type === "UNFOLD") {
-        chrome.storage.local.get(["panelWidth"]).then((result) => {
-          panel.style.width = result.panelWidth ?? '24rem';
+        chrome.storage.local.get(["panelWidthFraction"]).then((result) => {
+          if (typeof result.panelWidthFraction === 'number' && result.panelWidthFraction > 0) {
+            panelWidthFraction = result.panelWidthFraction;
+          }
+          panelFolded = false;
+          chrome.storage.local.set({ isPanelFolded: false });
+          applyPanelWidth(Math.round(panelWidthFraction * window.innerWidth));
         });
-        chrome.storage.local.set({ isPanelFolded: false });
       }
 
       if (message.type === "MAXIMIZE") {
-        panel.style.width = `${window.innerWidth / 16}rem`;
+        panelFolded = false;
+        panelWidthFraction = 1;
+        chrome.storage.local.set({ isPanelFolded: false, panelWidthFraction: 1 });
+        applyPanelWidth(window.innerWidth);
       }
 
       if (message.type === "ACTIVE") {
