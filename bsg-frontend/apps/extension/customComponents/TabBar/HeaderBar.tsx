@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Button } from '@bsg/ui/button';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { messageScript } from '@/utils/messageScript';
@@ -11,15 +11,34 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
 
     const [hoveredTab, setHoveredTab] = useState<TabName | null>(null);
     const { scrollRef, isScrolledX } = useIsScrolled<HTMLDivElement>();
+    const wheelCleanupRef = useRef<(() => void) | null>(null);
 
     const activeTab = useRoomStore(s => s.activeTab);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const isPanelHovered = usePanelStore(s => s.isPanelHovered);
 
+    const combinedRef = useCallback((node: HTMLDivElement | null) => {
+        wheelCleanupRef.current?.();
+        wheelCleanupRef.current = null;
+
+        scrollRef(node);
+
+        if (node) {
+            const handler = (e: WheelEvent) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    node.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+                }
+            };
+            node.addEventListener('wheel', handler, { passive: false });
+            wheelCleanupRef.current = () => node.removeEventListener('wheel', handler);
+        }
+    }, [scrollRef]);
+
     return (
         <div
             onDoubleClick={() => messageScript('MAXIMIZE')}
-            className="bg-[#333333] h-9 flex relative items-center"
+            className="bg-bsg-surface h-9 flex relative items-center"
         >
             {
                 isInRoom ?
@@ -30,7 +49,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                         <div className="flex absolute left-0 h-full items-center pointer-events-none z-10">
 
                             {/* Logo */}
-                            <div className="flex h-full items-center bg-[#333333] pointer-events-auto">
+                            <div className="flex h-full items-center bg-bsg-surface pointer-events-auto">
                                 <div className="flex pl-2 py-1 gap-1 text-sm">
                                     <div className="w-5 h-5 flex items-center justify-center">
                                         <svg
@@ -51,22 +70,22 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                             </div>
 
                             {/* Fade */}
-                            <div className={`w-8 h-full bg-[linear-gradient(to_right,#333333_33.3%,transparent)] ${(isScrolledX) ? '' : 'hidden'}`} />
+                            <div className={`w-8 h-full bg-[linear-gradient(to_right,rgb(var(--bsg-surface))_33.3%,transparent)] ${(isScrolledX) ? '' : 'hidden'}`} />
                         </div>
 
                         {/* Tabs */}
                         <div
-                            ref={scrollRef}
+                            ref={combinedRef}
                             className="flex items-center h-full pl-8 pr-14 overflow-x-auto no-scrollbar"
                         >
 
-                            <div className={`min-w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
+                            <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('roomInfo')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => setActiveTab('roomInfo')}
-                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex gap-1 text-sm ${(activeTab === 'roomInfo') ? '' : 'opacity-60'}`}>
                                     <div className="w-5 h-5 flex items-center justify-center text-[rgb(255,157,20)]">
@@ -84,17 +103,17 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                                         </svg>
                                     </div>
 
-                                    <div className={(activeTab === 'roomInfo') ? 'font-medium' : 'font-normal'}>Room</div>
+                                    <div className={`text-foreground ${(activeTab === 'roomInfo') ? 'font-medium' : 'font-normal'}`}>Room</div>
                                 </div>
                             </Button>
 
-                            <div className={`min-w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'roomInfo' || hoveredTab === 'chat') ? 'invisible' : ''}`} />
+                            <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo' || hoveredTab === 'chat') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('chat')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => setActiveTab('chat')}
-                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex gap-1 text-sm ${(activeTab === 'chat') ? '' : 'opacity-60'}`}>
                                     <div className="w-5 h-5 flex items-center justify-center text-[rgb(0,123,255)]">
@@ -108,17 +127,17 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                                         </svg>
                                     </div>
 
-                                    <div className={(activeTab === 'chat') ? 'font-medium' : 'font-normal'}>Chat</div>
+                                    <div className={`text-foreground ${(activeTab === 'chat') ? 'font-medium' : 'font-normal'}`}>Chat</div>
                                 </div>
                             </Button>
 
-                            <div className={`min-w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
+                            <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => setActiveTab('leaderboard')}
-                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex gap-1 text-sm ${(activeTab === 'leaderboard') ? '' : 'opacity-60'}`}>
                                     <div className="w-5 h-5 flex items-center justify-center text-[rgb(255,183,0)]">
@@ -137,17 +156,17 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                                         </svg>
                                     </div>
 
-                                    <div className={(activeTab === 'leaderboard') ? 'font-medium' : 'font-normal'}>Leaderboard</div>
+                                    <div className={`text-foreground ${(activeTab === 'leaderboard') ? 'font-medium' : 'font-normal'}`}>Leaderboard</div>
                                 </div>
                             </Button>
 
-                            <div className={`min-w-[1px] h-3 bg-[#505050] ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
+                            <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('statistics')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => setActiveTab('statistics')}
-                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-[#434343] rounded-[5px]"
+                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex gap-1 text-sm ${(activeTab === 'statistics') ? '' : 'opacity-60'}`}>
                                     <div className="w-5 h-5 flex items-center justify-center text-[rgb(2,177,40)]">
@@ -166,7 +185,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                                         </svg>
                                     </div>
 
-                                    <div className={(activeTab === 'statistics') ? 'font-medium' : 'font-normal'}>Statistics</div>
+                                    <div className={`text-foreground ${(activeTab === 'statistics') ? 'font-medium' : 'font-normal'}`}>Statistics</div>
                                 </div>
                             </Button>
                         </div>
@@ -202,15 +221,15 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
             <div className="flex absolute right-0 h-full pointer-events-none">
 
                 {/* Fade */}
-                <div className="w-8 h-full bg-[linear-gradient(to_left,#333333_33.3%,transparent)]" />
+                <div className="w-8 h-full bg-[linear-gradient(to_left,rgb(var(--bsg-surface))_33.3%,transparent)]" />
 
-                <div className={`flex items-center gap-1 px-1 bg-[#333333] pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
+                <div className={`flex items-center gap-1 px-1 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize Button */}
                     <TooltipWrapper text="Maximize" shortcuts={["Alt", "+"]}>
                         <Button
                             onClick={() => messageScript('MAXIMIZE')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em]"
@@ -227,7 +246,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text="Fold" shortcuts={["Alt", "-"]}>
                         <Button
                             onClick={() => messageScript('FOLD')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em]"

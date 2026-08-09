@@ -111,7 +111,7 @@ const PODIUM_SLOTS: PodiumSlot[] = [
 ];
 
 const TrophyIcon = () => (
-    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-7 h-7 bg-[#1a1a1a] rounded-full p-1 border border-[#72ab1c]/40 shadow-md shadow-black/40">
+    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-7 h-7 bg-bsg-dark rounded-full p-1 border border-[#72ab1c]/40 shadow-lg shadow-[#72ab1c]/20">
         <svg viewBox="0 0 81 65" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
                 d="M29.5 13.5L36.8326 20.5015L29.5 27.5M39.7661 27.5H51.5M41 47V61.5M26 61.5H56M65 13H77.5C77.3785 30.2972 72.1025 34.6283 57.5 37M15.5 13H3C3.12147 30.2972 8.3975 34.6283 23 37M15 3H65.5C65.5 3 65.1434 46.6785 40.5 46.5C15.9364 46.3221 15 3 15 3Z"
@@ -196,13 +196,13 @@ const LeaderboardSkeleton = () => (
     <div className="flex-1 flex flex-col gap-3 p-4 animate-pulse">
         {/* Podium skeleton */}
         <div className="flex items-end gap-2 pt-6">
-            <div className="flex-1 h-[160px] rounded-t-sm bg-[#2e2e2e]" />
-            <div className="flex-1 h-[200px] rounded-t-sm bg-[#3a3a3a]" />
-            <div className="flex-1 h-[120px] rounded-t-sm bg-[#2e2e2e]" />
+            <div className="flex-1 h-[160px] rounded-t-sm bg-bsg-surface-alt" />
+            <div className="flex-1 h-[200px] rounded-t-sm bg-bsg-surface-alt" />
+            <div className="flex-1 h-[120px] rounded-t-sm bg-bsg-surface-alt" />
         </div>
         {/* Row skeletons */}
         {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-14 rounded-lg bg-[#2e2e2e]" />
+            <div key={i} className="h-14 rounded-lg bg-bsg-surface-alt" />
         ))}
     </div>
 );
@@ -222,7 +222,7 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
     const rest = sorted.slice(3);
 
     return (
-        <div className={`h-full flex flex-col bg-[#262626] ${isActive ? "" : "hidden"}`}>
+        <div className={`h-full flex flex-col bg-bsg-bg ${isActive ? "" : "hidden"}`}>
 
             {/* Header */}
             <div className="text-center py-4 px-4 flex-shrink-0">
@@ -246,7 +246,7 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                     <div className="relative mb-4">
                         <div className="absolute inset-0 bg-[#72ab1c]/30 blur-xl rounded-full" />
-                        <div className="relative w-12 h-12 bg-[#1a1a1a] rounded-full p-2 border border-[#72ab1c]/40 shadow-md shadow-black/40">
+                        <div className="relative w-12 h-12 bg-[#1a1a1a] rounded-full p-2 border border-[#72ab1c]/40 shadow-lg shadow-[#72ab1c]/20">
                             <svg viewBox="0 0 81 65" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path
                                     d="M29.5 13.5L36.8326 20.5015L29.5 27.5M39.7661 27.5H51.5M41 47V61.5M26 61.5H56M65 13H77.5C77.3785 30.2972 72.1025 34.6283 57.5 37M15.5 13H3C3.12147 30.2972 8.3975 34.6283 23 37M15 3H65.5C65.5 3 65.1434 46.6785 40.5 46.5C15.9364 46.3221 15 3 15 3Z"
@@ -289,11 +289,11 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
                                 {rest.map((player, index) => (
                                     <div
                                         key={player.id}
-                                        className="bg-[#262626]/70 border border-[#3a3a3a]/80 rounded-lg p-3 hover:bg-[#2e2e2e]/80 hover:border-[#72ab1c]/30 hover:shadow-md hover:shadow-[#72ab1c]/5 transition-all duration-200 group backdrop-blur-sm"
+                                        className="bg-[rgb(var(--bsg-bg)/0.7)] border border-[rgb(var(--bsg-surface-alt)/0.8)] rounded-lg p-3 hover:bg-[rgb(var(--bsg-surface-alt)/0.8)] hover:border-[#72ab1c]/30 hover:shadow-md hover:shadow-[#72ab1c]/5 transition-all duration-200 group backdrop-blur-sm"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 bg-[#1a1a1a] rounded-lg flex items-center justify-center font-bold text-[#aaaaaa] text-sm border border-[#3a3a3a] group-hover:border-[#72ab1c]/30 transition-colors flex-shrink-0">
+                                                <div className="w-9 h-9 bg-bsg-dark rounded-lg flex items-center justify-center font-bold text-[#aaaaaa] text-sm border border-bsg-surface-alt group-hover:border-[#72ab1c]/30 transition-colors flex-shrink-0">
                                                     #{index + 4}
                                                 </div>
                                                 <div className="group-hover:scale-105 transition-transform duration-200 flex-shrink-0">

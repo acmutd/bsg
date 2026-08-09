@@ -12,16 +12,16 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
     const roomCode = useRoomStore(s => s.roomCode);
 
     return (
-        <div className="flex p-1 items-center justify-between">
+        <div className="bg-bsg-surface h-9 flex px-1 items-center justify-between">
 
             <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
                 <Button
                     onClick={() => copyRoomCode(roomCode)}
-                    className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
+                    className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-bsg-hover ${(isInRoom) ? '' : 'invisible'}`}
                 >
                     <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
 
-                    <div className="flex gap-1.5 items-center text-foreground/60 text-sm font-medium">
+                    <div className="flex gap-1.5 items-center text-foreground text-sm font-medium">
                         {roomCode}
 
                         <svg
@@ -42,7 +42,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                     <HoverCardTrigger>
                         <Button
                             //onClick={}
-                            className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                            className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="w-4 h-4 overflow-visible"
@@ -60,13 +60,13 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                     </HoverCardTrigger>
 
                     <HoverCardContent className='flex px-4 py-3 gap-4 w-fit'>
-                        <div className='w-6 h-6 rounded-full bg-[#FFFFFF20]'>
+                        <div className='w-6 h-6 rounded-full bg-bsg-glass'>
 
                         </div>
-                        <div className='w-6 h-6 rounded-full bg-[#FFFFFF20]'>
+                        <div className='w-6 h-6 rounded-full bg-bsg-glass'>
 
                         </div>
-                        <div className='w-6 h-6 rounded-full bg-[#FFFFFF20]'>
+                        <div className='w-6 h-6 rounded-full bg-bsg-glass'>
 
                         </div>
                     </HoverCardContent>
@@ -75,7 +75,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                 <TooltipWrapper text="Rate our extension">
                     <Button
                         //onClick={}
-                        className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
                             className="w-4 h-4 overflow-visible"
@@ -91,7 +91,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                 <TooltipWrapper text="Give us feedback">
                     <Button
                         //onClick={}
-                        className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+                        className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
                             className="w-4 h-4 overflow-visible"

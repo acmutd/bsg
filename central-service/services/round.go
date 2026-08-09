@@ -539,6 +539,25 @@ func (service *RoundService) CreateRoundSubmission(
 		}
 	}
 
+	if service.rtcClient != nil {
+		var userHandle string
+		var user models.User
+		if err := service.db.Where("auth_id = ?", submissionAuthor).First(&user).Error; err == nil && user.Handle != "" {
+			userHandle = user.Handle
+		} else {
+			userHandle = submissionAuthor
+		}
+		newSubmissionReq := requests.NewSubmissionRequest{
+			UserHandle: userHandle,
+			RoomID:     round.RoomID.String(),
+			ProblemID:  problem.Slug,
+			Verdict:    submissionParams.Verdict,
+		}
+		if _, err := service.rtcClient.SendMessage("new-submission", newSubmissionReq); err != nil {
+			log.Printf("Error sending new-submission message: %v", err)
+		}
+	}
+
 	problemCount := service.db.Model(round).Association("ProblemSet").Count()
 
 	if submissionParams.Verdict == constants.SUBMISSION_STATUS_ACCEPTED {

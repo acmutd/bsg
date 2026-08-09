@@ -51,131 +51,51 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
         isSubmittingCreate,
         isSubmittingJoin,
     } = useRoomChoice({onJoin, onCreate})
-    
+
     return (
         <div
-            className={`${poppins.className} relative h-full flex items-center justify-center bg-background px-4 py-4`}>
-            <div
-                className="w-full p-4 rounded-2xl bg-inputBackground border-background shadow-lg hover:shadow-xl transition">
-                <h1 className="text-lg text-white font-semibold mb-3">Create a room or join one</h1>
+            className={`${poppins.className} relative h-full flex items-center justify-center px-4 py-4 overflow-hidden`}>
 
-                <div className="space-y-3">
-                    {/* Create Room - opens a focused modal dialog (create only) */}
+            {/* Decorative background elements */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
+                <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
+            </div>
+
+            {/* Main card */}
+            <div
+                className={`relative w-full p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
+                <h1 className="text-lg text-foreground font-semibold mb-4">Create a room or join one</h1>
+
+                <div className="space-y-4">
+                    {/* Create Room */}
                     <Button
                         onClick={() => {
                             setFormError(null)
                             setShowCreateOptions(true)
                         }}
-                        className="px-4 py-2 text-white bg-primary hover:bg-primary/90 transition-colors"
+                        className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                     >
                         <p className='px-2'>Create</p>
                         <FontAwesomeIcon icon={faPlus}/>
                     </Button>
 
-
-                    {/* Modal for create options only */}
-                    {showCreateOptions && (
-                        <div className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background p-3">
-                            <div
-                                className="w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-4 rounded-2xl bg-inputBackground shadow-lg">
-                                <div className="flex items-start justify-between mb-3">
-                                    <h2 className="text-lg text-white font-semibold">Create Room</h2>
-                                    <button
-                                        onClick={() => setShowCreateOptions(false)}
-                                        aria-label="Close create dialog"
-                                        title="Close"
-                                        className="text-gray-300 hover:text-white rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
-                                    >
-                                        <FontAwesomeIcon icon={faX}/>
-                                    </button>
-                                </div>
-
-                                <div className="grid gap-3 py-1">
-                                    <div className="flex items-center justify-between">
-                                        <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Easy}
-                                                                             num={numberOfEasyProblems}/>
-                                        <IncDecButtons
-                                            decrementOnClick={() => decrement(setNumberOfEasyProblems, numberOfEasyProblems)}
-                                            incrementOnClick={() => increment(setNumberOfEasyProblems, numberOfEasyProblems)}/>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Medium}
-                                                                             num={numberOfMediumProblems}/>
-                                        <IncDecButtons
-                                            decrementOnClick={() => decrement(setNumberOfMediumProblems, numberOfMediumProblems)}
-                                            incrementOnClick={() => increment(setNumberOfMediumProblems, numberOfMediumProblems)}/>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Hard}
-                                                                             num={numberOfHardProblems}/>
-                                        <IncDecButtons
-                                            decrementOnClick={() => decrement(setNumberOfHardProblems, numberOfHardProblems)}
-                                            incrementOnClick={() => increment(setNumberOfHardProblems, numberOfHardProblems)}/>
-                                    </div>
-
-                                    <div>
-                                        <Label className="text-base">Select Topics</Label>
-                                        <ScrollArea
-                                            className="max-h-32 overflow-y-auto rounded-md p-2 mt-2 bg-background">
-                                            <div className="flex flex-wrap gap-2">
-                                                {topics.map((t, i) => <TopicComponent key={i} topic={t}
-                                                                                      toggle={() => toggleTopic(i)}/>)}
-                                            </div>
-                                        </ScrollArea>
-                                    </div>
-
-                                    <div>
-                                        <Label className="text-base">Duration: {duration} mins</Label>
-                                        <Slider min={5} max={120} step={5} value={[duration]}
-                                                onValueChange={(v) => setDuration(v[0])} className={'pt-2'}/>
-                                    </div>
-
-                                    {formError && (
-                                        <div className="rounded-md border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm text-red-200">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <span>{formError}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormError(null)}
-                                                    aria-label="Dismiss error"
-                                                    className="shrink-0 rounded px-2 py-1 text-xs text-red-200 hover:bg-red-900/40"
-                                                >
-                                                    x
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="flex mt-2 justify-end">
-                                        <Button
-                                            onClick={handleCreateRoom}
-                                            disabled={isSubmittingCreate}
-                                            className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
-                                        >
-                                            {isSubmittingCreate ? 'Creating...' : 'Create'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Join Room */}
                     <div className="flex gap-2">
                         <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)}
                                placeholder="Enter room code"
-                               className="flex-1 px-3 py-2 rounded-lg bg-background text-white focus:outline-none focus:ring-2 focus:ring-white transition"/>
+                               className="flex-1 px-3 py-2 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/20 transition"/>
                         <Button
                             onClick={handleJoinRoom}
                             disabled={isSubmittingJoin}
-                            className="px-4 py-2 flex items-center gap-1 text-white bg-primary hover:bg-primary/90 transition-colors"
+                            className="px-4 py-2 flex items-center gap-1 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                         >
                             <p>{isSubmittingJoin ? 'Joining...' : 'Join'}</p>
                             <FontAwesomeIcon icon={faDoorOpen}/>
                         </Button>
-
                     </div>
 
+                    {/* Join error */}
                     {!showCreateOptions && formError && (
                         <div className="rounded-md border border-red-500/50 bg-red-950/40 px-3 py-2 text-sm text-red-200">
                             <div className="flex items-start justify-between gap-3">
@@ -193,6 +113,105 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                     )}
                 </div>
             </div>
+
+            {/* Create Room Modal */}
+            {showCreateOptions && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-3">
+                    <div
+                        className="w-full max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
+                        <div className="flex items-start justify-between mb-5">
+                            <h2 className="text-lg text-foreground font-semibold">Create Room</h2>
+                            <button
+                                onClick={() => setShowCreateOptions(false)}
+                                aria-label="Close create dialog"
+                                title="Close"
+                                className="text-foreground/60 hover:text-foreground rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
+                            >
+                                <FontAwesomeIcon icon={faX}/>
+                            </button>
+                        </div>
+
+                        {/* Difficulty rows */}
+                        <div className="space-y-3 mb-5">
+                            <div className="flex items-center justify-between">
+                                <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Easy}
+                                                                     num={numberOfEasyProblems}/>
+                                <IncDecButtons
+                                    decrementOnClick={() => decrement(setNumberOfEasyProblems, numberOfEasyProblems)}
+                                    incrementOnClick={() => increment(setNumberOfEasyProblems, numberOfEasyProblems)}/>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Medium}
+                                                                     num={numberOfMediumProblems}/>
+                                <IncDecButtons
+                                    decrementOnClick={() => decrement(setNumberOfMediumProblems, numberOfMediumProblems)}
+                                    incrementOnClick={() => increment(setNumberOfMediumProblems, numberOfMediumProblems)}/>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Hard}
+                                                                     num={numberOfHardProblems}/>
+                                <IncDecButtons
+                                    decrementOnClick={() => decrement(setNumberOfHardProblems, numberOfHardProblems)}
+                                    incrementOnClick={() => increment(setNumberOfHardProblems, numberOfHardProblems)}/>
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-2 mb-5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-foreground/20"/>
+                            <div className="flex-1 h-px bg-foreground/10"/>
+                            <div className="w-1.5 h-1.5 rounded-full bg-foreground/20"/>
+                        </div>
+
+                        {/* Topics */}
+                        <div className="mb-5">
+                            <Label className="text-sm text-foreground/60">Select Topics</Label>
+                            <ScrollArea
+                                className="max-h-32 overflow-y-auto rounded-md p-2 mt-2 bg-background">
+                                <div className="flex flex-wrap gap-2">
+                                    {topics.map((t, i) => <TopicComponent key={i} topic={t}
+                                                                          toggle={() => toggleTopic(i)}/>)}
+                                </div>
+                            </ScrollArea>
+                        </div>
+
+                        {/* Duration */}
+                        <div className="mb-5">
+                            <Label className="text-sm text-foreground/60">Duration: {duration} mins</Label>
+                            <Slider min={5} max={120} step={5} value={[duration]}
+                                    onValueChange={(v) => setDuration(v[0])} className={'pt-2'}/>
+                        </div>
+
+                        {/* Error */}
+                        {formError && (
+                            <div className="rounded-md border border-red-500/50 bg-red-950/40 px-3 py-2 mb-4 text-sm text-red-200">
+                                <div className="flex items-start justify-between gap-3">
+                                    <span>{formError}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormError(null)}
+                                        aria-label="Dismiss error"
+                                        className="shrink-0 rounded px-2 py-1 text-xs text-red-200 hover:bg-red-900/40"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Create button */}
+                        <div className="flex justify-end">
+                            <Button
+                                onClick={handleCreateRoom}
+                                disabled={isSubmittingCreate}
+                                className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
+                            >
+                                {isSubmittingCreate ? 'Creating...' : 'Create'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
