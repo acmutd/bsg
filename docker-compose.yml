@@ -147,6 +147,8 @@ services:
 
   caddy:
       image: caddy:latest
+      environment: 
+        CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:-localhost}
       ports: 
         - "80:80"
         - "443:443"

@@ -1,13 +1,18 @@
 # binarysearchgang.com (apex + www) is served by Vercel — do not route it here.
-# This serves the API backend and WebSocket service.
-# lane: 'localhost' <-> 'api.binarysearchgang.com'.
-localhost {
+# If you want to use the domain set the .env variable CADDY_SITE_ADDRESS with 
+# api.binarysearchgang.com 
+# FOR Production leave the CADDY_SITE_ADDRESS empty 
+
+
+(bsg-routes) {
     @websocket path /ws
     @adminer   path /admin
     reverse_proxy @websocket rtc-service:8080
     reverse_proxy @adminer   adminer:8080
 
-    
     reverse_proxy server:3000
+}
 
+{$CADDY_SITE_ADDRESS:localhost} {
+    import bsg-routes
 }
