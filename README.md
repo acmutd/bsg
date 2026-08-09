@@ -24,14 +24,14 @@ Worker Service will be responsible for carrying out computational-intensive task
 
 Create a copy of the file `.env.template` and name the copy as `.env`. In Linux or MacOS, one can run the following command: 
 ```bash
-$ cp .env.template .env
+cp .env.template .env
 ```
 
 Fill out the environment variables in the `.env` file with any value of choosing. 
 
 Execute the following command to run the project: 
 ```bash
-$ docker compose --env-file ./.env up --build --force-recreate
+docker compose --env-file ./.env up --build --force-recreate
 ```
 
 ## Running Unit Tests
@@ -42,4 +42,21 @@ make test
 and there are other options like if you only want to test the Go code, or just the express server code, or maybe just a specific service. You can find these commands with:
 ```
 make help
+```
+## Production
+The .env file should have the CADDY_SITE_ADDRESS= env variable with the respective domain name to direct traffic to if you want to use the domain and not run locally
+
+Domain Name for our backend services
+```
+api.binarysearchgang.com
+```
+
+To run locally do not add CADDY_SITE_ADDRESS= to the env file and run
+```
+make run
+```
+
+All you have to do is run regardless of local or production
+```
+cd bsg-frontend/ && npm run build-extension
 ```
