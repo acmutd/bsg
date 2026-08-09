@@ -285,7 +285,6 @@
     window.addEventListener('pointerup', endDrag);
     window.addEventListener('pointercancel', endDrag);
 
-    // Keep handle height in sync with the content area (qd)
     function syncHandleHeight() {
       try {
         const rect = qd.getBoundingClientRect();
@@ -295,6 +294,11 @@
         }
         if (handle.style.alignSelf !== 'stretch') {
           handle.style.alignSelf = 'stretch';
+        }
+
+        const panelHeight = Math.max(0, Math.min(rect.height, window.innerHeight)) + 'px';
+        if (panel.style.height !== panelHeight) {
+          panel.style.height = panelHeight;
         }
       } catch (err) {
         // ignore
