@@ -43,3 +43,9 @@ and there are other options like if you only want to test the Go code, or just t
 ```
 make help
 ```
+## Production
+The .env file should have the CADDY_SITE_ADDRESS= env variable with the respective domain name to direct traffic to if you want to use the domain and not run locally
+All you have to do is run
+```
+cd bsg-frontend/ && npm run build-extension
+```
