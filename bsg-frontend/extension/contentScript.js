@@ -388,7 +388,6 @@
     });
 
     // append handle between existing page content and the panel wrapper
-    console.log('panel injected with resize handle (handle placed between content and panel)');
 
     // Listen for auth state changes from extension
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -458,14 +457,14 @@
         chrome.runtime.sendMessage({
           type: 'SUBMISSION_PENDING',
           data: event.data.payload
-        });
+        }).catch(() => {});
       }
 
       if (event.data.type === 'BSG_LEETCODE_RESULT') {
         chrome.runtime.sendMessage({
           type: 'SUBMISSION_RESULT',
           data: event.data.payload
-        });
+        }).catch(() => {});
       }
     })
 
@@ -484,7 +483,7 @@
     const removeActive = () => {
       panelActive = false;
       activeTabsetObserver.disconnect();
-      chrome.runtime.sendMessage({ type: 'NOT_ACTIVE' });
+      chrome.runtime.sendMessage({ type: 'NOT_ACTIVE' }).catch(() => {});
     }
 
     document.body.addEventListener('mousedown', (e) => {
