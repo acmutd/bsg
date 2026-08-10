@@ -54,17 +54,17 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
     return (
         <div
-            className={`${poppins.className} relative h-full flex items-center justify-center px-4 py-4 overflow-hidden`}>
+            className={`${poppins.className} relative min-h-full flex px-4 py-4`}>
 
             {/* Decorative background elements */}
-            <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
                 <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
             </div>
 
             {/* Main card */}
             <div
-                className={`relative w-full p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
+                className={`relative m-auto w-full min-w-[18rem] p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
                 <h1 className="text-lg text-foreground font-semibold mb-4">Create a room or join one</h1>
 
                 <div className="space-y-4">
@@ -118,7 +118,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
             {showCreateOptions && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-3">
                     <div
-                        className="w-full max-w-sm max-h-[calc(100vh-2rem)] overflow-y-auto p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
+                        className="w-full max-w-sm max-h-full overflow-y-auto p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
                         <div className="flex items-start justify-between mb-5">
                             <h2 className="text-lg text-foreground font-semibold">Create Room</h2>
                             <button
