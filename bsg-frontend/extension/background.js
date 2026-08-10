@@ -215,7 +215,7 @@ chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcS
   if (activeRoomId && userProfile) {
     connectWebSocket();
   } else {
-    console.log("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
+    console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
   }
 });
 
