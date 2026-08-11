@@ -30,6 +30,8 @@ export const Toolbar = () => {
             var start = url?.indexOf("/problems/");
             var startword = url.slice(start+10)
             var end = startword.indexOf("/");
+
+            //the finalword is the slug name or the name of the problem
             var finalword = startword.slice(0, end);
             // console.log("CurrProblem:", problems, finalword, problems.indexOf(finalword))
             if (currIndex.current == -1){
@@ -57,6 +59,7 @@ export const Toolbar = () => {
                                 console.log("No previous problem");
                             } else {
                                 newIndex = currIndex.current-1;
+                                //if(newIndex < 0) return;
                                 window.open(`https://leetcode.com/problems/${problems[newIndex]}/`, '_top');
                             }
                           }

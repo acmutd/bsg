@@ -60,6 +60,7 @@ export const useChatSocket = () => {
     const roomId = useRoomStore(s => s.roomId);
     const setIsConnected = useRoomStore(s => s.setIsConnected);
     const setLastGameEvent = useRoomStore(s => s.setLastGameEvent);
+    const setProblems = useRoomStore(s => s.setProblems);
 
     useEffect(() => {
         if (!userEmail) return;

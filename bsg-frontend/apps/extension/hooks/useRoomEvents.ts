@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
@@ -23,17 +23,58 @@ export function useRoomEvents() {
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
 
+    const LastGameRef = useRef<string>('')
+
     // Refresh participants when someone joins or leaves
     useEffect(() => {
         if (!lastParticipantJoinTime || !roomId) return;
         setRoomParticipants(roomId);
     }, [lastParticipantJoinTime, roomId]);
 
+    useEffect(() => {
+        if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+            chrome.storage.local.get(["lastGameEvent", "problems", "roundEndTime"], async function(result) {
+                const LastGameEvent = result.lastGameEvent
+
+                //Re-render didnt happen so we are fine early return
+                if (LastGameRef.current == LastGameEvent) return;
+
+                //we got here meaning re-render actually happened or someone left the tab so we should
+                //go to the problem page
+                if(LastGameEvent === 'round-start'){
+                    const storedProblems: string[] = result.problems || [];
+                    const storedEndTime: number | null = result.roundEndTime ?? null;
+
+                    let shouldResume = false;
+                    if(storedEndTime && storedEndTime > 0){
+                        shouldResume = true
+                    }
+
+                    if (!shouldResume || storedProblems.length === 0) return;
+
+                    const targetSlug = storedProblems[0]
+
+                    if (!chrome.tabs) return;
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (!tab?.id || !tab.url) return;
+
+                    const alreadyOnTarget = tab.url.includes(`/problems/${targetSlug}/`);
+                    if (!alreadyOnTarget) {
+                        chrome.tabs.update(tab.id, { url: `https://leetcode.com/problems/${targetSlug}/` });
+                    }
+                }
+
+            })
+        }
+
+    },[])
+
     // Refresh participants when round starts (indicates room activity)
     useEffect(() => {
         if (!lastGameEvent || !roomId) return;
 
         if (lastGameEvent.type === 'round-start') {
+            LastGameRef.current = 'round-start'
             setRoomParticipants(roomId);
             const data = lastGameEvent.data;
             let problems: string[] = [];
@@ -72,23 +113,8 @@ export function useRoomEvents() {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            if (problems.length > 0) {
-            
-                
-            //problem array kept getting erased due to zustand stored it here
-            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                chrome.storage.local.set({ problems: problems });
-
-            } 
-
-            
-                
-            //problem array kept getting erased due to zustand stored it here
-            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                chrome.storage.local.set({ problems: problems });
-
-            } 
-
+            if (problems.length > 0) { 
+    
                 const targetSlug = problems[0];
                 const currentPath = typeof window !== 'undefined' ? window.location.pathname : "";
                 const alreadyOnTarget = currentPath.includes(`/problems/${targetSlug}/`);
@@ -96,7 +122,13 @@ export function useRoomEvents() {
                     window.open(`https://leetcode.com/problems/${targetSlug}/`, '_top');
                 }
             }
+            //problem array kept getting erased due to zustand stored it here and the lastGameEvent as well
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ problems: problems });
+                chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
+            } 
         } else if (lastGameEvent.type === 'next-problem') {
+            LastGameRef.current = 'next-problem'
             let eventData = lastGameEvent.data;
             if (typeof eventData === 'string') {
                 try {
@@ -112,7 +144,11 @@ export function useRoomEvents() {
             if (userId && (userHandle == userId)) {
                 window.open(`https://leetcode.com/problems/${nextProblem}/`, '_top');
             }
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
+            }
         } else if (lastGameEvent.type === 'round-end') {
+            LastGameRef.current = 'round-end'
             console.log("We got inside of the round-end game type ")
             setRoundEndTime(null);
             setIsRoundStarted(false);
@@ -126,8 +162,12 @@ export function useRoomEvents() {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
             setActiveTab('leaderboard')
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
+            }
         }
     }, [lastGameEvent, isLoggedIn, isInRoom]);
+
 
 
     // Check storage for nextProblem state on mount and when extension opens
