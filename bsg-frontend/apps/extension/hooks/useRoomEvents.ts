@@ -276,6 +276,8 @@ export function useRoomEvents() {
                     
                     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                         chrome.storage.local.remove('roundEndTime');
+                        chrome.storage.local.remove("lastGameEvent");
+                        chrome.storage.local.remove("problems");
                     }
                 }, 2000);
             }
@@ -296,6 +298,13 @@ export function useRoomEvents() {
             });
             const message = await response.json()
             if(response.ok){
+
+                if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+                    chrome.storage.local.remove("activeRoomId");
+                    chrome.storage.local.remove('roundEndTime');
+                    chrome.storage.local.remove("lastGameEvent");
+                    chrome.storage.local.remove("problems");
+                }
                 setResetRoom();
                 router.push('/start-page')
             } else{
