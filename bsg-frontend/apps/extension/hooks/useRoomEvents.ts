@@ -5,6 +5,28 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
 
+
+export const parseProblemSlug = (url: string): string | null => {
+    const match = url.match(/\/problems\/([^/?#]+)/);
+    return match ? match[1] : null;
+}
+
+export const problemUrl = (slug: string): string => `https://leetcode.com/problems/${slug}/`;
+
+
+export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | null => {
+    if (problems.length === 0) return null;
+
+    // Already on one of this round's problems
+    const currentSlug = parseProblemSlug(tabUrl);
+    
+    if (currentSlug && problems.includes(currentSlug)) return null;
+
+    if (!tabUrl.includes('leetcode.com')) return null;
+
+    return problems[0];
+}
+
 export function useRoomEvents() {
 
     const [ nextProblem, setNextProblem ] = useState<string | null>(null);
@@ -32,9 +54,14 @@ export function useRoomEvents() {
     }, [lastParticipantJoinTime, roomId]);
 
     useEffect(() => {
+
+        if(!roomId) return;
+
         if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
             chrome.storage.local.get(["lastGameEvent", "problems", "roundEndTime"], async function(result) {
                 const LastGameEvent = result.lastGameEvent
+
+                if(!LastGameEvent) return;
 
                 //Re-render didnt happen so we are fine early return
                 if (LastGameRef.current == LastGameEvent) return;
@@ -46,21 +73,19 @@ export function useRoomEvents() {
                     const storedEndTime: number | null = result.roundEndTime ?? null;
 
                     let shouldResume = false;
-                    if(storedEndTime && storedEndTime > 0){
+                    if(storedEndTime && storedEndTime > Date.now()){
                         shouldResume = true
                     }
 
                     if (!shouldResume || storedProblems.length === 0) return;
 
-                    const targetSlug = storedProblems[0]
-
                     if (!chrome.tabs) return;
                     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                     if (!tab?.id || !tab.url) return;
 
-                    const alreadyOnTarget = tab.url.includes(`/problems/${targetSlug}/`);
-                    if (!alreadyOnTarget) {
-                        chrome.tabs.update(tab.id, { url: `https://leetcode.com/problems/${targetSlug}/` });
+                    const targetSlug = resolveResumeSlug(tab.url, storedProblems);
+                    if (targetSlug) {
+                        chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
                     }
                 }
 
@@ -114,17 +139,31 @@ export function useRoomEvents() {
             }
 
             if (problems.length > 0) { 
-    
-                const targetSlug = problems[0];
-                const currentPath = typeof window !== 'undefined' ? window.location.pathname : "";
-                const alreadyOnTarget = currentPath.includes(`/problems/${targetSlug}/`);
-                if (!alreadyOnTarget) {
-                    window.open(`https://leetcode.com/problems/${targetSlug}/`, '_top');
+                if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                    chrome.storage.local.set({ problems: problems})
                 }
+                const targetSlug = problems[0]
+
+                const NavigateProblem = async () => {
+                
+                if (!chrome.tabs) return;
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (!tab?.id || !tab.url) return;
+
+                const alreadyOnTarget = parseProblemSlug(tab.url) === targetSlug;
+                if (!alreadyOnTarget) {
+                    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+                }
+                return;
+                
+                }
+
+                NavigateProblem();
+
+
             }
             //problem array kept getting erased due to zustand stored it here and the lastGameEvent as well
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                chrome.storage.local.set({ problems: problems });
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
             } 
         } else if (lastGameEvent.type === 'next-problem') {
@@ -142,7 +181,7 @@ export function useRoomEvents() {
 
             // userHandle from backend is AuthID. userProfile.id is AuthID.
             if (userId && (userHandle == userId)) {
-                window.open(`https://leetcode.com/problems/${nextProblem}/`, '_top');
+                window.open(problemUrl(nextProblem), '_top');
             }
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
@@ -268,6 +307,7 @@ export function useRoomEvents() {
         }
 
     }
+
 
     return { handleStartRound, handleEndRound, handleLeaveRoom };
 }

@@ -232,11 +232,15 @@ export const useRoomInit = () => {
                             chrome.storage.local.set({ activeRoomId: room.id }, () => {
                                 console.log("CheckActiveRoom: Saved activeRoomId");
                             });
+                            chrome.storage.local.get(['problems'], (result) => {
+                                setProblems(result.problems || []);
+                            });
                             
-                        } else {
+                        }else{
                         }
 
                         router.push('/room-page');
+
 
                         // Check for active round
                         if (room.rounds && room.rounds.length > 0) {
