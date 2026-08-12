@@ -7,3 +7,4 @@
 **/next-env.d.ts
 out/
 /apps/extension/.env.local
+/apps/extension/tsconfig.tsbuildinfo

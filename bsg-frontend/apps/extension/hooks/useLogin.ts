@@ -82,25 +82,29 @@ export const useLogin = () => {
     // TODO: Display a loading screen while active room is being checked (start-page will be loaded only after failure)
     // Check if the user is logged in using the service worker
     useEffect(() => {
-        //check if chrome api is available
-        if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
+        if(typeof chrome === 'undefined' || typeof chrome.runtime === 'undefined' || typeof chrome.runtime.sendMessage === 'undefined') return;
 
-            chrome.runtime.sendMessage({type: 'CHECK_AUTH'}, (response) => {
-                if (response && response.success) {
-                    const user: User = response.user;
-                    loginUser(
-                        user.id,
-                        user.name,
-                        user.email,
-                        user.photo
-                    );
+        const initSession = async () => {
 
-                    router.push('/start-page');
-                    checkActiveRoom();
-                }
-            });
+            try {
+                const response = await chrome.runtime.sendMessage({type: 'CHECK_AUTH'});
+                if(!response?.success) return;
+
+                const user: User = response.user;
+                loginUser(user.id, user.name, user.email, user.photo)
+
+                //checkActiveRoom pushes room-page itself, so we only handle the no-room case
+                const enteredRoom = await checkActiveRoom();
+                if(!enteredRoom) router.push('/start-page')
+                    
+            } catch(error){
+                console.error(error)
+            }
+
+    
         }
-    }, []);
+        initSession();
+    }, [])
 
     return {
         credentials,

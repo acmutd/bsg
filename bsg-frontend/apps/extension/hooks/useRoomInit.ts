@@ -93,7 +93,6 @@ export const useRoomInit = () => {
             }
 
             const room = data.data;
-
             initRoom(
                 room.id,
                 room.shortCode,
@@ -200,8 +199,9 @@ export const useRoomInit = () => {
         }
     }
 
-    // TODO: Return a boolean to determine if room-choice is loaded
-    const checkActiveRoom = async (attempt = 0): Promise<void> => {
+    // Returns true when the user was put into an active room, so callers know
+    // whether they still need to fall through to room-choice.
+    const checkActiveRoom = async (attempt = 0): Promise<boolean> => {
         try {
             const res = await fetch(`${getServerUrl()}/rooms/active`, { credentials: 'include' });
             if (res.status === 429 && attempt < 3) {
@@ -217,11 +217,14 @@ export const useRoomInit = () => {
                     if (roomRes.ok) {
                         const roomData = await roomRes.json();
                         const room = roomData.data;
+                        //this runs from the mount effect, so the captured userId is still the
+                        //null from the first render - read the store instead
+                        const currentUserStored = useUserStore.getState().userId;
                         initRoom(
                             room.id,
                             room.shortCode,
                             room.adminId,
-                            userId === room.adminId
+                            currentUserStored === room.adminId
                         );
 
                         await setRoomParticipants(room.id);
@@ -235,12 +238,12 @@ export const useRoomInit = () => {
                             chrome.storage.local.get(['problems'], (result) => {
                                 setProblems(result.problems || []);
                             });
-
                             
-                        } else {
+                        }else{
                         }
 
                         router.push('/room-page');
+
 
                         // Check for active round
                         if (room.rounds && room.rounds.length > 0) {
@@ -266,12 +269,16 @@ export const useRoomInit = () => {
                                 }
                             }
                         }
+
+                        return true;
                     }
                 }
             }
         } catch (e) {
             console.error("Failed to check active room", e);
         }
+
+        return false;
     }
 
     return { joinRoom, createRoom, checkActiveRoom, setRoomParticipants };
