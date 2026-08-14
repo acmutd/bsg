@@ -301,6 +301,17 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) (string, err
 			return "", err
 		}
 
+		if service.rtcClient != nil {
+			updateAdmin := requests.NewRoomAdminRequest{
+				RoomID:     roomID,
+				NewAdminID: newAdmin,
+			}
+			if _, err = service.rtcClient.SendMessage("room-admin-transfer", updateAdmin); err != nil {
+				log.Printf("Error sending room-admin-transfer message (non-fatal): %v", err)
+			}
+
+		}
+
 		return newAdmin, nil
 
 	}

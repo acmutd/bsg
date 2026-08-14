@@ -18,6 +18,10 @@ type Room struct {
 	// Unique identifier for the room.
 	RoomID string
 
+	//ID to identify who is the current Room admin useful to broadcast
+	//message to everyone in the room. Once current admin leaves update the ID
+	RoomAdminID string
+
 	// List of all users in the room.
 	Users UserList
 
@@ -95,4 +99,14 @@ func (r *Room) GetHistory() []response.Response {
 	historyCopy := make([]response.Response, len(r.Messages))
 	copy(historyCopy, r.Messages)
 	return historyCopy
+}
+
+func (r *Room) UpdateAdmin(newAdminID string) error {
+	r.Lock()
+	defer r.Unlock()
+
+	r.RoomAdminID = newAdminID
+	logging.Info("New Admin: ", r.RoomAdminID, "for room: ", r.RoomID)
+	return nil
+
 }
