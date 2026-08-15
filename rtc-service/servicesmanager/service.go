@@ -32,6 +32,9 @@ type Service struct {
 	Connection     *websocket.Conn
 	Egress         chan response.Response
 	ServiceManager *ServiceManager
+	// Room the service joined via a join-room request, so its user entry can be
+	// cleaned up when the connection drops.
+	JoinedRoom string
 }
 
 // Creating a new client to communicate with.
@@ -47,6 +50,18 @@ func NewClient(name string, conn *websocket.Conn, manager *ServiceManager) *Serv
 // Read the incoming messages from the service.
 func (s *Service) ReadMessages() {
 	defer func() {
+		// If this was the last connection for the user's handle, remove their
+		// room entry so reconnects don't collide and rooms can be cleaned up.
+		// Other connections sharing the handle (e.g. a second tab) keep the entry.
+		if s.JoinedRoom != "" && s.ServiceManager.FindOtherService(s.Name, s) == nil {
+			room := chatmanager.RTCChatManager.GetRoom(s.JoinedRoom)
+			if room != nil {
+				room.RemoveUser(&chatmanager.User{Handle: s.Name})
+				if room.IsEmpty() {
+					chatmanager.RTCChatManager.RemoveRoom(room)
+				}
+			}
+		}
 		s.ServiceManager.RemoveService(s)
 	}()
 
@@ -83,10 +98,19 @@ func (s *Service) ReadMessages() {
 					logging.Error("Failed to handle message: ", err)
 					s.Egress <- *response.NewErrorResponse(respType, err.Error(), roomID)
 				} else {
+					if messageStruct.Type == "join-room" {
+						s.JoinedRoom = roomID
+					}
+
 					respObj := *response.NewOkResponse(respType, resp, roomID)
 
+					// Silent announcements (e.g. central-service registering a user in
+					// the room) carry an empty message and are neither broadcast nor
+					// stored in history. The user is already registered by Handle().
+					silentAnnouncement := respType == response.SYSTEM_ANNOUNCEMENT && resp == ""
+
 					// Broadcast and Persistence Logic
-					if respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED {
+					if !silentAnnouncement && (respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED || respType == response.ADMIN_CHANGE) {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
 						if room != nil {
 							// 1. If this is a join-room request, replay history to the joining user.

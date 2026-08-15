@@ -84,10 +84,17 @@ async function startServer() {
     }
     app.use(express.json());
     app.use(loggingModule.createValidationMiddleware(logger));
-    app.use(loggingModule.createRateLimitMiddleware(logger, {
-        requestsPerMinute: 60,
+    // Rate limiting. The auth limiter is stricter because the panel polls
+    // /auth/user while the login page is open; the global limiter is generous
+    // so room/participants/leaderboard refreshes and retries aren't blocked.
+    const authRateLimit = loggingModule.createRateLimitMiddleware(logger, {
+        requestsPerMinute: 120,
         timeWindow: 60000
-    }));
+    });
+    const globalRateLimit = loggingModule.createRateLimitMiddleware(logger, {
+        requestsPerMinute: 600,
+        timeWindow: 60000
+    });
     app.use(loggingModule.createStructuredLoggingMiddleware(logger));
     app.use(corsMiddleware)
     app.use(session({
@@ -109,7 +116,11 @@ async function startServer() {
 
 
     const authRoutes = require('./routes/auth');
+    app.use('/auth', authRateLimit);
     app.use('/auth', authRoutes);
+
+    // Global limiter applies to everything not already handled above.
+    app.use(globalRateLimit);
 
     const roomsRoutes = require('./routes/rooms');
     app.use('/rooms', roomsRoutes);

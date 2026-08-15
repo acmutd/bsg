@@ -32,9 +32,9 @@ func (r *Room) AddUser(user *User) {
 	r.Lock()
 	defer r.Unlock()
 
-	// Check user already exists
+	// Check user already exists (e.g. a second tab or a reconnecting client)
 	if _, ok := r.Users[user.Handle]; ok {
-		logging.Error("User already exists")
+		logging.Debug("User already exists: ", user.Handle)
 		return
 	}
 
