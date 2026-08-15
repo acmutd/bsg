@@ -93,6 +93,37 @@
       return widthPx;
     }
 
+    // Fullscreen panel starts below LeetCode's navbar, which is where the main
+    // content (wrapper) begins, and fills the rest of the viewport.
+    function getMaximizedOffset() {
+      return Math.max(0, wrapper.getBoundingClientRect().top);
+    }
+
+    function applyMaximizedLayout() {
+      const top = getMaximizedOffset();
+      panel.style.transition = 'none';
+      Object.assign(panel.style, {
+        position: 'fixed',
+        top: `${top}px`,
+        left: '0',
+        width: `${window.innerWidth}px`,
+        height: `${window.innerHeight - top}px`,
+        zIndex: '2147483647',
+        borderRadius: '0',
+      });
+    }
+
+    function clearMaximizedLayout() {
+      panel.style.transition = 'none';
+      Object.assign(panel.style, {
+        position: '',
+        top: '',
+        left: '',
+        zIndex: '',
+        borderRadius: '8px',
+      });
+    }
+
     // The single decision point for panel width: if the requested width is too
     // narrow to be usable, snap to the 2.25rem sidebar instead of leaving the
     // layout squeezed in the dead zone between 36px and COLLAPSE_WIDTH.
@@ -128,9 +159,12 @@
     function syncPanelWidth() {
       if (panelFolded) return;
       if (panelMaximized) {
-        // Fullscreen: fill the viewport exactly so no horizontal scrollbar appears.
+        // Fullscreen: fill the viewport below the navbar so no horizontal
+        // scrollbar appears.
+        const top = getMaximizedOffset();
+        panel.style.top = `${top}px`;
         panel.style.width = `${window.innerWidth}px`;
-        panel.style.height = `${window.innerHeight}px`;
+        panel.style.height = `${window.innerHeight - top}px`;
         return;
       }
       requestWidth(Math.round(panelWidthFraction * window.innerWidth));
@@ -211,19 +245,11 @@
     wrapper.appendChild(panelWrapper);
 
     // If the panel was maximized when the page last closed, hide the resize
-    // handle and cover the viewport so it stays non-resizable and fullscreen
-    // (LeetCode-style) on reload.
+    // handle and fill the viewport below the navbar so it stays non-resizable
+    // (LeetCode-style fullscreen) on reload.
     if (panelMaximized) {
       handle.style.display = 'none';
-      Object.assign(panel.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: `${window.innerWidth}px`,
-        height: `${window.innerHeight}px`,
-        zIndex: '2147483647',
-        borderRadius: '0',
-      });
+      applyMaximizedLayout();
     }
 
     // --- Theme detection and sync ---
@@ -373,9 +399,12 @@
     function syncHandleHeight() {
       try {
         if (panelMaximized) {
-          // Fullscreen panel fills the viewport; don't let qd's height override it.
-          if (panel.style.height !== `${window.innerHeight}px`) {
-            panel.style.height = `${window.innerHeight}px`;
+          // Fullscreen panel fills the viewport below the navbar; don't let
+          // qd's height override it.
+          const top = getMaximizedOffset();
+          const height = `${window.innerHeight - top}px`;
+          if (panel.style.height !== height) {
+            panel.style.height = height;
           }
           return;
         }
@@ -461,25 +490,26 @@
           panelMaximized = true;
           panelWidthFraction = 1;
           handle.style.display = 'none';
-          // Fullscreen: detach from the flex layout and cover the viewport
-          // exactly, so no horizontal scrollbar or resize handle appears.
-          Object.assign(panel.style, {
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: `${window.innerWidth}px`,
-            height: `${window.innerHeight}px`,
-            zIndex: '2147483647',
-            borderRadius: '0',
-          });
+          // Fullscreen: detach from the flex layout and fill the viewport
+          // below the navbar exactly, so no horizontal scrollbar or resize
+          // handle appears.
+          applyMaximizedLayout();
           chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: true, preMaximizeFraction: preMaximizeFraction });
         } else {
-          // Restore the size from before maximizing
+          // Restore the size from before maximizing. Set the target width while
+          // still position:fixed, then drop the fixed layout atomically so the
+          // panel re-enters the flex flow already at its restored size (no
+          // oversized stutter frame).
           panelFolded = false;
           panelMaximized = false;
           panelWidthFraction = preMaximizeFraction;
           handle.style.display = 'flex';
+          panel.style.transition = 'none';
+          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
+          const targetHeight = Math.max(0, Math.min(qd.getBoundingClientRect().height, window.innerHeight));
           Object.assign(panel.style, {
+            width: `${target}px`,
+            height: `${targetHeight}px`,
             position: '',
             top: '',
             left: '',
@@ -487,7 +517,10 @@
             borderRadius: '8px',
           });
           chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: false });
-          requestWidth(Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth)));
+          // Re-enable the drag transition after the restore has painted.
+          requestAnimationFrame(() => {
+            panel.style.transition = 'width 0.05s ease-out';
+          });
         }
       }
 
