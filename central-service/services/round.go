@@ -183,7 +183,7 @@ func (service *RoundService) InitiateRoundStart(round *models.Round, activeRoomP
 				service.SetDBConnection(oldDBConnection)
 				return err
 			}
-			if err := service.addLeaderboardMember(round.ID, participantAuthID); err != nil {
+			if err := service.AddLeaderboardMember(round.ID, participantAuthID); err != nil {
 				service.SetDBConnection(oldDBConnection)
 				return err
 			}
@@ -287,10 +287,12 @@ func (service *RoundService) UpdateRoundDuration(round *models.Round, newDuratio
 	return newDuration, nil
 }
 
-// Adds a user to a round leaderboard
+// AddLeaderboardMember adds a user to a round leaderboard.
 // Member values are a compression of the user's score and last submission timestamp
-// User's initial score will be 0 with the current timestamp
-func (service *RoundService) addLeaderboardMember(roundID uint, userID string) error {
+// User's initial score will be 0 with the current timestamp.
+// Exported so JoinRoom can register mid-round joiners, since the live leaderboard
+// is served from this Redis ZSet and they would otherwise stay invisible until they score.
+func (service *RoundService) AddLeaderboardMember(roundID uint, userID string) error {
 	leaderboardKey := fmt.Sprintf("%d_leaderboard", roundID)
 	score := float64(compressScoreAndTimeStamp(0, time.Now()))
 	leaderboardMember := redis.Z{

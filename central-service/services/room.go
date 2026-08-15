@@ -225,6 +225,11 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
 				return nil, err
 			}
+			// The live leaderboard is served from Redis; a mid-round joiner must be
+			// registered there too or they stay invisible until they earn points.
+			if err := service.roundService.AddLeaderboardMember(round.ID, userID); err != nil {
+				return nil, err
+			}
 		}
 	}
 	// RTCClient is nil in test cases
