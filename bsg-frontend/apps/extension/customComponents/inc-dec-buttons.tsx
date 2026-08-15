@@ -6,7 +6,7 @@ export const IncDecButtons = ({decrementOnClick, incrementOnClick}: {
     decrementOnClick: () => void;
     incrementOnClick: () => void
 }) => (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 shrink-0">
         <Button size="icon" onClick={decrementOnClick} className="bg-background border-0">
             <FontAwesomeIcon icon={faChevronDown} className="text-foreground"/>
         </Button>

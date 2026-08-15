@@ -83,7 +83,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                         {/* Tabs */}
                         <div
                             ref={combinedRef}
-                            className="flex items-center h-full pl-8 pr-14 overflow-x-auto no-scrollbar"
+                            className="flex items-center h-full pl-8 pr-8 overflow-x-auto no-scrollbar"
                         >
 
                             <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
@@ -225,7 +225,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
             }
 
             {/* Toolbar */}
-            <div className="flex items-center absolute right-0 h-full pointer-events-none">
+            <div className="flex items-center absolute right-0 h-full pr-2 pointer-events-none">
 
                 {/* Fade */}
                 <div className="w-8 h-full bg-[linear-gradient(to_left,rgb(var(--bsg-surface))_33.3%,transparent)]" />
@@ -255,7 +255,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     </TooltipWrapper>
                 )}
 
-                <div className={`flex items-center gap-1 px-1 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
+                <div className={`flex items-center gap-1 px-2 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize / Exit Button */}
                     <TooltipWrapper text={isMaximized ? "Exit" : "Maximize"} shortcuts={["Alt", "+"]}>

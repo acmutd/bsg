@@ -100,7 +100,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                         {/* Tabs */}
                         <div
                             ref={scrollRef}
-                            className="flex flex-col items-center w-full pt-8 pb-14 overflow-y-auto no-scrollbar"
+                            className="flex flex-col items-center w-full pt-8 pb-8 overflow-y-auto no-scrollbar"
                         >
 
                             <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />

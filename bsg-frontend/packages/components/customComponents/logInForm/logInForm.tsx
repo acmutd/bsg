@@ -58,7 +58,7 @@ const LogInForm = () => {
                     <Button className={'w-full mt-6'} type='submit'>
                         Continue
                     </Button>
-                    <div className={'flex justify-center flex-row'}>
+                    <div className={'flex justify-center flex-row flex-wrap text-center min-w-0'}>
                         <p className={''}>Don&apos;t have an account?</p>
                         <Link href={'/auth/signUp'}>
                             <p className={'ml-2 text-primary hover:underline'}>Sign Up</p>
@@ -69,27 +69,27 @@ const LogInForm = () => {
                         <p className={'text-brand'}>or</p>
                         <Separator className={'ml-3 w-5/12'}/>
                     </div>
-                    <div className={'flex justify-center flex-row'}>
-                        <button onClick={() => {}}>
+                    <div className={'flex justify-center flex-row gap-5 min-w-0'}>
+                        <button onClick={() => {}} className="flex items-center">
                             <FontAwesomeIcon
                                 icon={faGoogle as IconProp}
-                                className={'pr-5'}
+                                className={'p-0'}
                                 size={'3x'}
                                 color={'#ACACAC'}
                             />
                         </button>
-                        <button onClick={() => {}}>
+                        <button onClick={() => {}} className="flex items-center">
                             <FontAwesomeIcon
                                 icon={faGithub as IconProp}
-                                className={'px-5'}
+                                className={'p-0'}
                                 size={'3x'}
                                 color={'#ACACAC'}
                             />
                         </button>
-                        <button onClick={() => {}}>
+                        <button onClick={() => {}} className="flex items-center">
                             <FontAwesomeIcon
                                 icon={faDiscord as IconProp}
-                                className={'pl-5'}
+                                className={'p-0'}
                                 size={'3x'}
                                 color={'#ACACAC'}
                             />

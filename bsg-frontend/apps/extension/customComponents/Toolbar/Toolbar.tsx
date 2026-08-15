@@ -43,7 +43,7 @@ export const Toolbar = () => {
   
 
     return (
-        <div className="flex h-8 px-1 border-b border-bsg-glass items-center justify-between">
+        <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
@@ -167,7 +167,7 @@ export const Toolbar = () => {
                         </Button>
                     </TooltipWrapper>
 
-                    <div className={`flex px-1.5 items-center bg-bsg-glass text-foreground/60 text-sm ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
+                    <div className={`flex px-1.5 items-center bg-bsg-glass text-foreground/60 text-sm shrink-0 ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
                 </div>
 
                 <TooltipWrapper text="Settings">
