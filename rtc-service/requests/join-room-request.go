@@ -12,6 +12,11 @@ import (
 type JoinRoomRequest struct {
 	UserHandle string `json:"userHandle" validate:"required"`
 	RoomID     string `json:"roomID" validate:"required"`
+	// Human readable name shown in "X joined the room" announcements.
+	UserName string `json:"userName"`
+	// When true, registers the user in the room without broadcasting an
+	// announcement (used by central-service and the background script).
+	SuppressAnnouncement bool `json:"suppressAnnouncement"`
 }
 
 func init() {
@@ -73,5 +78,17 @@ func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, str
 	}
 	room.AddUser(user)
 
-	return r.responseType(), "Join Room Request", r.RoomID, nil
+	if r.SuppressAnnouncement {
+		// Silent join: the user is registered but no announcement is broadcast.
+		return r.responseType(), "", r.RoomID, nil
+	}
+
+	name := r.UserName
+	if name == "" {
+		name = r.UserHandle
+	}
+	if name == "" {
+		name = "A user"
+	}
+	return r.responseType(), name+" joined the room", r.RoomID, nil
 }

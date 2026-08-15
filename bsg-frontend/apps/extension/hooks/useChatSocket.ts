@@ -82,6 +82,7 @@ export const useChatSocket = () => {
                     "request-type": "join-room",
                     data: JSON.stringify({
                         userHandle: userEmail,
+                        userName: username,
                         roomID: targetRoomID
                     })
                 };
@@ -126,23 +127,39 @@ export const useChatSocket = () => {
                             useRoomStore.getState().incrementUnread();
                         }
                     } else if (responseType === 'system-announcement') {
-                        // Trigger participant refresh on join/leave, but don't add to chat to avoid noise.
+                        // Trigger participant refresh on join/leave.
+                        useRoomStore.getState().setLastParticipantJoinTime(Date.now());
                         const messageData = message?.data || '';
-                        if (messageData === 'Join Room Request') {
-                            useRoomStore.getState().setLastParticipantJoinTime(Date.now());
+                        // Our own join announcement confirms the socket is live — re-enable sounds.
+                        if (messageData.endsWith(' joined the room')) {
                             suppressChatSoundsRef.current = false;
-                            return;
                         }
-                        if (messageData === 'Leave Room Request') {
-                            useRoomStore.getState().setLastParticipantJoinTime(Date.now());
-                            return;
-                        }
+                        // e.g. "[name] joined the room", "[name] left the room", "Round has ended!"
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
-                            data: message.data,
+                            data: messageData,
                             roomID: message.roomID,
                             isSystem: true
                         }]);
+                    } else if (responseType === 'admin-change') {
+                        try {
+                            const data = JSON.parse(message?.data || '{}');
+                            const newAdminId = data.adminId;
+                            if (newAdminId) {
+                                useRoomStore.getState().setAdminId(newAdminId);
+                                const currentUserId = useUserStore.getState().userId;
+                                useRoomStore.getState().setIsAdmin(currentUserId === newAdminId);
+                                useRoomStore.getState().setLastParticipantJoinTime(Date.now());
+                            }
+                            setMessages(prev => [...prev, {
+                                userHandle: 'System',
+                                data: data.message || 'The room admin has changed.',
+                                roomID: message.roomID,
+                                isSystem: true
+                            }]);
+                        } catch (e) {
+                            console.error('Failed to parse admin-change data', e);
+                        }
                     } else if (responseType === 'round-start') {
                         try {
                             const parsedData = JSON.parse(message.data);
@@ -214,6 +231,7 @@ export const useChatSocket = () => {
                 "request-type": "join-room",
                 data: JSON.stringify({
                     userHandle: userEmail,
+                    userName: username,
                     roomID: roomID
                 })
             };

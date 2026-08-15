@@ -107,6 +107,16 @@ function createRateLimitMiddleware(logger, options = {}) {
   const { requestsPerMinute = 60, timeWindow = 60000 } = options;
   const clientRequests = new Map();
 
+  // Periodically drop stale per-IP records so the map doesn't grow unbounded.
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, times] of clientRequests) {
+      const active = times.filter(time => now - time < timeWindow);
+      if (active.length === 0) clientRequests.delete(ip);
+      else clientRequests.set(ip, active);
+    }
+  }, timeWindow).unref();
+
   return (req, res, next) => {
     const clientIP = req.ip;
     const now = Date.now();

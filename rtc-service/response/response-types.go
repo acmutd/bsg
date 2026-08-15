@@ -20,4 +20,7 @@ var (
 
 	// room expired broadcast
 	ROOM_EXPIRED ResponseType = "room-expired"
+
+	// room admin transfer broadcast
+	ADMIN_CHANGE ResponseType = "admin-change"
 )

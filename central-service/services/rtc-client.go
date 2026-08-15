@@ -41,6 +41,8 @@ func expectedResponseType(requestType string) response.ResponseType {
 		return response.NEXT_PROBLEM
 	case "room-expired":
 		return response.ROOM_EXPIRED
+	case "admin-change":
+		return response.ADMIN_CHANGE
 	default:
 		return ""
 	}

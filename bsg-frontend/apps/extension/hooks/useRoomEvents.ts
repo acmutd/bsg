@@ -47,10 +47,12 @@ export function useRoomEvents() {
 
     const LastGameRef = useRef<string>('')
 
-    // Refresh participants when someone joins or leaves
+    // Refresh participants when someone joins or leaves (debounced to avoid
+    // bursty refreshes when several events arrive at once).
     useEffect(() => {
         if (!lastParticipantJoinTime || !roomId) return;
-        setRoomParticipants(roomId);
+        const timer = setTimeout(() => setRoomParticipants(roomId), 800);
+        return () => clearTimeout(timer);
     }, [lastParticipantJoinTime, roomId]);
 
     useEffect(() => {

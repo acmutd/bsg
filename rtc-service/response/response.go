@@ -43,7 +43,7 @@ func NewErrorResponse(responseType ResponseType, message string, roomID string) 
 		Data: message,
 	}
 
-	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE {
 		respMessage.RoomID = roomID
 	}
 	return &Response{
@@ -86,7 +86,7 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 		UserPhoto:  userPhoto,
 	}
 
-	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE {
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE {
 		respMessage.RoomID = roomID
 	}
 	return &Response{

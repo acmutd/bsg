@@ -301,7 +301,8 @@ function sendJoinRoom() {
     "request-type": "join-room",
     data: JSON.stringify({
       userHandle: userProfile.id + '_bg',
-      roomID: activeRoomId
+      roomID: activeRoomId,
+      suppressAnnouncement: true
     })
   };
 
