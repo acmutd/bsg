@@ -99,20 +99,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'LOGOUT') {
+    const finishLogout = () => {
+      activeRoomId = null;
+      if (socket) {
+        try {
+          socket.close();
+        } catch (e) {}
+        socket = null;
+      }
+      chrome.storage.local.remove(['user', 'activeRoomId', 'roundEndTime', 'nextProblem', 'problems', 'lastGameEvent', 'pendingSubmissions'], () => {
+        if (chrome.action) chrome.action.setBadgeText({ text: "" });
+        sendResponse({ success: true });
+      });
+    };
+
     fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     })
-      .then(() => {
-        chrome.storage.local.remove('user', () => {
-          sendResponse({ success: true });
-        });
-      })
-      .catch(() => {
-        chrome.storage.local.remove('user', () => {
-          sendResponse({ success: true });
-        });
-      });
+      .then(() => finishLogout())
+      .catch(() => finishLogout());
 
     return true;
   }

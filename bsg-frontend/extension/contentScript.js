@@ -52,14 +52,20 @@
     // Guarantees Unfold expands past the collapse threshold even on small windows.
     const MIN_EXPAND_WIDTH = COLLAPSE_WIDTH + 40;
     let panelFolded = false;
+    let panelMaximized = false;
+    let preMaximizeFraction = 0.25;
     let panelWidthFraction = 0.25;
 
     const initPanelWidth = async () => {
-      const result = await chrome.storage.local.get(["panelWidth", "panelWidthFraction", "isPanelFolded"]);
+      const result = await chrome.storage.local.get(["panelWidth", "panelWidthFraction", "isPanelFolded", "isPanelMaximized", "preMaximizeFraction"]);
 
       const isPanelFolded = result.isPanelFolded ?? false;
       if (result.isPanelFolded === undefined) chrome.storage.local.set({ isPanelFolded: false });
       panelFolded = isPanelFolded;
+      panelMaximized = result.isPanelMaximized === true;
+      if (typeof result.preMaximizeFraction === 'number' && result.preMaximizeFraction > 0) {
+        preMaximizeFraction = result.preMaximizeFraction;
+      }
 
       if (typeof result.panelWidthFraction === 'number' && result.panelWidthFraction > 0) {
         panelWidthFraction = result.panelWidthFraction;
@@ -102,12 +108,17 @@
     // When folding, the last expanded fraction is preserved so Unfold can restore it.
     function setPanelWidth(px, isFolded) {
       panelFolded = !!isFolded;
-      const widthPx = isFolded ? MIN_PANEL_WIDTH : applyPanelWidth(px);
+      const widthPx = isFolded ? applyPanelWidth(MIN_PANEL_WIDTH) : applyPanelWidth(px);
       if (!isFolded) {
         panelWidthFraction = Math.min(1, widthPx / window.innerWidth);
+        // A manual resize (drag) exits the maximized state
+        if (widthPx < window.innerWidth - 1) {
+          panelMaximized = false;
+        }
       }
       chrome.storage.local.set({
         isPanelFolded: !!isFolded,
+        isPanelMaximized: panelMaximized,
         panelWidthFraction: panelWidthFraction,
         panelWidth: isFolded ? '24rem' : `${widthPx}px`,
       });
@@ -414,10 +425,22 @@
       }
 
       if (message.type === "MAXIMIZE") {
-        panelFolded = false;
-        panelWidthFraction = 1;
-        chrome.storage.local.set({ isPanelFolded: false, panelWidthFraction: 1 });
-        requestWidth(window.innerWidth);
+        if (!panelMaximized) {
+          // Remember the current size so we can restore it on toggle
+          preMaximizeFraction = panelWidthFraction;
+          panelFolded = false;
+          panelMaximized = true;
+          panelWidthFraction = 1;
+          chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: true, preMaximizeFraction: preMaximizeFraction });
+          requestWidth(window.innerWidth);
+        } else {
+          // Restore the size from before maximizing
+          panelFolded = false;
+          panelMaximized = false;
+          panelWidthFraction = preMaximizeFraction;
+          chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: false });
+          requestWidth(Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth)));
+        }
       }
 
       if (message.type === "ACTIVE") {

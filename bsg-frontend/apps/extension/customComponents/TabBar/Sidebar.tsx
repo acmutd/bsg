@@ -6,6 +6,8 @@ import { useIsScrolled } from './useIsScrolled';
 import { usePanelStore } from "@/stores/usePanelStore";
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useRoomStore } from '@/stores/useRoomStore';
+import { useIsMaximized } from '@/hooks/useIsMaximized';
+import { MaximizeIcon } from '@/customComponents/MaximizeIcon';
 
 export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
     
@@ -15,6 +17,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
     const activeTab = useRoomStore(s => s.activeTab);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const isPanelHovered = usePanelStore(s => s.isPanelHovered);
+    const isMaximized = useIsMaximized();
 
     const unreadCount = useRoomStore(s => s.unreadCount);
     
@@ -253,14 +256,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                             onClick={() => messageScript('MAXIMIZE')}
                             className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
-                            <svg
-                                className="h-[1em] w-[1em]"
-                                viewBox="0 0 448 512"
-                                fill="currentColor"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path d="M136 32c13.3 0 24 10.7 24 24s-10.7 24-24 24H48v88c0 13.3-10.7 24-24 24s-24-10.7-24-24V56C0 42.7 10.7 32 24 32H136zM0 344c0-13.3 10.7-24 24-24s24 10.7 24 24v88h88c13.3 0 24 10.7 24 24s-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V344zM424 32c13.3 0 24 10.7 24 24V168c0 13.3-10.7 24-24 24s-24-10.7-24-24V80H312c-13.3 0-24-10.7-24-24s10.7-24 24-24H424zM400 344c0-13.3 10.7-24 24-24s24 10.7 24 24V456c0 13.3-10.7 24-24 24H312c-13.3 0-24-10.7-24-24s10.7-24 24-24h88V344z" />
-                            </svg>
+                            <MaximizeIcon maximized={isMaximized} />
                         </Button>
                     </TooltipWrapper>
 
