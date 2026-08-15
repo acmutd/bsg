@@ -48,7 +48,7 @@
     // how LeetCode's own panels behave).
     const MIN_PANEL_WIDTH = 36;
     // Below this width the panel is not usable, so snap it to the 2.25rem sidebar.
-    const COLLAPSE_WIDTH = 200;
+    const COLLAPSE_WIDTH = 120;
     // Guarantees Unfold expands past the collapse threshold even on small windows.
     const MIN_EXPAND_WIDTH = COLLAPSE_WIDTH + 40;
     let panelFolded = false;
@@ -127,6 +127,12 @@
     // Keep the panel width proportional to the window on horizontal resizes.
     function syncPanelWidth() {
       if (panelFolded) return;
+      if (panelMaximized) {
+        // Fullscreen: fill the viewport exactly so no horizontal scrollbar appears.
+        panel.style.width = `${window.innerWidth}px`;
+        panel.style.height = `${window.innerHeight}px`;
+        return;
+      }
       requestWidth(Math.round(panelWidthFraction * window.innerWidth));
     }
 
@@ -203,6 +209,22 @@
     panel.appendChild(iframe);
     panelWrapper.appendChild(panel);
     wrapper.appendChild(panelWrapper);
+
+    // If the panel was maximized when the page last closed, hide the resize
+    // handle and cover the viewport so it stays non-resizable and fullscreen
+    // (LeetCode-style) on reload.
+    if (panelMaximized) {
+      handle.style.display = 'none';
+      Object.assign(panel.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: `${window.innerWidth}px`,
+        height: `${window.innerHeight}px`,
+        zIndex: '2147483647',
+        borderRadius: '0',
+      });
+    }
 
     // --- Theme detection and sync ---
     const DARK_BG = '#262626';
@@ -350,6 +372,13 @@
 
     function syncHandleHeight() {
       try {
+        if (panelMaximized) {
+          // Fullscreen panel fills the viewport; don't let qd's height override it.
+          if (panel.style.height !== `${window.innerHeight}px`) {
+            panel.style.height = `${window.innerHeight}px`;
+          }
+          return;
+        }
         const rect = qd.getBoundingClientRect();
         const height = rect.height + 'px';
         if (handle.style.height !== height) {
@@ -431,13 +460,32 @@
           panelFolded = false;
           panelMaximized = true;
           panelWidthFraction = 1;
+          handle.style.display = 'none';
+          // Fullscreen: detach from the flex layout and cover the viewport
+          // exactly, so no horizontal scrollbar or resize handle appears.
+          Object.assign(panel.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: `${window.innerWidth}px`,
+            height: `${window.innerHeight}px`,
+            zIndex: '2147483647',
+            borderRadius: '0',
+          });
           chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: true, preMaximizeFraction: preMaximizeFraction });
-          requestWidth(window.innerWidth);
         } else {
           // Restore the size from before maximizing
           panelFolded = false;
           panelMaximized = false;
           panelWidthFraction = preMaximizeFraction;
+          handle.style.display = 'flex';
+          Object.assign(panel.style, {
+            position: '',
+            top: '',
+            left: '',
+            zIndex: '',
+            borderRadius: '8px',
+          });
           chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: false });
           requestWidth(Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth)));
         }

@@ -4,13 +4,21 @@ export const useIsMaximized = () => {
     const [maximized, setMaximized] = useState(false);
 
     useEffect(() => {
-        const observer = new ResizeObserver(([element]) => {
-            setMaximized(element.contentRect.width >= window.innerWidth - 1);
+        if (typeof chrome === 'undefined' || !chrome.storage) return;
+
+        chrome.storage.local.get(['isPanelMaximized'], (result) => {
+            setMaximized(result.isPanelMaximized === true);
         });
 
-        observer.observe(document.documentElement);
+        const onChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+            if (changes.isPanelMaximized) {
+                setMaximized(changes.isPanelMaximized.newValue === true);
+            }
+        };
 
-        return () => observer.disconnect();
+        chrome.storage.onChanged.addListener(onChange);
+
+        return () => chrome.storage.onChanged.removeListener(onChange);
     }, []);
 
     return maximized;

@@ -250,8 +250,8 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
 
                 <div className={`flex flex-col items-center gap-1 py-1.5 bg-bsg-bg pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
-                    {/* Maximize Button */}
-                    <TooltipWrapper text="Maximize" shortcuts={["Alt", "+"]}>
+                    {/* Maximize / Exit Button */}
+                    <TooltipWrapper text={isMaximized ? "Exit" : "Maximize"} shortcuts={["Alt", "+"]}>
                         <Button
                             onClick={() => messageScript('MAXIMIZE')}
                             className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
