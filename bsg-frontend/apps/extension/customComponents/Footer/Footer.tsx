@@ -12,20 +12,20 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
     const roomCode = useRoomStore(s => s.roomCode);
 
     return (
-        <div className="bg-bsg-surface h-9 flex px-1 items-center justify-between">
+        <div className="bg-bsg-surface h-9 flex px-2 items-center justify-between min-w-0">
 
             <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
                 <Button
                     onClick={() => copyRoomCode(roomCode)}
-                    className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-bsg-hover ${(isInRoom) ? '' : 'invisible'}`}
+                    className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center min-w-0 bg-transparent hover:bg-bsg-hover ${(isInRoom) ? '' : 'invisible'}`}
                 >
-                    <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
 
-                    <div className="flex gap-1.5 items-center text-foreground text-sm font-medium">
-                        {roomCode}
+                    <div className="flex gap-1.5 items-center text-foreground text-sm font-medium min-w-0">
+                        <span className="truncate">{roomCode}</span>
 
                         <svg
-                            className="w-[1em] h-[1em] overflow-visible"
+                            className="w-[1em] h-[1em] overflow-visible shrink-0"
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 448 512"
                             fill="currentColor"
@@ -36,7 +36,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
                 </Button>
             </TooltipWrapper>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
                 {/* TODO: Add share icons, links, buttons */}
                 <HoverCard openDelay={200} closeDelay={200}>
                     <HoverCardTrigger>

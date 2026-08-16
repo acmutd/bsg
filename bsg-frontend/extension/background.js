@@ -99,20 +99,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'LOGOUT') {
+    const finishLogout = () => {
+      activeRoomId = null;
+      if (socket) {
+        try {
+          socket.close();
+        } catch (e) {}
+        socket = null;
+      }
+      chrome.storage.local.remove(['user', 'activeRoomId', 'roundEndTime', 'nextProblem', 'problems', 'lastGameEvent', 'pendingSubmissions'], () => {
+        if (chrome.action) chrome.action.setBadgeText({ text: "" });
+        sendResponse({ success: true });
+      });
+    };
+
     fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     })
-      .then(() => {
-        chrome.storage.local.remove('user', () => {
-          sendResponse({ success: true });
-        });
-      })
-      .catch(() => {
-        chrome.storage.local.remove('user', () => {
-          sendResponse({ success: true });
-        });
-      });
+      .then(() => finishLogout())
+      .catch(() => finishLogout());
 
     return true;
   }
@@ -133,6 +139,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'SUBMISSION_RESULT') {
     const { submissionId, status_msg } = request.data;
+    // Acknowledge immediately; the content script doesn't use the response, so
+    // holding the message channel open risks "channel closed" errors when the
+    // LeetCode page navigates away before the async work below completes.
+    sendResponse({ received: true });
+
     chrome.storage.local.get(['pendingSubmissions', 'roundEndTime'], (result) => {
       const pending = result.pendingSubmissions || {};
       const pendingData = pending[submissionId];
@@ -145,7 +156,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.log(`Background: Submission ${submissionId} rejected — round TTL exceeded`);
             delete pending[submissionId];
             chrome.storage.local.set({ pendingSubmissions: pending });
-            sendResponse({ received: true });
             return;
           }
 
@@ -177,14 +187,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // cleanup
         delete pending[submissionId];
         chrome.storage.local.set({ pendingSubmissions: pending });
-        sendResponse({ received: true });
       } else {
         console.warn(`Background: No pending submission found for ID ${submissionId}`);
-        sendResponse({ received: true });
       }
     });
 
-    return true; // keep message channel open for async sendResponse
+    return false;
   }
 });
 

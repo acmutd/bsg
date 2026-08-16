@@ -75,7 +75,7 @@ const SignUpForm = () => {
                     <Link href={'/dashboard'}>
                         <Button className={'w-full mt-6'} type="submit">Continue</Button>
                     </Link>
-                    <div className={'flex justify-center flex-row'}>
+                    <div className={'flex justify-center flex-row flex-wrap text-center min-w-0'}>
                         <p className={''}>Already have an account?</p>
                         <Link href={'/auth/logIn'}>
                             <p className={'ml-2 text-primary hover:underline'}>Log In</p>
@@ -86,15 +86,15 @@ const SignUpForm = () => {
                         <p className={'text-brand'}>or</p>
                         <Separator className={'ml-3 w-5/12'}/>
                     </div>
-                    <div className={'flex justify-center flex-row'}>
+                    <div className={'flex justify-center flex-row gap-5 min-w-0'}>
                         <button onClick={() => {
-                        }}>
-                            <FontAwesomeIcon icon={faGoogle as IconProp} className={'pr-5'} size={'3x'}
+                        }} className="flex items-center">
+                            <FontAwesomeIcon icon={faGoogle as IconProp} className={'p-0'} size={'3x'}
                                              color={'#ACACAC'}/>
                         </button>
                         <button onClick={() => {
-                        }}>
-                            <FontAwesomeIcon icon={faGithub as IconProp} className={'pl-5'} size={'3x'}
+                        }} className="flex items-center">
+                            <FontAwesomeIcon icon={faGithub as IconProp} className={'p-0'} size={'3x'}
                                              color={'#ACACAC'}/>
                         </button>
                     </div>

@@ -21,7 +21,7 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
     const isConnected = true;
 
     return (
-        <div className={` ${(isActive) ? '' : 'hidden'}`}>
+        <div className={`px-2 pb-2 ${(isActive) ? '' : 'hidden'}`}>
             <div className='p-2 font-medium'>
                 Participants
             </div>
