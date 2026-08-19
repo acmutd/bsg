@@ -181,6 +181,22 @@ export const useChatSocket = () => {
                             data: message.data,
                             timestamp: Date.now()
                         });
+                    } else if (responseType === 'round-join') {
+
+                            const data = JSON.parse(message?.data || '{}');
+                            setMessages(prev => [...prev, {
+                                userHandle: 'System',
+                                data: data.message || 'User joined the current Round',
+                                roomID: message.roomID,
+                                isSystem: true
+                            }]); 
+                            setLastGameEvent(
+                                {
+                                type: 'join-round',
+                                data: message.data,
+                                timestamp: Date.now()
+                                })
+
                     } else if (responseType === 'next-problem') {
                         try {
                             const parsedData = JSON.parse(message.data);

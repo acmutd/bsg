@@ -70,7 +70,7 @@ export function useRoomEvents() {
 
                 //we got here meaning re-render actually happened or someone left the tab so we should
                 //go to the problem page
-                if(LastGameEvent === 'round-start'){
+                if(LastGameEvent === 'round-start' || LastGameEvent === 'round-join'){
                     const storedProblems: string[] = result.problems || [];
                     const storedEndTime: number | null = result.roundEndTime ?? null;
 

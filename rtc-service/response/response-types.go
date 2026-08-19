@@ -15,6 +15,9 @@ var (
 	// round start broadcast
 	ROUND_START ResponseType = "round-start"
 
+	// round join broadcast
+	ROUND_JOIN ResponseType = "round-join"
+
 	// next problem broadcast
 	NEXT_PROBLEM ResponseType = "next-problem"
 

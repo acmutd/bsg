@@ -221,14 +221,6 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
-	if len(room.Rounds) > 0 {
-		round := room.Rounds[len(room.Rounds)-1]
-		if round.Status == constants.ROUND_STARTED {
-			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
-				return nil, err
-			}
-		}
-	}
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
 		joinRoom := requests.JoinRoomRequest{
@@ -244,6 +236,30 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			}
 		}
 	}
+	if len(room.Rounds) > 0 {
+		round := room.Rounds[len(room.Rounds)-1]
+		if round.Status == constants.ROUND_STARTED {
+			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
+				return nil, err
+			}
+			if service.rtcClient != nil {
+				joinRound := requests.JoinRoundRequest{
+					RoomID: roomID,
+					UserID: userID,
+				}
+				if _, err = service.rtcClient.SendMessage("join-round", joinRound); err != nil {
+					log.Printf("Error sending  message: %v", err)
+					return nil, BSGError{
+						StatusCode: 500,
+						Message:    "Internal Server Error",
+					}
+				}
+
+			}
+
+		}
+	}
+
 	return room, nil
 }
 
