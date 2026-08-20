@@ -221,12 +221,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
+	displayName := service.userDisplayName(userID)
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
+		// Announced here rather than suppressed so the room join is broadcast
+		// before the round join below, keeping the two in chronological order.
 		joinRoom := requests.JoinRoomRequest{
-			UserHandle:           userID,
-			RoomID:               roomID,
-			SuppressAnnouncement: true,
+			UserHandle: userID,
+			RoomID:     roomID,
+			UserName:   displayName,
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
@@ -243,15 +246,10 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 				return nil, err
 			}
 			if service.rtcClient != nil {
-				var userName string
-				var user models.User
-				if err := service.db.Where("auth_id = ?", userID).First(&user).Error; err == nil {
-					userName = user.Handle
-				}
 				joinRound := requests.JoinRoundRequest{
 					RoomID:   roomID,
 					UserID:   userID,
-					UserName: userName,
+					UserName: displayName,
 				}
 				if _, err = service.rtcClient.SendMessage("join-round", joinRound); err != nil {
 					log.Printf("Error sending  message: %v", err)
@@ -549,6 +547,23 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, nil, err
 	}
+
+	// Everyone in the room joins the round the moment it starts. Users who arrive
+	// later get their join-round from JoinRoom instead. Failures are logged rather
+	// than returned: a missing chat line should not fail the round start.
+	if service.rtcClient != nil {
+		for _, participantID := range activeUsers {
+			joinRound := requests.JoinRoundRequest{
+				RoomID:   roomID,
+				UserID:   participantID,
+				UserName: service.userDisplayName(participantID),
+			}
+			if _, err := service.rtcClient.SendMessage("join-round", joinRound); err != nil {
+				log.Printf("Error sending join-round message: %v", err)
+			}
+		}
+	}
+
 	return roundStartTime, problems, nil
 }
 
