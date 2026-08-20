@@ -50,18 +50,12 @@ func NewClient(name string, conn *websocket.Conn, manager *ServiceManager) *Serv
 // Read the incoming messages from the service.
 func (s *Service) ReadMessages() {
 	defer func() {
-		// If this was the last connection for the user's handle, remove their
-		// room entry so reconnects don't collide and rooms can be cleaned up.
-		// Other connections sharing the handle (e.g. a second tab) keep the entry.
-		if s.JoinedRoom != "" && s.ServiceManager.FindOtherService(s.Name, s) == nil {
-			room := chatmanager.RTCChatManager.GetRoom(s.JoinedRoom)
-			if room != nil {
-				room.RemoveUser(&chatmanager.User{Handle: s.Name})
-				if room.IsEmpty() {
-					chatmanager.RTCChatManager.RemoveRoom(room)
-				}
-			}
-		}
+		// Neither the user nor the room is removed here. A dropped socket means
+		// this connection is gone, not that the user left or the round is over,
+		// and the panel reconnects routinely (navigating to a problem reloads it).
+		// Removing the user made the reconnect look like a fresh join, which
+		// announced them twice; removing the room discarded its history and round
+		// state outright. Users leave via leave-room, rooms via room-expired.
 		s.ServiceManager.RemoveService(s)
 	}()
 
@@ -107,26 +101,39 @@ func (s *Service) ReadMessages() {
 					// Silent announcements (e.g. central-service registering a user in
 					// the room) carry an empty message and are neither broadcast nor
 					// stored in history. The user is already registered by Handle().
-					silentAnnouncement := respType == response.SYSTEM_ANNOUNCEMENT && resp == ""
+					silentAnnouncement := (respType == response.SYSTEM_ANNOUNCEMENT || respType == response.USER_JOINED) && resp == ""
+
+					// 1. Replay history to a joining user. This runs even when their own
+					// join is silent (a reconnect, or central-service registering them),
+					// because whether their arrival is announced has nothing to do with
+					// whether they need the messages they missed.
+					if messageStruct.Type == "join-room" {
+						if room := chatmanager.RTCChatManager.GetRoom(roomID); room != nil {
+							room.RLock()
+							for _, prevMsg := range room.Messages {
+								// ROUND_START and NEXT_PROBLEM are control events: the frontend
+								// navigates the tab when it sees one, so replaying them would
+								// re-trigger navigation on every reconnect.
+								if prevMsg.RespType == response.CHAT_MESSAGE || prevMsg.RespType == response.SYSTEM_ANNOUNCEMENT || prevMsg.RespType == response.ROUND_JOIN || prevMsg.RespType == response.USER_JOINED || prevMsg.RespType == response.USER_LEFT {
+									s.Egress <- prevMsg
+								}
+							}
+							room.RUnlock()
+						}
+					}
 
 					// Broadcast and Persistence Logic
-					if !silentAnnouncement && (respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED || respType == response.ADMIN_CHANGE || respType == response.ROUND_JOIN) {
+					if !silentAnnouncement && (respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED || respType == response.ADMIN_CHANGE || respType == response.ROUND_JOIN || respType == response.USER_JOINED || respType == response.USER_LEFT) {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
 						if room != nil {
-							// 1. If this is a join-room request, replay history to the joining user.
-							if messageStruct.Type == "join-room" {
-								room.RLock()
-								for _, prevMsg := range room.Messages {
-									// Only replay non-transient events on reconnect.
-									if prevMsg.RespType == response.CHAT_MESSAGE || prevMsg.RespType == response.SYSTEM_ANNOUNCEMENT || prevMsg.RespType == response.ROUND_JOIN {
-										s.Egress <- prevMsg
-									}
-								}
-								room.RUnlock()
+							// 2. Save the current message to history. Rejoins are silent, so
+							// each user contributes at most one join entry rather than one
+							// per reconnect. Control events are skipped: they are never
+							// replayed, so storing them would only consume history slots
+							// and evict real messages.
+							if respType != response.ROUND_START && respType != response.NEXT_PROBLEM {
+								room.AddMessage(respObj)
 							}
-
-							// 2. Save the current message to history.
-							room.AddMessage(respObj)
 
 							// 3. Send to all users in the room.
 							senderReceived := false
@@ -149,6 +156,18 @@ func (s *Service) ReadMessages() {
 						}
 					} else {
 						s.Egress <- respObj
+					}
+
+					// central-service owns the room lifecycle, so room-expired is the
+					// signal that a room is genuinely over. Tearing it down here rather
+					// than on socket disconnect keeps history and round state alive
+					// across the reconnects the panel does routinely. Done after the
+					// broadcast above so everyone still in the room hears about it.
+					if respType == response.ROOM_EXPIRED {
+						if room := chatmanager.RTCChatManager.GetRoom(roomID); room != nil {
+							room.RemoveAllUsers()
+							chatmanager.RTCChatManager.RemoveRoom(room)
+						}
 					}
 
 					frontEnd := s.ServiceManager.FindService(FRONT_END_SERVICE)

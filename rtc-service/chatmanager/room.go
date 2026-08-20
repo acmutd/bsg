@@ -70,6 +70,17 @@ func (r *Room) GetUser(userHandle string) *User {
 	return nil
 }
 
+// RemoveAllUsers clears the room's user list. Used when a room is torn down,
+// since RemoveRoom refuses to delete a room that still has users.
+func (r *Room) RemoveAllUsers() {
+	r.Lock()
+	defer r.Unlock()
+
+	r.Users = make(UserList)
+
+	logging.Info("All users removed from room: ", r.RoomID)
+}
+
 func (r *Room) IsEmpty() bool {
 	r.RLock()
 	defer r.RUnlock()

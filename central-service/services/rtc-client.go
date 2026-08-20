@@ -28,9 +28,9 @@ type RTCClient struct {
 func expectedResponseType(requestType string) response.ResponseType {
 	switch requestType {
 	case "join-room":
-		return response.SYSTEM_ANNOUNCEMENT
+		return response.USER_JOINED
 	case "leave-room":
-		return response.SYSTEM_ANNOUNCEMENT
+		return response.USER_LEFT
 	case "chat-message":
 		return response.CHAT_MESSAGE
 	case "round-start":

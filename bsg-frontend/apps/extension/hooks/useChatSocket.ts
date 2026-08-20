@@ -126,18 +126,29 @@ export const useChatSocket = () => {
                         if (isNewMessage && fromOtherUser && !chatVisible) {
                             useRoomStore.getState().incrementUnread();
                         }
-                    } else if (responseType === 'system-announcement') {
+                    } else if (responseType === 'user-joined' || responseType === 'user-left') {
                         // Trigger participant refresh on join/leave.
                         useRoomStore.getState().setLastParticipantJoinTime(Date.now());
                         const messageData = message?.data || '';
                         // Our own join announcement confirms the socket is live — re-enable sounds.
-                        if (messageData.endsWith(' joined the room')) {
+                        if (responseType === 'user-joined') {
                             suppressChatSoundsRef.current = false;
                         }
-                        // e.g. "[name] joined the room", "[name] left the room", "Round has ended!"
+                        // A silent rejoin carries no text and should not render a blank line.
+                        if (messageData) {
+                            // e.g. "[name] joined the room", "[name] left the room"
+                            setMessages(prev => [...prev, {
+                                userHandle: 'System',
+                                data: messageData,
+                                roomID: message.roomID,
+                                isSystem: true
+                            }]);
+                        }
+                    } else if (responseType === 'system-announcement') {
+                        // e.g. "Round has ended!", "[name] solved [problem]"
                         setMessages(prev => [...prev, {
                             userHandle: 'System',
-                            data: messageData,
+                            data: message?.data || '',
                             roomID: message.roomID,
                             isSystem: true
                         }]);
@@ -161,6 +172,9 @@ export const useChatSocket = () => {
                             console.error('Failed to parse admin-change data', e);
                         }
                     } else if (responseType === 'round-start') {
+                        // No chat line here: rtc-service stores "The round has started"
+                        // as an announcement, which arrives via replay after the
+                        // navigation below reloads the panel.
                         try {
                             const parsedData = JSON.parse(message.data);
                             setLastGameEvent({
@@ -228,16 +242,19 @@ export const useChatSocket = () => {
     }, [userId]);
 
     const joinChatRoom = useCallback((roomID: string) => {
-        // Clear messages when joining a new room so we don't see chat history from previous rooms
-        setMessages([]);
-        setLastGameEvent(null);
-        suppressChatSoundsRef.current = true;  
+        suppressChatSoundsRef.current = true;
         useRoomStore.getState().clearUnread(); // checks uread
 
+        // Already in this room: no join-room is sent, so no history replay follows.
+        // Clearing here would wipe the chat with nothing to restore it.
         if (joinedRoomIDRef.current === roomID) {
             pendingRoomIDRef.current = roomID;
             return;
         }
+
+        // Clear messages when joining a new room so we don't see chat history from previous rooms
+        setMessages([]);
+        setLastGameEvent(null);
 
         pendingRoomIDRef.current = roomID;
 

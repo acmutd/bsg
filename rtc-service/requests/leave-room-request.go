@@ -38,7 +38,7 @@ func (r *LeaveRoomRequest) validate() error {
 
 // Returns the response type for the request.
 func (r *LeaveRoomRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
+	return response.USER_LEFT
 }
 
 // Handles the request and returns a response.
