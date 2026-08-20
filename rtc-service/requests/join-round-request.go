@@ -2,6 +2,7 @@ package requests
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
@@ -40,6 +41,14 @@ type joinRoundBroadcast struct {
 	UserID      string `json:"userID"`
 	UserName    string `json:"userName"`
 	RoundStatus string `json:"roundStatus"`
+
+	// Shape of the round the user joined, so a client joining midway can set
+	// itself up the same way round-start sets up everyone already present.
+	// Mirrors roundStartBroadcast so the frontend can parse both identically.
+	StartTime int64    `json:"startTime"`
+	ServerNow int64    `json:"serverNow"`
+	Duration  int      `json:"duration"`
+	Problems  []string `json:"problems"`
 }
 
 func (j *JoinRoundRequest) Handle(m *Message) (response.ResponseType, string, string, error) {
@@ -55,9 +64,9 @@ func (j *JoinRoundRequest) Handle(m *Message) (response.ResponseType, string, st
 
 	// A missing room means no round exists to join, which JoinRound would also
 	// report, so the status stays "not-started" rather than erroring.
-	status := chatmanager.RoundNotStarted
+	info := chatmanager.RoundInfo{Status: chatmanager.RoundNotStarted}
 	if room := chatmanager.RTCChatManager.GetRoom(j.RoomID); room != nil {
-		status = room.JoinRound(j.UserID)
+		info = room.JoinRound(j.UserID)
 	}
 
 	name := j.UserName
@@ -68,7 +77,11 @@ func (j *JoinRoundRequest) Handle(m *Message) (response.ResponseType, string, st
 	broadcast := joinRoundBroadcast{
 		UserID:      j.UserID,
 		UserName:    name,
-		RoundStatus: string(status),
+		RoundStatus: string(info.Status),
+		StartTime:   info.StartTime,
+		ServerNow:   time.Now().Unix(),
+		Duration:    info.Duration,
+		Problems:    info.Problems,
 	}
 	broadcastJSON, err := json.Marshal(broadcast)
 	if err != nil {
