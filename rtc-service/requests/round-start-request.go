@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
 )
@@ -60,6 +61,10 @@ func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, s
 	err = r.validate()
 	if err != nil {
 		return r.responseType(), "", r.RoomID, err
+	}
+
+	if room := chatmanager.RTCChatManager.GetRoom(r.RoomID); room != nil {
+		room.StartRound(r.StartTime, r.Duration, r.ProblemList)
 	}
 
 	broadcast := roundStartBroadcast{

@@ -186,14 +186,14 @@ export const useChatSocket = () => {
                             const data = JSON.parse(message?.data || '{}');
                             setMessages(prev => [...prev, {
                                 userHandle: 'System',
-                                data: data.message || 'User joined the current Round',
+                                data: `${data.userName || data.userID} joined the round`,
                                 roomID: message.roomID,
                                 isSystem: true
-                            }]); 
+                            }]);
                             setLastGameEvent(
                                 {
                                 type: 'join-round',
-                                data: message.data,
+                                data,
                                 timestamp: Date.now()
                                 })
 

@@ -3,6 +3,7 @@ package requests
 import (
 	"encoding/json"
 
+	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
 )
@@ -51,5 +52,10 @@ func (r *RoundEndRequest) Handle(m *Message) (response.ResponseType, string, str
 	if err != nil {
 		return r.responseType(), "", r.RoomID, err
 	}
+
+	if room := chatmanager.RTCChatManager.GetRoom(r.RoomID); room != nil {
+		room.EndRound()
+	}
+
 	return r.responseType(), "Round has ended!", r.RoomID, nil
 }

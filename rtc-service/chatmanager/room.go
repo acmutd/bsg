@@ -21,6 +21,9 @@ type Room struct {
 	// List of all users in the room.
 	Users UserList
 
+	// State of the room's round. Nil until a round is started.
+	Round *Round
+
 	// History of messages in the room for persistence.
 	Messages []response.Response
 

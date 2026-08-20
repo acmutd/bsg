@@ -43,7 +43,7 @@ func NewErrorResponse(responseType ResponseType, message string, roomID string) 
 		Data: message,
 	}
 
-	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE {
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE || responseType == ROUND_JOIN {
 		respMessage.RoomID = roomID
 	}
 	return &Response{
@@ -59,7 +59,7 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 	userName := ""
 	userPhoto := ""
 	data := message
-	
+
 	if responseType == CHAT_MESSAGE && message != "" {
 		// Try to unmarshal JSON first
 		var chatData map[string]string
@@ -86,7 +86,7 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 		UserPhoto:  userPhoto,
 	}
 
-	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE {
+	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE || responseType == ROUND_JOIN {
 		respMessage.RoomID = roomID
 	}
 	return &Response{

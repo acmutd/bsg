@@ -43,6 +43,8 @@ func expectedResponseType(requestType string) response.ResponseType {
 		return response.ROOM_EXPIRED
 	case "admin-change":
 		return response.ADMIN_CHANGE
+	case "join-round":
+		return response.ROUND_JOIN
 	default:
 		return ""
 	}

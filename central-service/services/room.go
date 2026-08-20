@@ -243,9 +243,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 				return nil, err
 			}
 			if service.rtcClient != nil {
+				var userName string
+				var user models.User
+				if err := service.db.Where("auth_id = ?", userID).First(&user).Error; err == nil {
+					userName = user.Handle
+				}
 				joinRound := requests.JoinRoundRequest{
-					RoomID: roomID,
-					UserID: userID,
+					RoomID:   roomID,
+					UserID:   userID,
+					UserName: userName,
 				}
 				if _, err = service.rtcClient.SendMessage("join-round", joinRound); err != nil {
 					log.Printf("Error sending  message: %v", err)
