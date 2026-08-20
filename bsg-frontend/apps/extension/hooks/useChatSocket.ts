@@ -54,7 +54,7 @@ export const useChatSocket = () => {
     const [atLimit, setAtLimit] = useState<boolean>(false);
     const [emojiSearch, setEmojiSearch] = useState<string>('');
 
-    const userEmail = useUserStore(s => s.email);
+    const userId = useUserStore(s => s.userId);
     const username = useUserStore(s => s.username);
     const iconUrl = useUserStore(s => s.iconUrl);
     const roomId = useRoomStore(s => s.roomId);
@@ -62,7 +62,7 @@ export const useChatSocket = () => {
     const setLastGameEvent = useRoomStore(s => s.setLastGameEvent);
 
     useEffect(() => {
-        if (!userEmail) return;
+        if (!userId) return;
 
         const ws = new WebSocket(getRtcUrl());
         socketRef.current = ws;
@@ -73,15 +73,15 @@ export const useChatSocket = () => {
             //race-condition prevention joinRoom was happening before
             //the wb connection
             const targetRoomID = pendingRoomIDRef.current || roomId;
-            if(userEmail && targetRoomID){
+            if(userId && targetRoomID){
                 if (joinedRoomIDRef.current === targetRoomID) {
                     return;
                 }
                 const payload ={
-                    name:userEmail,
+                    name:userId,
                     "request-type": "join-room",
                     data: JSON.stringify({
-                        userHandle: userEmail,
+                        userHandle: userId,
                         userName: username,
                         roomID: targetRoomID
                     })
@@ -112,7 +112,7 @@ export const useChatSocket = () => {
 
                         // checks user handle to know if the message is sent by the user or received from others
                         if (!suppressChatSoundsRef.current) {
-                            if (message.userHandle === userEmail) {
+                            if (message.userHandle === userId) {
                                 playChatSound('message-sent.mp3');
                             } else {
                                 playChatSound('message-recieved.mp3');
@@ -121,7 +121,7 @@ export const useChatSocket = () => {
 
                         // for chat notification count - increment
                         const isNewMessage = !suppressChatSoundsRef.current;
-                        const fromOtherUser = message.userHandle !== userEmail;
+                        const fromOtherUser = message.userHandle !== userId;
                         const chatVisible = isChatVisible();
                         if (isNewMessage && fromOtherUser && !chatVisible) {
                             useRoomStore.getState().incrementUnread();
@@ -225,7 +225,7 @@ export const useChatSocket = () => {
         return () => {
             ws.close();
         };
-    }, [userEmail]);
+    }, [userId]);
 
     const joinChatRoom = useCallback((roomID: string) => {
         // Clear messages when joining a new room so we don't see chat history from previous rooms
@@ -241,12 +241,12 @@ export const useChatSocket = () => {
 
         pendingRoomIDRef.current = roomID;
 
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userId) {
             const payload = {
-                name: userEmail,
+                name: userId,
                 "request-type": "join-room",
                 data: JSON.stringify({
-                    userHandle: userEmail,
+                    userHandle: userId,
                     userName: username,
                     roomID: roomID
                 })
@@ -255,7 +255,7 @@ export const useChatSocket = () => {
             socketRef.current.send(JSON.stringify(payload));
             joinedRoomIDRef.current = roomID;
         }
-    }, [userEmail]);
+    }, [userId]);
 
     const handleSubmit = () => {
         const chat = chatRef.current;
@@ -265,12 +265,12 @@ export const useChatSocket = () => {
         const text = inputText.trim();
         if (!text) return;
 
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userEmail) {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userId) {
             const payload = {
-                name: userEmail,
+                name: userId,
                 "request-type": "chat-message",
                 data: JSON.stringify({
-                    userHandle: userEmail,
+                    userHandle: userId,
                     userName: username,
                     userPhoto: iconUrl,
                     roomID: roomId,
