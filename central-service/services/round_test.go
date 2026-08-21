@@ -207,7 +207,7 @@ func TestFindParticipantByRoundAndUserIDNotFound(t *testing.T) {
 // TestCompressScoreAndTimeStamp tests score and timestamp compression
 func TestCompressScoreAndTimeStamp(t *testing.T) {
 	timestamp := time.Now()
-	score := uint64(512) // 10 bits can hold up to 1023
+	score := uint64(512) // 20 bits can hold up to 1,048,575
 
 	compressed := compressScoreAndTimeStamp(score, timestamp)
 
@@ -229,7 +229,7 @@ func TestCompressScoreAndTimeStampZeroScore(t *testing.T) {
 // TestCompressScoreAndTimeStampMaxScore tests compression with maximum score
 func TestCompressScoreAndTimeStampMaxScore(t *testing.T) {
 	timestamp := time.Now()
-	score := uint64(1023) // Maximum for 10 bits
+	score := uint64(1<<20 - 1) // Maximum for 20 bits
 
 	compressed := compressScoreAndTimeStamp(score, timestamp)
 	assert.NotEqual(t, uint64(0), compressed)
@@ -244,17 +244,17 @@ func TestDecompressScore(t *testing.T) {
 	}{
 		{
 			name:            "zero score",
-			compressedScore: float64(uint64(0) << 43),
+			compressedScore: float64(uint64(0) << 33),
 			expectedScore:   0,
 		},
 		{
 			name:            "low score",
-			compressedScore: float64(uint64(100) << 43),
+			compressedScore: float64(uint64(100) << 33),
 			expectedScore:   100,
 		},
 		{
 			name:            "high score",
-			compressedScore: float64(uint64(1000) << 43),
+			compressedScore: float64(uint64(1000) << 33),
 			expectedScore:   1000,
 		},
 	}
@@ -421,7 +421,7 @@ func TestScoreCompressionEdgeCases(t *testing.T) {
 		{"One", 1},
 		{"Mid-range", 512},
 		{"High", 1020},
-		{"Max10Bit", 1023},
+		{"Max20Bit", 1<<20 - 1},
 	}
 
 	timestamp := time.Now()
@@ -489,7 +489,7 @@ func TestCompressDecompressCycle(t *testing.T) {
 		{"Low score", 1},
 		{"Mid score", 512},
 		{"High score", 1000},
-		{"Max 10-bit", 1023},
+		{"Max 20-bit", 1<<20 - 1},
 	}
 
 	for _, tc := range testCases {

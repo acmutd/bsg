@@ -223,16 +223,12 @@ func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
 	return query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 }
 
-func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem) uint {
-	if problem.Difficulty == constants.DIFFICULTY_EASY {
-		return 3
+func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem, runtime uint) uint {
+	score, err := scoreForSubmission(runtime, problem.Difficulty)
+	if err != nil {
+		return 0
 	}
-
-	if problem.Difficulty == constants.DIFFICULTY_MEDIUM {
-		return 4
-	}
-
-	return 5
+	return score
 }
 
 func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, error) {

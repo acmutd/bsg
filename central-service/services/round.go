@@ -343,10 +343,10 @@ func (service *RoundService) GetLeaderboardByRoomID(roomID string) ([]redis.Z, e
 	return service.getLeaderboardByRoundID(uint(roundID))
 }
 
-// First 10 bits will represent the user score and the remaining 43 bits represent the user's submission timestamp
+// First 20 bits will represent the user score and the remaining 33 bits represent the user's submission timestamp
 // The total length is 53 bits to safely fit into Redis's float64 mantissa without precision loss.
 func compressScoreAndTimeStamp(score uint64, timestamp time.Time) uint64 {
-	const scoreBits = 10
+	const scoreBits = 20
 	const totalBits = 53
 	const timeBits = totalBits - scoreBits
 
@@ -363,11 +363,11 @@ func compressScoreAndTimeStamp(score uint64, timestamp time.Time) uint64 {
 }
 
 // DecompressScore extracts the raw point value from the Redis-stored compressed score.
-// The top 10 bits hold the score; the lower 43 bits are the inverted timestamp.
+// The top 20 bits hold the score; the lower 33 bits are the inverted timestamp.
 func DecompressScore(compressedScore float64) uint64 {
 	// compressedScore is stored as float64 in Redis ZSet
 	val := uint64(compressedScore)
-	const scoreBits = 10
+	const scoreBits = 20
 	const totalBits = 53
 	const timeBits = totalBits - scoreBits
 	return val >> timeBits
@@ -432,6 +432,7 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 	problem *models.Problem,
 	participant *models.RoundParticipant,
 	round *models.Round,
+	executionTime uint,
 ) (uint, error) {
 	var numACSubmissions uint
 	// Ensure table names are plural and strings use single quotes
@@ -458,7 +459,7 @@ func (service *RoundService) DetermineScoreDeltaForUserBySubmission(
 	if numACSubmissions > 0 {
 		return 0, nil
 	}
-	return service.problemAccessor.GetProblemAccessor().DetermineScoreForProblem(problem), nil
+	return service.problemAccessor.GetProblemAccessor().DetermineScoreForProblem(problem, executionTime), nil
 }
 
 func (service *RoundService) CreateRoundSubmission(
@@ -504,7 +505,7 @@ func (service *RoundService) CreateRoundSubmission(
 		return nil, &BSGError{Message: "User haven't joined round...", StatusCode: 400}
 	}
 
-	problemScore, err := service.DetermineScoreDeltaForUserBySubmission(problem, participant, round)
+	problemScore, err := service.DetermineScoreDeltaForUserBySubmission(problem, participant, round, submissionParams.ExecutionTime)
 	if err != nil {
 		return nil, err
 	}
