@@ -40,7 +40,7 @@ func (r *JoinRoomRequest) validate() error {
 
 // Returns the response type for the request.
 func (r *JoinRoomRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
+	return response.USER_JOINED
 }
 
 // Handles the request and returns a response
@@ -72,11 +72,20 @@ func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, str
 		chatmanager.RTCChatManager.CreateRoom(room)
 	}
 
+	// A user already in the room is reconnecting (a reload, or a second tab).
+	// Their socket still needs registering and a history replay, but announcing
+	// again would append a duplicate "joined the room" to every client.
+	rejoin := room.GetUser(r.UserHandle) != nil
+
 	user := &chatmanager.User{
 		Handle: r.UserHandle,
 		Room:   room,
 	}
 	room.AddUser(user)
+
+	if rejoin {
+		return r.responseType(), "", r.RoomID, nil
+	}
 
 	if r.SuppressAnnouncement {
 		// Silent join: the user is registered but no announcement is broadcast.

@@ -70,7 +70,7 @@ export function useRoomEvents() {
 
                 //we got here meaning re-render actually happened or someone left the tab so we should
                 //go to the problem page
-                if(LastGameEvent === 'round-start'){
+                if(LastGameEvent === 'round-start' || LastGameEvent === 'join-round'){
                     const storedProblems: string[] = result.problems || [];
                     const storedEndTime: number | null = result.roundEndTime ?? null;
 
@@ -100,10 +100,9 @@ export function useRoomEvents() {
     useEffect(() => {
         if (!lastGameEvent || !roomId) return;
 
-        if (lastGameEvent.type === 'round-start') {
-            LastGameRef.current = 'round-start'
-            setRoomParticipants(roomId);
-            const data = lastGameEvent.data;
+        // Shared by round-start and join-round: both put a client into a running
+        // round, the only difference being whether it was there when it began.
+        const applyRoundData = (data: any) => {
             let problems: string[] = [];
             let endTime: number;
 
@@ -140,14 +139,14 @@ export function useRoomEvents() {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            if (problems.length > 0) { 
+            if (problems.length > 0) {
                 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                     chrome.storage.local.set({ problems: problems})
                 }
                 const targetSlug = problems[0]
 
                 const NavigateProblem = async () => {
-                
+
                 if (!chrome.tabs) return;
                     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (!tab?.id || !tab.url) return;
@@ -157,17 +156,36 @@ export function useRoomEvents() {
                     chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
                 }
                 return;
-                
+
                 }
 
                 NavigateProblem();
 
 
             }
+        };
+
+        if (lastGameEvent.type === 'round-start') {
+            LastGameRef.current = 'round-start'
+            setRoomParticipants(roomId);
+            applyRoundData(lastGameEvent.data);
             //problem array kept getting erased due to zustand stored it here and the lastGameEvent as well
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
-            } 
+            }
+        } else if (lastGameEvent.type === 'join-round') {
+            LastGameRef.current = 'join-round'
+            setRoomParticipants(roomId);
+
+            // join-round is broadcast to the whole room, so only the user who
+            // actually joined should be set up and navigated.
+            const data = lastGameEvent.data;
+            if (data?.userID === userId && data?.roundStatus === 'in-progress') {
+                applyRoundData(data);
+                if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                    chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
+                }
+            }
         } else if (lastGameEvent.type === 'next-problem') {
             LastGameRef.current = 'next-problem'
             let eventData = lastGameEvent.data;
