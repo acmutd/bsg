@@ -50,7 +50,7 @@ const StatCard = ({ icon, label, value, valueColor = 'text-white', dim = false }
 const LoadingState = () => (
   <div className="flex flex-col items-center justify-center gap-3 py-12">
     <Loader2 size={24} className="text-primary animate-spin" />
-    <p className="text-foreground/50 text-xs">Loading statistics�</p>
+    <p className="text-foreground/50 text-xs">Loading statistics…</p>
   </div>
 );
 
@@ -87,19 +87,19 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
   const { participants, isLoading, error } = useLeaderboard();
   const { statistics, roundDetails } = useStatistics();
 
-  const [selectedIdx] = useState(0);
+  const [selectedIdx, setSelectedIdx] = useState(0);
   const safeIdx = Math.min(selectedIdx, Math.max(participants.length - 1, 0));
   const selected = participants[safeIdx] ?? null;
 
   const scoreChartData = participants.map((p) => ({
-    username: p.username.length > 8 ? p.username.slice(0, 7) + '�' : p.username,
+    username: p.username.length > 8 ? p.username.slice(0, 7) + '…' : p.username,
     score: p.score,
   }));
 
   const { solvedIds, totalTimeStr, timePerDifficulty } = useMemo(() => {
     const ids = new Set<number>();
     const timeDiff = { Easy: 0, Medium: 0, Hard: 0 };
-    let tStr = '�';
+    let tStr = '—';
 
     if (!selected || !roundDetails?.solvedProblems || !roundDetails?.roundStartTime) {
       return { solvedIds: ids, totalTimeStr: tStr, timePerDifficulty: timeDiff };
@@ -149,6 +149,26 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
   const selectedSolvedIds = solvedIds;
 
+  const problemTimeMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (!selected || !roundDetails?.solvedProblems || !roundDetails?.roundStartTime) {
+      return map;
+    }
+    const solved = roundDetails.solvedProblems[selected.id] ?? [];
+    const sortedSolved = [...solved].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    let lastTime = new Date(roundDetails.roundStartTime).getTime();
+    for (const s of sortedSolved) {
+      const t = new Date(s.timestamp).getTime();
+      const durationSec = Math.max(0, Math.floor((t - lastTime) / 1000));
+      const mins = Math.floor(durationSec / 60);
+      const secs = durationSec % 60;
+      map.set(s.problemId, `${mins}m ${secs}s`);
+      lastTime = t;
+    }
+    return map;
+  }, [selected, roundDetails]);
+
   const diffCounts = useMemo(() => {
     const counts = { Easy: { solved: 0, total: 0 }, Medium: { solved: 0, total: 0 }, Hard: { solved: 0, total: 0 } };
     if (!roundDetails?.problems) return counts;
@@ -187,6 +207,22 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
 
   return (
     <div className="flex flex-col items-center p-4 pt-3 gap-4">
+      {/* Player Tabs */}
+      <div className="w-full flex gap-2 overflow-x-auto pb-2 border-b border-white/10">
+        {participants.map((p, idx) => (
+          <button
+            key={p.id}
+            onClick={() => setSelectedIdx(idx)}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${idx === selectedIdx
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'bg-[#333333] text-foreground/60 border border-transparent hover:bg-[#444444]'
+              }`}
+          >
+            {p.username}
+          </button>
+        ))}
+      </div>
+
       <div className="w-full flex gap-4 justify-between">
         <div className="flex flex-col gap-2 text-base font-medium">
           Submission Details
@@ -197,13 +233,23 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
             </div>
             <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-[#454545]">
               Run Time
-              <div className="text-lg font-medium">0 ms</div>
+              <div className="text-lg font-medium">N/A</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <StatCard icon={<TrophyIcon size={10} color={BSG_GREEN} />} label="Points" value={(statistics?.score ?? 0).toLocaleString()} valueColor="text-primary" />
-            <StatCard icon={<CheckCircle2 size={10} />} label="Solved" value={selected ? selected.solvedCount : '�'} dim={!selected || selected.solvedCount === 0} />
-            <StatCard icon={<Clock size={10} />} label="Total Time" value={totalTimeStr} dim={totalTimeStr === '�'} />
+            <StatCard icon={<CheckCircle2 size={10} />} label="Solved" value={selected ? selectedSolvedIds.size : '—'} dim={!selected || selectedSolvedIds.size === 0} />
+            <StatCard icon={<Clock size={10} />} label="Total Time" value={totalTimeStr} dim={totalTimeStr === '—'} />
+
+            {diffCounts.Easy.total > 0 && (
+              <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Easy.color }} />} label="Easy" value={`${diffCounts.Easy.solved}/${diffCounts.Easy.total}`} dim={diffCounts.Easy.solved === 0} />
+            )}
+            {diffCounts.Medium.total > 0 && (
+              <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Medium.color }} />} label="Medium" value={`${diffCounts.Medium.solved}/${diffCounts.Medium.total}`} dim={diffCounts.Medium.solved === 0} />
+            )}
+            {diffCounts.Hard.total > 0 && (
+              <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Hard.color }} />} label="Hard" value={`${diffCounts.Hard.solved}/${diffCounts.Hard.total}`} dim={diffCounts.Hard.solved === 0} />
+            )}
           </div>
         </div>
       </div>
@@ -229,7 +275,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
                   <circle cx="40" cy="40" r="28" fill="none" stroke="#333333" strokeWidth="14" strokeDasharray="4 6" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[9px] text-foreground/40 font-mono">�</span>
+                  <span className="text-[9px] text-foreground/40 font-mono">—</span>
                 </div>
               </>
             )}
@@ -239,7 +285,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
               const secs = timePerDifficulty[diff];
               const mins = Math.floor(secs / 60);
               const s = secs % 60;
-              const timeStr = secs > 0 ? `${mins}m ${s}s` : '�';
+              const timeStr = secs > 0 ? `${mins}m ${s}s` : '—';
 
               return (
                 <div key={diff} className="flex items-center gap-2 text-[9px]">
@@ -250,6 +296,37 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1 w-full">
+        <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">Problem Breakdown</div>
+        <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden bg-[#333333]">
+          {roundDetails?.problems?.map((p) => {
+            const isSolved = selectedSolvedIds.has(p.id);
+            const timeStr = problemTimeMap.get(p.id) || '—';
+            return (
+              <div key={p.id} className="flex justify-between items-center p-3 border-b border-white/10 last:border-0">
+                <div className="flex items-center gap-3">
+                  {isSolved ? (
+                    <CheckCircle2 size={16} className="text-primary" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border border-white/20" />
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{p.name}</span>
+                    <span className="text-[10px]" style={{ color: difficultyConfig[p.difficulty as keyof typeof difficultyConfig]?.color }}>{p.difficulty}</span>
+                  </div>
+                </div>
+                <div className="text-xs font-mono text-foreground/60">
+                  {isSolved ? timeStr : '—'}
+                </div>
+              </div>
+            );
+          })}
+          {(!roundDetails?.problems || roundDetails.problems.length === 0) && (
+            <div className="p-4 text-center text-xs text-foreground/50">No problems found</div>
+          )}
         </div>
       </div>
 
@@ -277,4 +354,5 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
       </div>
     </div>
   );
-};
+};
+
