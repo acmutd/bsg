@@ -214,8 +214,8 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
             key={p.id}
             onClick={() => setSelectedIdx(idx)}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${idx === selectedIdx
-                ? 'bg-primary/20 text-primary border border-primary/30'
-                : 'bg-[#333333] text-foreground/60 border border-transparent hover:bg-[#444444]'
+              ? 'bg-primary/20 text-primary border border-primary/30'
+              : 'bg-[#333333] text-foreground/60 border border-transparent hover:bg-[#444444]'
               }`}
           >
             {p.username}
@@ -227,13 +227,9 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
         <div className="flex flex-col gap-2 text-base font-medium">
           Submission Details
           <div className="flex rounded-lg text-sm border border-bsg-border">
-            <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-bsg-border">
+            <div className="flex flex-col gap-2 px-4 py-3 font-normal">
               Solve Time
               <div className="text-lg font-medium">{totalTimeStr}</div>
-            </div>
-            <div className="flex flex-col gap-2 px-4 py-3 font-normal border-r border-[#454545]">
-              Run Time
-              <div className="text-lg font-medium">N/A</div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
