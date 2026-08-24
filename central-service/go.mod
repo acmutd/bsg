@@ -8,7 +8,7 @@ require (
 	github.com/acmutd/bsg/rtc-service v0.0.0-20240402145408-434f26651f08
 	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/madflojo/tasks v1.1.0
 	github.com/redis/go-redis/v9 v9.2.1
