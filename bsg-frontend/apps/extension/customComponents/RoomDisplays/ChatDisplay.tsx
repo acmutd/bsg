@@ -154,7 +154,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                         >
                             <textarea
                                 ref={inputRef}
-                                className="resize-none no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 w-full"
+                                className="resize-none no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 placeholder:truncate flex-1 min-w-0"
                                 placeholder="Type a message"
                                 rows={1}
                                 value={inputText}

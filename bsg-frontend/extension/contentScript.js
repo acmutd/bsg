@@ -43,16 +43,131 @@
       position: 'relative',
     });
 
+    // Panel width is stored as a fraction of the window width so it grows and
+    // shrinks proportionally when the window is resized horizontally (matching
+    // how LeetCode's own panels behave).
+    const MIN_PANEL_WIDTH = 36;
+    // Below this width the panel is not usable, so snap it to the 2.25rem sidebar.
+    const COLLAPSE_WIDTH = 120;
+    // Guarantees Unfold expands past the collapse threshold even on small windows.
+    const MIN_EXPAND_WIDTH = COLLAPSE_WIDTH + 40;
+    let panelFolded = false;
+    let panelMaximized = false;
+    let preMaximizeFraction = 0.25;
+    let panelWidthFraction = 0.25;
+
     const initPanelWidth = async () => {
-      const result = await chrome.storage.local.get(["panelWidth", "isPanelFolded"]);
+      const result = await chrome.storage.local.get(["panelWidth", "panelWidthFraction", "isPanelFolded", "isPanelMaximized", "preMaximizeFraction"]);
 
-      const panelWidth = result.panelWidth ?? '24rem';
       const isPanelFolded = result.isPanelFolded ?? false;
-
-      if (result.panelWidth === undefined) chrome.storage.local.set({ panelWidth: '24rem' });
       if (result.isPanelFolded === undefined) chrome.storage.local.set({ isPanelFolded: false });
+      panelFolded = isPanelFolded;
+      panelMaximized = result.isPanelMaximized === true;
+      if (typeof result.preMaximizeFraction === 'number' && result.preMaximizeFraction > 0) {
+        preMaximizeFraction = result.preMaximizeFraction;
+      }
 
-      return isPanelFolded ? '2.25rem' : panelWidth;
+      if (typeof result.panelWidthFraction === 'number' && result.panelWidthFraction > 0) {
+        panelWidthFraction = result.panelWidthFraction;
+      } else {
+        // Back-compat: derive a fraction from the previously stored absolute width
+        const legacy = result.panelWidth ?? '24rem';
+        const rem = parseFloat(legacy);
+        const px = (Number.isFinite(rem) && rem > 0 ? rem * 16 : 384);
+        panelWidthFraction = Math.max(0.05, Math.min(1, px / window.innerWidth));
+        chrome.storage.local.set({ panelWidthFraction: panelWidthFraction });
+      }
+
+      const expandedPx = Math.round(panelWidthFraction * window.innerWidth);
+      if (isPanelFolded || expandedPx <= COLLAPSE_WIDTH) {
+        panelFolded = true;
+        return `${MIN_PANEL_WIDTH / 16}rem`;
+      }
+      return `${expandedPx / 16}rem`;
+    }
+
+    // Apply a pixel width to the panel without persisting anything.
+    function applyPanelWidth(px) {
+      const widthPx = Math.max(MIN_PANEL_WIDTH, Math.min(window.innerWidth, px));
+      panel.style.width = `${widthPx}px`;
+      return widthPx;
+    }
+
+    // Fullscreen panel starts below LeetCode's navbar, which is where the main
+    // content (wrapper) begins, and fills the rest of the viewport.
+    function getMaximizedOffset() {
+      return Math.max(0, wrapper.getBoundingClientRect().top);
+    }
+
+    function applyMaximizedLayout() {
+      const top = getMaximizedOffset();
+      panel.style.transition = 'none';
+      Object.assign(panel.style, {
+        position: 'fixed',
+        top: `${top}px`,
+        left: '0',
+        width: `${window.innerWidth}px`,
+        height: `${window.innerHeight - top}px`,
+        zIndex: '2147483647',
+        borderRadius: '0',
+      });
+    }
+
+    function clearMaximizedLayout() {
+      panel.style.transition = 'none';
+      Object.assign(panel.style, {
+        position: '',
+        top: '',
+        left: '',
+        zIndex: '',
+        borderRadius: '8px',
+      });
+    }
+
+    // The single decision point for panel width: if the requested width is too
+    // narrow to be usable, snap to the 2.25rem sidebar instead of leaving the
+    // layout squeezed in the dead zone between 36px and COLLAPSE_WIDTH.
+    function requestWidth(px) {
+      if (px <= COLLAPSE_WIDTH) {
+        setPanelWidth(MIN_PANEL_WIDTH, true);
+      } else {
+        setPanelWidth(px, false);
+      }
+    }
+
+    // Set the panel width (pixels) and persist it as a window-relative fraction.
+    // When folding, the last expanded fraction is preserved so Unfold can restore it.
+    function setPanelWidth(px, isFolded) {
+      panelFolded = !!isFolded;
+      const widthPx = isFolded ? applyPanelWidth(MIN_PANEL_WIDTH) : applyPanelWidth(px);
+      if (!isFolded) {
+        panelWidthFraction = Math.min(1, widthPx / window.innerWidth);
+        // A manual resize (drag) exits the maximized state
+        if (widthPx < window.innerWidth - 1) {
+          panelMaximized = false;
+        }
+      }
+      chrome.storage.local.set({
+        isPanelFolded: !!isFolded,
+        isPanelMaximized: panelMaximized,
+        panelWidthFraction: panelWidthFraction,
+        panelWidth: isFolded ? '24rem' : `${widthPx}px`,
+      });
+    }
+
+    // Keep the panel width proportional to the window on horizontal resizes.
+    function syncPanelWidth() {
+      if (panelFolded) return;
+      if (panelMaximized) {
+        // Fullscreen: fill the viewport below the navbar so no horizontal
+        // scrollbar appears.
+        const top = getMaximizedOffset();
+        panel.style.top = `${top}px`;
+        panel.style.width = `${window.innerWidth}px`;
+        panel.style.height = `${window.innerHeight - top}px`;
+        return;
+      }
+      requestWidth(Math.round(panelWidthFraction * window.innerWidth));
     }
 
     // Create the main panel
@@ -129,6 +244,14 @@
     panelWrapper.appendChild(panel);
     wrapper.appendChild(panelWrapper);
 
+    // If the panel was maximized when the page last closed, hide the resize
+    // handle and fill the viewport below the navbar so it stays non-resizable
+    // (LeetCode-style fullscreen) on reload.
+    if (panelMaximized) {
+      handle.style.display = 'none';
+      applyMaximizedLayout();
+    }
+
     // --- Theme detection and sync ---
     const DARK_BG = '#262626';
     const LIGHT_BG = '#ffffff';
@@ -189,9 +312,7 @@
 
     // Add resize functionality using pointer events and pointer capture
     function clampWidth(width) {
-      const MIN_WIDTH = 36;
-      const MAX_WIDTH = 900;
-      return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
+      return Math.max(MIN_PANEL_WIDTH, Math.min(window.innerWidth, width));
     }
 
     let isDragging = false;
@@ -217,12 +338,7 @@
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
         const widthPx = clampWidth(rightEdge - e.clientX);
-        const panelWidth = `${widthPx / 16}rem`;
-        const isFolded = widthPx === 36;
-
-        panel.style.width = panelWidth;
-        chrome.storage.local.set({ "isPanelFolded": isFolded });
-        chrome.storage.local.set({ "panelWidth": isFolded ? '24rem' : panelWidth });
+        requestWidth(widthPx);
       } catch (err) {
         // ignore
       }
@@ -273,21 +389,25 @@
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
       const widthPx = clampWidth(rightEdge - e.clientX);
-      const panelWidth = `${widthPx / 16}rem`;
-      const isFolded = widthPx === 36;
-
-      panel.style.width = panelWidth;
-      chrome.storage.local.set({ "isPanelFolded": isFolded });
-      chrome.storage.local.set({ "panelWidth": isFolded ? '24rem' : panelWidth });
+      requestWidth(widthPx);
     });
 
     // End drag on pointerup or when pointer leaves
     window.addEventListener('pointerup', endDrag);
     window.addEventListener('pointercancel', endDrag);
 
-    // Keep handle height in sync with the content area (qd)
     function syncHandleHeight() {
       try {
+        if (panelMaximized) {
+          // Fullscreen panel fills the viewport below the navbar; don't let
+          // qd's height override it.
+          const top = getMaximizedOffset();
+          const height = `${window.innerHeight - top}px`;
+          if (panel.style.height !== height) {
+            panel.style.height = height;
+          }
+          return;
+        }
         const rect = qd.getBoundingClientRect();
         const height = rect.height + 'px';
         if (handle.style.height !== height) {
@@ -295,6 +415,11 @@
         }
         if (handle.style.alignSelf !== 'stretch') {
           handle.style.alignSelf = 'stretch';
+        }
+
+        const panelHeight = Math.max(0, Math.min(rect.height, window.innerHeight)) + 'px';
+        if (panel.style.height !== panelHeight) {
+          panel.style.height = panelHeight;
         }
       } catch (err) {
         // ignore
@@ -304,7 +429,7 @@
     // Initial sync
     syncHandleHeight();
 
-    // Observe qd for size changes
+    // Observe qd for size changes (covers LeetCode layout changes too).
     if (window.ResizeObserver) {
       let frameId = null;
       const ro = new ResizeObserver(() => {
@@ -314,16 +439,24 @@
         frameId = requestAnimationFrame(() => {
           frameId = null;
           syncHandleHeight();
+          if (!isDragging) syncPanelWidth();
         });
       });
       ro.observe(qd);
     }
 
-    // Also sync on window resize
-    window.addEventListener('resize', syncHandleHeight);
+    // Also sync on window resize (handle height + proportional panel width)
+    let resizeFrame = null;
+    window.addEventListener('resize', () => {
+      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        syncHandleHeight();
+        syncPanelWidth();
+      });
+    });
 
     // append handle between existing page content and the panel wrapper
-    console.log('panel injected with resize handle (handle placed between content and panel)');
 
     // Listen for auth state changes from extension
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -334,19 +467,61 @@
       }
 
       if (message.type === "FOLD") {
-        panel.style.width = "2.25rem";
-        chrome.storage.local.set({ "isPanelFolded": true });
+        setPanelWidth(MIN_PANEL_WIDTH, true);
       }
 
       if (message.type === "UNFOLD") {
-        chrome.storage.local.get(["panelWidth"]).then((result) => {
-          panel.style.width = result.panelWidth ?? '24rem';
+        chrome.storage.local.get(["panelWidthFraction"]).then((result) => {
+          if (typeof result.panelWidthFraction === 'number' && result.panelWidthFraction > 0) {
+            panelWidthFraction = result.panelWidthFraction;
+          }
+          panelFolded = false;
+          chrome.storage.local.set({ isPanelFolded: false });
+          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(panelWidthFraction * window.innerWidth));
+          requestWidth(target);
         });
-        chrome.storage.local.set({ isPanelFolded: false });
       }
 
       if (message.type === "MAXIMIZE") {
-        panel.style.width = `${window.innerWidth / 16}rem`;
+        if (!panelMaximized) {
+          // Remember the current size so we can restore it on toggle
+          preMaximizeFraction = panelWidthFraction;
+          panelFolded = false;
+          panelMaximized = true;
+          panelWidthFraction = 1;
+          handle.style.display = 'none';
+          // Fullscreen: detach from the flex layout and fill the viewport
+          // below the navbar exactly, so no horizontal scrollbar or resize
+          // handle appears.
+          applyMaximizedLayout();
+          chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: true, preMaximizeFraction: preMaximizeFraction });
+        } else {
+          // Restore the size from before maximizing. Set the target width while
+          // still position:fixed, then drop the fixed layout atomically so the
+          // panel re-enters the flex flow already at its restored size (no
+          // oversized stutter frame).
+          panelFolded = false;
+          panelMaximized = false;
+          panelWidthFraction = preMaximizeFraction;
+          handle.style.display = 'flex';
+          panel.style.transition = 'none';
+          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
+          const targetHeight = Math.max(0, Math.min(qd.getBoundingClientRect().height, window.innerHeight));
+          Object.assign(panel.style, {
+            width: `${target}px`,
+            height: `${targetHeight}px`,
+            position: '',
+            top: '',
+            left: '',
+            zIndex: '',
+            borderRadius: '8px',
+          });
+          chrome.storage.local.set({ isPanelFolded: false, isPanelMaximized: false });
+          // Re-enable the drag transition after the restore has painted.
+          requestAnimationFrame(() => {
+            panel.style.transition = 'width 0.05s ease-out';
+          });
+        }
       }
 
       if (message.type === "ACTIVE") {
@@ -386,14 +561,14 @@
         chrome.runtime.sendMessage({
           type: 'SUBMISSION_PENDING',
           data: event.data.payload
-        });
+        }).catch(() => {});
       }
 
       if (event.data.type === 'BSG_LEETCODE_RESULT') {
         chrome.runtime.sendMessage({
           type: 'SUBMISSION_RESULT',
           data: event.data.payload
-        });
+        }).catch(() => {});
       }
     })
 
@@ -412,7 +587,7 @@
     const removeActive = () => {
       panelActive = false;
       activeTabsetObserver.disconnect();
-      chrome.runtime.sendMessage({ type: 'NOT_ACTIVE' });
+      chrome.runtime.sendMessage({ type: 'NOT_ACTIVE' }).catch(() => {});
     }
 
     document.body.addEventListener('mousedown', (e) => {

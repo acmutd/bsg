@@ -57,3 +57,18 @@ func (sm *ServiceManager) FindService(serviceName string) *Service {
 	logging.Info("Service not found: ", serviceName)
 	return nil
 }
+
+// FindOtherService returns a connected service with the given name, excluding
+// the provided one. Used to detect whether other connections share a handle
+// (e.g. multiple tabs logged in as the same user).
+func (sm *ServiceManager) FindOtherService(serviceName string, except *Service) *Service {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for service := range sm.Services {
+		if service != except && service.Name == serviceName {
+			return service
+		}
+	}
+	return nil
+}

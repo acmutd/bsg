@@ -39,5 +39,8 @@ func (r *RoomExpiredRequest) Handle(m *Message) (response.ResponseType, string, 
 	if err != nil {
 		return r.responseType(), "", r.RoomID, err
 	}
+	// The room itself is torn down in ReadMessages, after this notice has been
+	// broadcast. Removing it here would empty the room before delivery and the
+	// people in it would never hear that it expired.
 	return r.responseType(), "Room has expired and been deleted.", r.RoomID, nil
 }

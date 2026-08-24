@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
@@ -32,13 +33,14 @@ type RoomService struct {
 	rdb                 *redis.Client
 	roundService        *RoundService
 	rtcClient           *RTCClient
+	userService         *UserService
 	roomScheduler       *tasks.Scheduler
 	MaxNumRoundsPerRoom int
 	ttlTaskIDs          map[string]string // roomID -> scheduler task ID
 }
 
-func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, roomScheduler *tasks.Scheduler, maxNumRoundsPerRoom int) RoomService {
-	return RoomService{db, rdb, roundService, rtcClient, roomScheduler, maxNumRoundsPerRoom, make(map[string]string)}
+func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundService, rtcClient *RTCClient, userService *UserService, roomScheduler *tasks.Scheduler, maxNumRoundsPerRoom int) RoomService {
+	return RoomService{db, rdb, roundService, rtcClient, userService, roomScheduler, maxNumRoundsPerRoom, make(map[string]string)}
 }
 
 type RoomDTO struct {
@@ -219,19 +221,15 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 	if err = service.addJoinMember(roomID, userID); err != nil {
 		return nil, err
 	}
-	if len(room.Rounds) > 0 {
-		round := room.Rounds[len(room.Rounds)-1]
-		if round.Status == constants.ROUND_STARTED {
-			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
-				return nil, err
-			}
-		}
-	}
+	displayName := service.userDisplayName(userID)
 	// RTCClient is nil in test cases
 	if service.rtcClient != nil {
+		// Announced here rather than suppressed so the room join is broadcast
+		// before the round join below, keeping the two in chronological order.
 		joinRoom := requests.JoinRoomRequest{
 			UserHandle: userID,
 			RoomID:     roomID,
+			UserName:   displayName,
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
@@ -241,6 +239,31 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			}
 		}
 	}
+	if len(room.Rounds) > 0 {
+		round := room.Rounds[len(room.Rounds)-1]
+		if round.Status == constants.ROUND_STARTED {
+			if err := service.roundService.CreateRoundParticipant(userID, round.ID); err != nil {
+				return nil, err
+			}
+			if service.rtcClient != nil {
+				joinRound := requests.JoinRoundRequest{
+					RoomID:   roomID,
+					UserID:   userID,
+					UserName: displayName,
+				}
+				if _, err = service.rtcClient.SendMessage("join-round", joinRound); err != nil {
+					log.Printf("Error sending  message: %v", err)
+					return nil, BSGError{
+						StatusCode: 500,
+						Message:    "Internal Server Error",
+					}
+				}
+
+			}
+
+		}
+	}
+
 	return room, nil
 }
 
@@ -259,6 +282,7 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 		leaveRoom := requests.LeaveRoomRequest{
 			UserHandle: userID,
 			RoomID:     roomID,
+			UserName:   service.userDisplayName(userID),
 		}
 		if _, err = service.rtcClient.SendMessage("leave-room", leaveRoom); err != nil {
 			log.Printf("Error sending leave-room message: %v", err)
@@ -268,26 +292,59 @@ func (service *RoomService) LeaveRoom(roomID string, userID string) error {
 			}
 		}
 	}
-	// Delete room if creator leaves or room is now empty
+	// Delete room if the room is now empty
 	users, err := service.FindActiveUsers(roomID)
 	if err != nil {
 		return err
 	}
-	if room.Admin == userID || len(users) == 0 {
+	if len(users) == 0 {
 		service.cancelRoomExpiry(roomID)
 		return service.deleteRoom(*room)
 	}
-	if wasAdmin, err := service.IsRoomAdmin(roomID, userID); err != nil {
-		return err
-	} else if wasAdmin {
+	// If the departing user was the admin, assign a new rightful admin and notify the room
+	if room.Admin == userID {
 		if result, err := service.FindRightfulRoomAdmin(roomID); err != nil {
 			return err
 		} else if err := service.db.Model(&room).Update("Admin", result).Error; err != nil {
 			log.Printf("Error updating room admin in the database: %v\n", err)
 			return err
+		} else if service.rtcClient != nil {
+			adminChange := requests.AdminChangeRequest{
+				RoomID:    roomID,
+				AdminID:   result,
+				AdminName: service.userDisplayName(result),
+			}
+			// Non-fatal: the DB transfer already succeeded, so a broadcast failure
+			// only means other clients refresh admin state on their next reload.
+			if _, err := service.rtcClient.SendMessage("admin-change", adminChange); err != nil {
+				log.Printf("Error sending admin-change message: %v", err)
+			}
 		}
 	}
 	return nil
+}
+
+// userDisplayName returns a human readable name for a user,
+// falling back to their auth id if no user record is found.
+func (service *RoomService) userDisplayName(userID string) string {
+	if service.userService == nil {
+		return userID
+	}
+	user, err := service.userService.FindUserByAuthID(userID)
+	if err != nil || user == nil {
+		return userID
+	}
+	name := user.Handle
+	if name == "" {
+		name = strings.TrimSpace(user.FirstName + " " + user.LastName)
+	}
+	if name == "" {
+		name = user.Email
+	}
+	if name == "" {
+		name = userID
+	}
+	return name
 }
 
 // Adds a user's join timestamp to the Redis cache
@@ -380,15 +437,6 @@ func (service *RoomService) deleteJoinMembers(roomID string) error {
 		service.rdb.Del(context.Background(), activeRoomKey)
 	}
 	return nil
-}
-
-// Returns whether a given user is the room admin
-func (service *RoomService) IsRoomAdmin(roomID string, userID string) (bool, error) {
-	room, err := service.FindRoomByID(roomID)
-	if err != nil {
-		return false, err
-	}
-	return room.Admin == userID, nil
 }
 
 // Returns auth id of new room admin
@@ -499,6 +547,23 @@ func (service *RoomService) StartRoundByRoomID(roomID string, userID string) (*t
 		log.Printf("Error initiating round start: %v\n", err)
 		return nil, nil, err
 	}
+
+	// Everyone in the room joins the round the moment it starts. Users who arrive
+	// later get their join-round from JoinRoom instead. Failures are logged rather
+	// than returned: a missing chat line should not fail the round start.
+	if service.rtcClient != nil {
+		for _, participantID := range activeUsers {
+			joinRound := requests.JoinRoundRequest{
+				RoomID:   roomID,
+				UserID:   participantID,
+				UserName: service.userDisplayName(participantID),
+			}
+			if _, err := service.rtcClient.SendMessage("join-round", joinRound); err != nil {
+				log.Printf("Error sending join-round message: %v", err)
+			}
+		}
+	}
+
 	return roundStartTime, problems, nil
 }
 

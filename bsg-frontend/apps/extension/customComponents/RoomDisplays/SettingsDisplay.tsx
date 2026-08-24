@@ -5,6 +5,7 @@ import { Label } from '@bsg/ui/label';
 import { Slider } from '@bsg/ui/slider';
 import { NotificationToggle } from '../NotificationToggle';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useLogin } from '@/hooks/useLogin';
 
 const MIN_DURATION = 5;
 const MAX_DURATION = 120;
@@ -18,6 +19,8 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
     const roundDuration = useRoomStore(s => s.roundDuration);
     const setRoundDuration = useRoomStore(s => s.setRoundDuration);
+
+    const { logout } = useLogin();
 
     const [ value, setValue ] = useState<number>(roundDuration ?? 30);
     const [ saving, setSaving ] = useState<boolean>(false);
@@ -159,22 +162,32 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
                 </span>
             </div>
 
-            {isAdmin && !isRoundStarted && (
-                <div className="mt-auto">
-                    {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
-                    {saved && !dirty && (
-                        <p className="mb-2 text-xs text-green-400">Timer updated.</p>
-                    )}
-                    <button
-                        type="button"
-                        onClick={onSave}
-                        disabled={saving || !dirty}
-                        className="w-full rounded-md bg-bsg-glass py-2 text-sm font-medium hover:bg-bsg-hover disabled:opacity-30"
-                    >
-                        {saving ? 'Saving…' : 'Save'}
-                    </button>
-                </div>
-            )}
+            <div className="mt-auto flex flex-col gap-2">
+                {isAdmin && !isRoundStarted && (
+                    <div>
+                        {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
+                        {saved && !dirty && (
+                            <p className="mb-2 text-xs text-green-400">Timer updated.</p>
+                        )}
+                        <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={saving || !dirty}
+                            className="w-full rounded-md bg-bsg-glass py-2 text-sm font-medium hover:bg-bsg-hover disabled:opacity-30"
+                        >
+                            {saving ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
+                )}
+
+                <button
+                    type="button"
+                    onClick={() => logout()}
+                    className="w-full rounded-md border border-red-500/50 bg-red-950/40 py-2 text-sm font-medium text-red-200 hover:bg-red-900/40 transition-colors"
+                >
+                    Sign out
+                </button>
+            </div>
         </div>
     );
 };

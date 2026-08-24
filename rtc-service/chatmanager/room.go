@@ -21,6 +21,9 @@ type Room struct {
 	// List of all users in the room.
 	Users UserList
 
+	// State of the room's round. Nil until a round is started.
+	Round *Round
+
 	// History of messages in the room for persistence.
 	Messages []response.Response
 
@@ -32,9 +35,9 @@ func (r *Room) AddUser(user *User) {
 	r.Lock()
 	defer r.Unlock()
 
-	// Check user already exists
+	// Check user already exists (e.g. a second tab or a reconnecting client)
 	if _, ok := r.Users[user.Handle]; ok {
-		logging.Error("User already exists")
+		logging.Debug("User already exists: ", user.Handle)
 		return
 	}
 
@@ -65,6 +68,17 @@ func (r *Room) GetUser(userHandle string) *User {
 		return user
 	}
 	return nil
+}
+
+// RemoveAllUsers clears the room's user list. Used when a room is torn down,
+// since RemoveRoom refuses to delete a room that still has users.
+func (r *Room) RemoveAllUsers() {
+	r.Lock()
+	defer r.Unlock()
+
+	r.Users = make(UserList)
+
+	logging.Info("All users removed from room: ", r.RoomID)
 }
 
 func (r *Room) IsEmpty() bool {

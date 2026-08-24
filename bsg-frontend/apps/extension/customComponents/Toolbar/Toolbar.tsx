@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
-import { useRoomEvents } from '@/hooks/useRoomEvents';
+import { useRoomEvents, parseProblemSlug, problemUrl } from '@/hooks/useRoomEvents';
 import { useRoomStore } from '@/stores/useRoomStore';
 
 export const Toolbar = () => {
@@ -27,16 +27,15 @@ export const Toolbar = () => {
         if (url == undefined){
             console.log("oh no");
         } else {
-            var start = url?.indexOf("/problems/");
-            var startword = url.slice(start+10)
-            var end = startword.indexOf("/");
-            var finalword = startword.slice(0, end);
-            // console.log("CurrProblem:", problems, finalword, problems.indexOf(finalword))
-            if (currIndex.current == -1){
+
+            var slug = parseProblemSlug(url);
+            // console.log("CurrProblem:", problems, slug, slug ? problems.indexOf(slug) : -1)
+            if (slug == null){
                 //parse error
                 console.log("Parse Error")
+                currIndex.current = -1
             } else {
-                currIndex.current = problems.indexOf(finalword)
+                currIndex.current = problems.indexOf(slug)
             }
         }
     });
@@ -44,7 +43,7 @@ export const Toolbar = () => {
   
 
     return (
-        <div className="flex h-8 px-1 border-b border-bsg-glass items-center justify-between">
+        <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
@@ -55,9 +54,13 @@ export const Toolbar = () => {
                             var newIndex;
                             if (currIndex.current == 0){
                                 console.log("No previous problem");
-                            } else {
+                            }else if (currIndex.current == -1){
+                                //off-round, so there is nothing to step back from - put them on the first problem
+                                window.open(problemUrl(problems[0]), '_top');
+                            }else {
                                 newIndex = currIndex.current-1;
-                                window.open(`https://leetcode.com/problems/${problems[newIndex]}/`, '_top');
+                                //if(newIndex < 0) return;
+                                window.open(problemUrl(problems[newIndex]), '_top');
                             }
                           }
                         }}
@@ -82,9 +85,12 @@ export const Toolbar = () => {
                             var newIndex;
                             if (currIndex.current == problems.length-1){
                                 console.log("No next problem");
+                            }else if (currIndex.current == -1){
+                                //off-round, so there is nothing to step forward from - put them on the first problem
+                                window.open(problemUrl(problems[0]), '_top');
                             } else {
                                 newIndex = currIndex.current+1;
-                                window.open(`https://leetcode.com/problems/${problems[newIndex]}/`, '_top');
+                                window.open(problemUrl(problems[newIndex]), '_top');
                             }
                           }
                         }
@@ -161,7 +167,7 @@ export const Toolbar = () => {
                         </Button>
                     </TooltipWrapper>
 
-                    <div className={`flex px-1.5 items-center bg-bsg-glass text-foreground/60 text-sm ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
+                    <div className={`flex px-1.5 items-center bg-bsg-glass text-foreground/60 text-sm shrink-0 ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
                 </div>
 
                 <TooltipWrapper text="Settings">

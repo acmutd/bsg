@@ -12,12 +12,24 @@ var (
 	// Response type that doesn't require any special handling.
 	GENERAL ResponseType = "general"
 
+	// A user joined a room. Transient: not kept in room history.
+	USER_JOINED ResponseType = "user-joined"
+
+	// A user left a room. Transient: not kept in room history.
+	USER_LEFT ResponseType = "user-left"
+
 	// round start broadcast
 	ROUND_START ResponseType = "round-start"
+
+	// round join broadcast
+	ROUND_JOIN ResponseType = "round-join"
 
 	// next problem broadcast
 	NEXT_PROBLEM ResponseType = "next-problem"
 
 	// room expired broadcast
 	ROOM_EXPIRED ResponseType = "room-expired"
+
+	// room admin transfer broadcast
+	ADMIN_CHANGE ResponseType = "admin-change"
 )
