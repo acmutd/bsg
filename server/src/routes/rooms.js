@@ -275,5 +275,28 @@ router.get('/:id/leaderboard', ensureAuth, async (req, res) => {
     }
 });
 
+// Get Round Details
+router.get('/:id/round-details', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    const { id } = req.params;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/rooms/${id}/round-details`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error getting round details', error, {
+            user_id: authID,
+            room_id: id,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;
 
