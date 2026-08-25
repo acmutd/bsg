@@ -1,8 +1,7 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
-import { useRoomInit } from "./useRoomInit";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { getServerUrl } from "../lib/config";
 
@@ -11,7 +10,6 @@ export type AuthProvider = 'google' | 'github';
 export const useLogin = () => {
 
     const router = useRouter();
-    const { checkActiveRoom } = useRoomInit();
 
     const isLoggedIn = useUserStore(s => s.isLoggedIn);
     const loginUser = useUserStore(s => s.loginUser);
@@ -101,33 +99,6 @@ export const useLogin = () => {
             finishLogout();
         }
     }
-
-    // TODO: Display a loading screen while active room is being checked (start-page will be loaded only after failure)
-    // Check if the user is logged in using the service worker
-    useEffect(() => {
-        if(typeof chrome === 'undefined' || typeof chrome.runtime === 'undefined' || typeof chrome.runtime.sendMessage === 'undefined') return;
-
-        const initSession = async () => {
-
-            try {
-                const response = await chrome.runtime.sendMessage({type: 'CHECK_AUTH'});
-                if(!response?.success) return;
-
-                const user: User = response.user;
-                loginUser(user.id, user.name, user.email, user.photo)
-
-                //checkActiveRoom pushes room-page itself, so we only handle the no-room case
-                const enteredRoom = await checkActiveRoom();
-                if(!enteredRoom) router.push('/start-page')
-                    
-            } catch(error){
-                console.error(error)
-            }
-
-    
-        }
-        initSession();
-    }, [])
 
     return {
         credentials,

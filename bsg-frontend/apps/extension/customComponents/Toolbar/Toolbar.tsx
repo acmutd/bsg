@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
@@ -15,55 +15,46 @@ export const Toolbar = () => {
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
     const problems = useRoomStore(s => s.problems);
-    var currIndex = useRef(-2);
+    // -2 = problems not loaded yet, -1 = tab isn't on one of this round's problems
+    const [currIndex, setCurrIndex] = useState(-2);
 
 //TODO: Move timer to iframe
-  useEffect(() => { 
-    if (problems.length == 0){
-        return;
-    }
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        var url = tabs[0].url;
-        if (url == undefined){
-            console.log("oh no");
-        } else {
 
-            var slug = parseProblemSlug(url);
-            // console.log("CurrProblem:", problems, slug, slug ? problems.indexOf(slug) : -1)
-            if (slug == null){
-                //parse error
-                console.log("Parse Error")
-                currIndex.current = -1
-            } else {
-                currIndex.current = problems.indexOf(slug)
-            }
-        }
-    });
-}, [problems])
-  
+    // The tab's URL lives outside React, so no dependency array can react to it -
+    // sampling once on mount only looked right because navigating the top frame
+    // remounted the whole panel. Subscribe instead: LeetCode also routes between
+    // problems client-side, where the panel survives and never gets that remount.
+    useEffect(() => {
+        if (problems.length === 0) return;
+
+        const sync = (url: string | undefined) => {
+            const slug = url ? parseProblemSlug(url) : null;
+            setCurrIndex(slug ? problems.indexOf(slug) : -1);
+        };
+
+        chrome.tabs.query({active: true, currentWindow: true}, tabs => sync(tabs[0]?.url));
+
+        const handleUpdated = (_tabId: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+            if (change.url && tab.active) sync(change.url);
+        };
+        chrome.tabs.onUpdated.addListener(handleUpdated);
+        return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
+    }, [problems])
+
+    const stepProblem = (delta: number) => {
+        //off-round, so there is nothing to step from - put them on the first problem
+        const newIndex = (currIndex === -1) ? 0 : currIndex + delta;
+        window.open(problemUrl(problems[newIndex]), '_top');
+    }
+
 
     return (
         <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
-                        onClick={_ => {
-                          if(currIndex.current == -2){
-                            console.log("Problems not yet loaded");
-                          } else {
-                            var newIndex;
-                            if (currIndex.current == 0){
-                                console.log("No previous problem");
-                            }else if (currIndex.current == -1){
-                                //off-round, so there is nothing to step back from - put them on the first problem
-                                window.open(problemUrl(problems[0]), '_top');
-                            }else {
-                                newIndex = currIndex.current-1;
-                                //if(newIndex < 0) return;
-                                window.open(problemUrl(problems[newIndex]), '_top');
-                            }
-                          }
-                        }}
+                        onClick={() => stepProblem(-1)}
+                        disabled={currIndex === -2 || currIndex === 0}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -78,23 +69,8 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Next Problem">
                     <Button
-                        onClick={ _ => {
-                          if(currIndex.current == -2){
-                            console.log("Problems not yet loaded");
-                          } else {
-                            var newIndex;
-                            if (currIndex.current == problems.length-1){
-                                console.log("No next problem");
-                            }else if (currIndex.current == -1){
-                                //off-round, so there is nothing to step forward from - put them on the first problem
-                                window.open(problemUrl(problems[0]), '_top');
-                            } else {
-                                newIndex = currIndex.current+1;
-                                window.open(problemUrl(problems[newIndex]), '_top');
-                            }
-                          }
-                        }
-                        }
+                        onClick={() => stepProblem(1)}
+                        disabled={currIndex === -2 || currIndex === problems.length - 1}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
