@@ -242,7 +242,7 @@ export const useRoomInit = () => {
                         }else{
                         }
 
-                        router.push('/room-page');
+                        await router.push('/room-page');
 
 
                         // Check for active round

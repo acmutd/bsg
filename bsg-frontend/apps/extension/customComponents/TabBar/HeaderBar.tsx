@@ -6,6 +6,10 @@ import { TabName } from '@bsg/models/TabName';
 import { useIsScrolled } from './useIsScrolled';
 import { usePanelStore } from '@/stores/usePanelStore';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { useUserStore } from '@/stores/useUserStore';
+import { useLogin } from '@/hooks/useLogin';
+import { useIsMaximized } from '@/hooks/useIsMaximized';
+import { MaximizeIcon } from '@/customComponents/MaximizeIcon';
 
 export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
 
@@ -16,6 +20,9 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
     const activeTab = useRoomStore(s => s.activeTab);
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const isPanelHovered = usePanelStore(s => s.isPanelHovered);
+    const isLoggedIn = useUserStore(s => s.isLoggedIn);
+    const { logout } = useLogin();
+    const isMaximized = useIsMaximized();
 
     const combinedRef = useCallback((node: HTMLDivElement | null) => {
         wheelCleanupRef.current?.();
@@ -76,7 +83,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                         {/* Tabs */}
                         <div
                             ref={combinedRef}
-                            className="flex items-center h-full pl-8 pr-14 overflow-x-auto no-scrollbar"
+                            className="flex items-center h-full pl-8 pr-8 overflow-x-auto no-scrollbar"
                         >
 
                             <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
@@ -218,27 +225,45 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
             }
 
             {/* Toolbar */}
-            <div className="flex absolute right-0 h-full pointer-events-none">
+            <div className="flex items-center absolute right-0 h-full pr-2 pointer-events-none">
 
                 {/* Fade */}
                 <div className="w-8 h-full bg-[linear-gradient(to_left,rgb(var(--bsg-surface))_33.3%,transparent)]" />
 
-                <div className={`flex items-center gap-1 px-1 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
+                {/* Logout Button (visible when logged in and not in a room) */}
+                {!isInRoom && isLoggedIn && (
+                    <TooltipWrapper text="Sign out">
+                        <Button
+                            onClick={() => logout()}
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-bsg-surface pointer-events-auto hover:bg-bsg-hover"
+                        >
+                            <svg
+                                className="h-[1em] w-[1em] overflow-visible"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 39 36"
+                                fill="none"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeWidth="3.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M16 2H8C4.68629 2 2 4.68629 2 8V28C2 31.3137 4.68629 34 8 34H16M14 13.5V22.5H26V28.5L36.5 18L26 7.5V13.5H14Z"
+                                />
+                            </svg>
+                        </Button>
+                    </TooltipWrapper>
+                )}
 
-                    {/* Maximize Button */}
-                    <TooltipWrapper text="Maximize" shortcuts={["Alt", "+"]}>
+                <div className={`flex items-center gap-1 px-2 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
+
+                    {/* Maximize / Exit Button */}
+                    <TooltipWrapper text={isMaximized ? "Exit" : "Maximize"} shortcuts={["Alt", "+"]}>
                         <Button
                             onClick={() => messageScript('MAXIMIZE')}
                             className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                         >
-                            <svg
-                                className="h-[1em] w-[1em]"
-                                viewBox="0 0 448 512"
-                                fill="currentColor"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path d="M136 32c13.3 0 24 10.7 24 24s-10.7 24-24 24H48v88c0 13.3-10.7 24-24 24s-24-10.7-24-24V56C0 42.7 10.7 32 24 32H136zM0 344c0-13.3 10.7-24 24-24s24 10.7 24 24v88h88c13.3 0 24 10.7 24 24s-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V344zM424 32c13.3 0 24 10.7 24 24V168c0 13.3-10.7 24-24 24s-24-10.7-24-24V80H312c-13.3 0-24-10.7-24-24s10.7-24 24-24H424zM400 344c0-13.3 10.7-24 24-24s24 10.7 24 24V456c0 13.3-10.7 24-24 24H312c-13.3 0-24-10.7-24-24s10.7-24 24-24h88V344z" />
-                            </svg>
+                            <MaximizeIcon maximized={isMaximized} />
                         </Button>
                     </TooltipWrapper>
 

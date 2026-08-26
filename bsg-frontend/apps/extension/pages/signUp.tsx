@@ -10,7 +10,7 @@ const signUp = () => {
                 <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
             </div>
 
-            <div className="relative m-auto w-full max-w-sm p-6 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
+            <div className="relative m-auto w-full min-w-[300px] max-w-sm p-6 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
                 <SignUpForm />
             </div>
         </div>

@@ -3,7 +3,6 @@ import {Poppins} from 'next/font/google'
 import {Button} from '@bsg/ui/button'
 import {Label} from "@bsg/ui/label"
 import {Slider} from "@bsg/ui/slider"
-import {ScrollArea} from "@bsg/ui/scroll-area"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faDoorOpen, faPlus, faX} from '@fortawesome/free-solid-svg-icons'
 import Difficulty from "@bsg/models/Difficulty";
@@ -64,7 +63,7 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
             {/* Main card */}
             <div
-                className={`relative m-auto w-full min-w-[18rem] p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'invisible' : ''}`}>
+                className={`relative m-auto w-full min-w-[18rem] p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass ${showCreateOptions ? 'hidden' : ''}`}>
                 <h1 className="text-lg text-foreground font-semibold mb-4">Create a room or join one</h1>
 
                 <div className="space-y-4">
@@ -74,9 +73,9 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                             setFormError(null)
                             setShowCreateOptions(true)
                         }}
-                        className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
+                        className="px-4 py-2 gap-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                     >
-                        <p className='px-2'>Create</p>
+                        <p>Create</p>
                         <FontAwesomeIcon icon={faPlus}/>
                     </Button>
 
@@ -84,11 +83,11 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                     <div className="flex gap-2">
                         <input value={joinCode} onChange={(e) => setJoinCode(e.target.value)}
                                placeholder="Enter room code"
-                               className="flex-1 px-3 py-2 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/20 transition"/>
+                               className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/20 transition"/>
                         <Button
                             onClick={handleJoinRoom}
                             disabled={isSubmittingJoin}
-                            className="px-4 py-2 flex items-center gap-1 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
+                            className="px-4 py-2 shrink-0 flex items-center gap-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                         >
                             <p>{isSubmittingJoin ? 'Joining...' : 'Join'}</p>
                             <FontAwesomeIcon icon={faDoorOpen}/>
@@ -116,16 +115,16 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
             {/* Create Room Modal */}
             {showCreateOptions && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-3">
+                <div className="absolute inset-0 z-50 flex overflow-y-auto bg-background/80 backdrop-blur-sm p-3">
                     <div
-                        className="w-full max-w-sm max-h-full overflow-y-auto p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
-                        <div className="flex items-start justify-between mb-5">
+                        className="m-auto w-full min-w-[300px] max-w-sm p-5 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
+                        <div className="flex items-start justify-between gap-3 mb-5">
                             <h2 className="text-lg text-foreground font-semibold">Create Room</h2>
                             <button
                                 onClick={() => setShowCreateOptions(false)}
                                 aria-label="Close create dialog"
                                 title="Close"
-                                className="text-foreground/60 hover:text-foreground rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
+                                className="shrink-0 text-foreground/60 hover:text-foreground rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
                             >
                                 <FontAwesomeIcon icon={faX}/>
                             </button>
@@ -133,23 +132,29 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
 
                         {/* Difficulty rows */}
                         <div className="space-y-3 mb-5">
-                            <div className="flex items-center justify-between">
-                                <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Easy}
-                                                                     num={numberOfEasyProblems}/>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="shrink-0 whitespace-nowrap">
+                                    <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Easy}
+                                                                         num={numberOfEasyProblems}/>
+                                </span>
                                 <IncDecButtons
                                     decrementOnClick={() => decrement(setNumberOfEasyProblems, numberOfEasyProblems)}
                                     incrementOnClick={() => increment(setNumberOfEasyProblems, numberOfEasyProblems)}/>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Medium}
-                                                                     num={numberOfMediumProblems}/>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="shrink-0 whitespace-nowrap">
+                                    <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Medium}
+                                                                         num={numberOfMediumProblems}/>
+                                </span>
                                 <IncDecButtons
                                     decrementOnClick={() => decrement(setNumberOfMediumProblems, numberOfMediumProblems)}
                                     incrementOnClick={() => increment(setNumberOfMediumProblems, numberOfMediumProblems)}/>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Hard}
-                                                                     num={numberOfHardProblems}/>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="shrink-0 whitespace-nowrap">
+                                    <NumberOfProblemsWithDifficultyLabel difficulty={Difficulty.Hard}
+                                                                         num={numberOfHardProblems}/>
+                                </span>
                                 <IncDecButtons
                                     decrementOnClick={() => decrement(setNumberOfHardProblems, numberOfHardProblems)}
                                     incrementOnClick={() => increment(setNumberOfHardProblems, numberOfHardProblems)}/>
@@ -166,13 +171,13 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                         {/* Topics */}
                         <div className="mb-5">
                             <Label className="text-sm text-foreground/60">Select Topics</Label>
-                            <ScrollArea
+                            <div
                                 className="max-h-32 overflow-y-auto rounded-md p-2 mt-2 bg-background">
                                 <div className="flex flex-wrap gap-2">
                                     {topics.map((t, i) => <TopicComponent key={i} topic={t}
                                                                           toggle={() => toggleTopic(i)}/>)}
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </div>
 
                         {/* Duration */}

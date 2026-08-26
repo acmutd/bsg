@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/acmutd/bsg/rtc-service/chatmanager"
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
 )
@@ -60,6 +61,16 @@ func (r *RoundStartRequest) Handle(m *Message) (response.ResponseType, string, s
 	err = r.validate()
 	if err != nil {
 		return r.responseType(), "", r.RoomID, err
+	}
+
+	if room := chatmanager.RTCChatManager.GetRoom(r.RoomID); room != nil {
+		room.StartRound(r.StartTime, r.Duration, r.ProblemList)
+
+		// The round-start response itself is a control event: clients navigate to
+		// the problem page when they receive one, so it is never replayed. The
+		// chat line is stored separately as a plain announcement, which replays
+		// safely and survives the navigation reload that follows.
+		room.AddMessage(*response.NewOkResponse(response.SYSTEM_ANNOUNCEMENT, "The round has started", r.RoomID))
 	}
 
 	broadcast := roundStartBroadcast{

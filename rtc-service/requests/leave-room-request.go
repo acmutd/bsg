@@ -14,6 +14,7 @@ import (
 type LeaveRoomRequest struct {
 	UserHandle string `json:"userHandle"` // validate:"required"`
 	RoomID     string `json:"roomID"`     // validate:"required"`
+	UserName   string `json:"userName"`
 }
 
 func init() {
@@ -37,7 +38,7 @@ func (r *LeaveRoomRequest) validate() error {
 
 // Returns the response type for the request.
 func (r *LeaveRoomRequest) responseType() response.ResponseType {
-	return response.SYSTEM_ANNOUNCEMENT
+	return response.USER_LEFT
 }
 
 // Handles the request and returns a response.
@@ -71,5 +72,9 @@ func (r *LeaveRoomRequest) Handle(m *Message) (response.ResponseType, string, st
 		chatmanager.RTCChatManager.RemoveRoom(room)
 	}
 
-	return r.responseType(), "Leave Room Request", r.RoomID, nil
+	leaverName := r.UserName
+	if leaverName == "" {
+		leaverName = "A user"
+	}
+	return r.responseType(), leaverName+" left the room", r.RoomID, nil
 }

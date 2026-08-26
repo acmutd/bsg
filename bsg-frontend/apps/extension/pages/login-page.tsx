@@ -3,7 +3,7 @@ import { useLogin } from "@/hooks/useLogin";
 
 export default function LoginPage() {
 
-    const { login } = useLogin()
+    const { login } = useLogin()    
 
     return (
         <div className="min-h-full flex flex-col px-6 py-4 relative">
@@ -16,7 +16,7 @@ export default function LoginPage() {
             </div>
 
             {/* Main card */}
-            <div className="relative m-auto w-full max-w-[320px] flex flex-col items-center p-8 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass gap-8">
+            <div className="relative m-auto w-full min-w-[300px] max-w-[320px] flex flex-col items-center p-8 rounded-2xl bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass gap-8">
 
                 {/* Logo + title */}
                 <div className="flex flex-col items-center gap-4">

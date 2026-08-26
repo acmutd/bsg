@@ -27,6 +27,26 @@ export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | 
     return problems[0];
 }
 
+
+// The single door for every automatic navigation. rtc-service replays events to
+// each reconnecting socket, and navigating reloads the panel, so any mover that
+// can re-fire will bounce the user forever. Two invariants prevent that, kept
+// here so no future caller has to remember them:
+//   1. never navigate to the page we are already on
+//   2. decide from the tab's live URL, so a replay resolves to "stay put"
+//      instead of re-issuing a move the user has already acted past
+const navigateActiveTab = async (decide: (tabUrl: string) => string | null) => {
+    if (typeof chrome === 'undefined' || !chrome.tabs) return;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !tab.url) return;
+
+    const targetSlug = decide(tab.url);
+    if (!targetSlug || parseProblemSlug(tab.url) === targetSlug) return;
+
+    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+}
+
 export function useRoomEvents() {
 
     const [ nextProblem, setNextProblem ] = useState<string | null>(null);
@@ -47,10 +67,12 @@ export function useRoomEvents() {
 
     const LastGameRef = useRef<string>('')
 
-    // Refresh participants when someone joins or leaves
+    // Refresh participants when someone joins or leaves (debounced to avoid
+    // bursty refreshes when several events arrive at once).
     useEffect(() => {
         if (!lastParticipantJoinTime || !roomId) return;
-        setRoomParticipants(roomId);
+        const timer = setTimeout(() => setRoomParticipants(roomId), 800);
+        return () => clearTimeout(timer);
     }, [lastParticipantJoinTime, roomId]);
 
     useEffect(() => {
@@ -68,7 +90,7 @@ export function useRoomEvents() {
 
                 //we got here meaning re-render actually happened or someone left the tab so we should
                 //go to the problem page
-                if(LastGameEvent === 'round-start'){
+                if(LastGameEvent === 'round-start' || LastGameEvent === 'join-round'){
                     const storedProblems: string[] = result.problems || [];
                     const storedEndTime: number | null = result.roundEndTime ?? null;
 
@@ -79,14 +101,7 @@ export function useRoomEvents() {
 
                     if (!shouldResume || storedProblems.length === 0) return;
 
-                    if (!chrome.tabs) return;
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (!tab?.id || !tab.url) return;
-
-                    const targetSlug = resolveResumeSlug(tab.url, storedProblems);
-                    if (targetSlug) {
-                        chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
-                    }
+                    await navigateActiveTab(url => resolveResumeSlug(url, storedProblems));
                 }
 
             })
@@ -98,10 +113,9 @@ export function useRoomEvents() {
     useEffect(() => {
         if (!lastGameEvent || !roomId) return;
 
-        if (lastGameEvent.type === 'round-start') {
-            LastGameRef.current = 'round-start'
-            setRoomParticipants(roomId);
-            const data = lastGameEvent.data;
+        // Shared by round-start and join-round: both put a client into a running
+        // round, the only difference being whether it was there when it began.
+        const applyRoundData = (data: any) => {
             let problems: string[] = [];
             let endTime: number;
 
@@ -138,34 +152,38 @@ export function useRoomEvents() {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            if (problems.length > 0) { 
+            if (problems.length > 0) {
                 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                     chrome.storage.local.set({ problems: problems})
                 }
-                const targetSlug = problems[0]
-
-                const NavigateProblem = async () => {
-                
-                if (!chrome.tabs) return;
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (!tab?.id || !tab.url) return;
-
-                const alreadyOnTarget = parseProblemSlug(tab.url) === targetSlug;
-                if (!alreadyOnTarget) {
-                    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
-                }
-                return;
-                
-                }
-
-                NavigateProblem();
-
-
+                // Resume rather than force: someone already on one of this round's
+                // problems stays put, so the replayed round-start cannot undo a step
+                // they just took with the toolbar arrows.
+                navigateActiveTab(url => resolveResumeSlug(url, problems));
             }
+        };
+
+        if (lastGameEvent.type === 'round-start') {
+            LastGameRef.current = 'round-start'
+            setRoomParticipants(roomId);
+            applyRoundData(lastGameEvent.data);
             //problem array kept getting erased due to zustand stored it here and the lastGameEvent as well
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
-            } 
+            }
+        } else if (lastGameEvent.type === 'join-round') {
+            LastGameRef.current = 'join-round'
+            setRoomParticipants(roomId);
+
+            // join-round is broadcast to the whole room, so only the user who
+            // actually joined should be set up and navigated.
+            const data = lastGameEvent.data;
+            if (data?.userID === userId && data?.roundStatus === 'in-progress') {
+                applyRoundData(data);
+                if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                    chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
+                }
+            }
         } else if (lastGameEvent.type === 'next-problem') {
             LastGameRef.current = 'next-problem'
             let eventData = lastGameEvent.data;
@@ -180,8 +198,11 @@ export function useRoomEvents() {
             const { nextProblem, userHandle } = eventData;
 
             // userHandle from backend is AuthID. userProfile.id is AuthID.
+            // The server addressed this move to one user, so unlike the resume
+            // paths it may move them off a valid round problem - but it still
+            // goes through the door, which no-ops once they have arrived.
             if (userId && (userHandle == userId)) {
-                window.open(problemUrl(nextProblem), '_top');
+                navigateActiveTab(() => nextProblem);
             }
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
