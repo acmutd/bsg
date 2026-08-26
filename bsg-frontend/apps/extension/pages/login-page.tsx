@@ -3,7 +3,7 @@ import { useLogin } from "@/hooks/useLogin";
 
 export default function LoginPage() {
 
-    const { login } = useLogin()
+    const { login } = useLogin()    
 
     return (
         <div className="min-h-full flex flex-col px-6 py-4 relative">
