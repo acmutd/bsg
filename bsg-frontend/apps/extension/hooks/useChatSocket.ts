@@ -3,6 +3,24 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { usePanelStore } from '@/stores/usePanelStore';
 import { getRtcUrl } from '../lib/config';
 import { useUserStore } from '@/stores/useUserStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+
+
+//for audio unpload to out folder
+function playChatSound(filename: string) {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return;
+    if (!useSettingsStore.getState().chatNotificationsEnabled) return; // checks if chat notifications are enabled
+
+    const audio = new Audio(chrome.runtime.getURL(`sounds/${filename}`));
+    audio.play().catch(() => {});
+}
+
+// for chat notification count - increment
+function isChatVisible(): boolean {
+    const { activeTab } = useRoomStore.getState();
+    const { isFolded } = usePanelStore.getState();
+    return activeTab === 'chat' && !isFolded;
+  }
 
 export type Message = {
     userHandle: string;
@@ -28,7 +46,7 @@ export const useChatSocket = () => {
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const emojiMenuRef = useRef<HTMLDivElement | null>(null);
-
+    const suppressChatSoundsRef = useRef(false); //sound allowed 
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState<string>('');
     const [showJump, setShowJump] = useState<boolean>(false);

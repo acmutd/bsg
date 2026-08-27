@@ -81,10 +81,6 @@ func main() {
 		logger.Fatal("Error migrating Leaderboard schema", err, nil)
 	}
 
-
-	if err := db.AutoMigrate(&models.Feedback{}); err != nil {
-		logger.Fatal("Error migrating Feedback schema", err, nil)
-	}
 	if err := db.AutoMigrate(&models.Rating{}); err != nil {
 		logger.Fatal("Error migrating Rating schema", err, nil)
 	}

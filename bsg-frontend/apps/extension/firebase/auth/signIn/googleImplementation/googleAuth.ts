@@ -12,7 +12,7 @@ export async function SignInWithGoogleRedirect(): Promise<void> {
         await signInWithRedirect(auth, provider);
     } catch (error) {
         console.error("Auth error: ", error);
-        console.error(error.message);
+        if (error instanceof Error) console.error(error.message);
         throw error;
     }
 }

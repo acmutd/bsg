@@ -42,6 +42,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           {/* Rating Button */}
           <TooltipWrapper text="Rate our extension">
             <Button
+              onClick={() => window.open('https://chromewebstore.google.com/detail/bsg/mnllpknljobnjmbaognpclblmpfcllmc', '_blank')}
               className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
             >
               <svg
