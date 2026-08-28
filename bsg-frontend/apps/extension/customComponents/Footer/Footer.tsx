@@ -38,8 +38,24 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
         </TooltipWrapper>
 
         <div >
-          <p className={`${poppins.className} flex gap-1.5 items-center text-foreground/60 text-sm font-medium`}>Made with ❤️ by ACM UTD</p>
-          {/* Rating Button */}
+          <p className={`${poppins.className} flex gap-1.5 items-center text-foreground/60 text-sm font-medium`}>
+            Made with
+            <svg
+              className="w-3.5 h-3.5 overflow-visible"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 21s-6.716-4.35-9.428-8.06C.5 10.06 1.2 6.5 4.2 5.1 6.6 4 9 4.7 12 7.5c3-2.8 5.4-3.5 7.8-2.4 3 1.4 3.7 4.96 1.628 7.84C18.716 16.65 12 21 12 21z"
+              />
+            </svg>
+            by ACM UTD!
+          </p>
           <TooltipWrapper text="Rate our extension">
             <Button
               onClick={() => window.open('https://chromewebstore.google.com/detail/bsg/mnllpknljobnjmbaognpclblmpfcllmc', '_blank')}
