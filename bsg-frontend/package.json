@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev:web": "npm --workspace apps/web run dev",
+    "build:web": "npm --workspace apps/web run build",
     "build-extension": "npm --workspace apps/extension run build-extension",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "lint": "npm --workspace apps/web run lint"
   },
   "workspaces": [
     "apps/*",
