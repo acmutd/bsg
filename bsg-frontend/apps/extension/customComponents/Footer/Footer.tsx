@@ -37,7 +37,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           </Button>
         </TooltipWrapper>
 
-        <div >
+        <div className="flex gap-2">
           <p className={`${poppins.className} flex gap-1.5 items-center text-foreground/60 text-sm font-medium`}>
             Made with
             <svg
