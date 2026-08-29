@@ -38,7 +38,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
         </TooltipWrapper>
 
         <div className="flex gap-2">
-          <p className={`${poppins.className} text-foreground/60 text-sm`}>Made with ❤️ by ACM UTD</p>
+          <div className={`${poppins.className} text-foreground/60 justify-center text-sm`}>Made with ❤️ by ACM UTD</div>
           {/* Rating Button */}
           <TooltipWrapper text="Rate our extension">
             <Button
