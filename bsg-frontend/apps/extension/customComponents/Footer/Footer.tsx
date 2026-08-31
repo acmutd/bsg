@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
-import {Poppins} from 'next/font/google'
+
 import { Button } from '@bsg/ui/button';
 import { useCopyCode } from '@/hooks/useCopyCode';
 import { FeedbackModal } from '../Modals/FeedbackModal';
 
-const poppins = Poppins({weight: '400', subsets: ['latin']})
+
 
 export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
   const { copyRoomCode, isCopied } = useCopyCode();
@@ -16,46 +16,30 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
 
   return (
     <>
-      <div className="flex p-1 items-center justify-between">
-        <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
-          <Button
-            onClick={() => copyRoomCode(roomCode)}
-            className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
-          >
-            <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
-            <div className="flex gap-1.5 items-center text-foreground/60 text-sm font-medium">
-              {roomCode}
-              <svg
-                className="w-[1em] h-[1em] overflow-visible"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 448 512"
-                fill="currentColor"
-              >
-                <path d="M384 336H192C183.2 336 176 328.8 176 320V64C176 55.2 183.2 48 192 48H325.5C329.7 48 333.8 49.7 336.8 52.7L395.3 111.2C398.3 114.2 400 118.3 400 122.5V320C400 328.8 392.8 336 384 336ZM192 384H384C419.3 384 448 355.3 448 320V122.5C448 105.5 441.3 89.2 429.3 77.2L370.7 18.7C358.7 6.7 342.5 0 325.5 0H192C156.7 0 128 28.7 128 64V320C128 355.3 156.7 384 192 384ZM64 128C28.7 128 0 156.7 0 192V448C0 483.3 28.7 512 64 512H256C291.3 512 320 483.3 320 448V432H272V448C272 456.8 264.8 464 256 464H64C55.2 464 48 456.8 48 448V192C48 183.2 55.2 176 64 176H80V128H64Z" />
-              </svg>
-            </div>
-          </Button>
-        </TooltipWrapper>
-
-        <div className="flex gap-2">
-          <p className={`${poppins.className} flex gap-1.5 items-center text-foreground/60 text-sm font-medium`}>
-            Made with
-            <svg
-              className="w-3.5 h-3.5 overflow-visible"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
+      <div className="flex items-center justify-between p-1">
+        <div className="flex justify-start">
+          <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
+            <Button
+              onClick={() => copyRoomCode(roomCode)}
+              className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
             >
-              <path
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 21s-6.716-4.35-9.428-8.06C.5 10.06 1.2 6.5 4.2 5.1 6.6 4 9 4.7 12 7.5c3-2.8 5.4-3.5 7.8-2.4 3 1.4 3.7 4.96 1.628 7.84C18.716 16.65 12 21 12 21z"
-              />
-            </svg>
-            by ACM UTD!
-          </p>
+              <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className="flex gap-1.5 items-center text-foreground/60 text-sm font-medium">
+                {roomCode}
+                <svg
+                  className="w-[1em] h-[1em] overflow-visible"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 448 512"
+                  fill="currentColor"
+                >
+                  <path d="M384 336H192C183.2 336 176 328.8 176 320V64C176 55.2 183.2 48 192 48H325.5C329.7 48 333.8 49.7 336.8 52.7L395.3 111.2C398.3 114.2 400 118.3 400 122.5V320C400 328.8 392.8 336 384 336ZM192 384H384C419.3 384 448 355.3 448 320V122.5C448 105.5 441.3 89.2 429.3 77.2L370.7 18.7C358.7 6.7 342.5 0 325.5 0H192C156.7 0 128 28.7 128 64V320C128 355.3 156.7 384 192 384ZM64 128C28.7 128 0 156.7 0 192V448C0 483.3 28.7 512 64 512H256C291.3 512 320 483.3 320 448V432H272V448C272 456.8 264.8 464 256 464H64C55.2 464 48 456.8 48 448V192C48 183.2 55.2 176 64 176H80V128H64Z" />
+                </svg>
+              </div>
+            </Button>
+          </TooltipWrapper>
+        </div>
+
+        <div className="flex gap-2 justify-end">
           <TooltipWrapper text="Rate our extension">
             <Button
               onClick={() => window.open('https://chromewebstore.google.com/detail/bsg/mnllpknljobnjmbaognpclblmpfcllmc', '_blank')}
