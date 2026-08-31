@@ -86,14 +86,13 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                             value={joinCode}
                             onChange={(e) => setJoinCode(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleJoinRoom();
+                                if (e.key === 'Enter' && !isSubmittingJoin) {
+                                    e.preventDefault();
+                                    handleJoinRoom();
                                 }
                             }}
-                            
-                               placeholder="Enter room code"
-                               className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/20 transition"
+                            placeholder="Enter room code"
+                            className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-foreground/20 transition"
                         />
                         <Button
                             onClick={handleJoinRoom}
