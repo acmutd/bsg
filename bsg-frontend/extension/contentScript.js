@@ -1,6 +1,13 @@
 (function () {
   if (!/\/problems\//.test(location.pathname)) return;
 
+  function DetectBroswer() {
+    const data = navigator.userAgentData
+    const platform = data.platform
+    const currentBroswer = data.brands[2]
+
+    return currentBroswer.brand
+  }
   function waitForQDContent() {
     return new Promise(function (resolve) {
       const existing = document.querySelector('#qd-content');
@@ -17,6 +24,13 @@
   }
 
   waitForQDContent().then(async function (qd) {
+    //Check which browser we are working with 
+    const browser = DetectBroswer();
+
+    if(browser === 'Brave'){
+
+    }
+
     const wrapper = qd.parentElement;
     if (!wrapper) {
       console.warn('where parent');

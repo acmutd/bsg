@@ -8,6 +8,7 @@
   "permissions": [
     "tabs",
     "storage",
+    "cookies",
     "notifications"
   ],
   "host_permissions": [
@@ -15,13 +16,14 @@
     "https://*.leetcode.com/*",
     "https://*.googleapis.com/*",
     "https://accounts.google.com/*",
-    "https://api.binarysearchgang.com/*"
+    "https://api.binarysearchgang.com/*",
+    "http://localhost:3000/*"
   ],
   "action": {
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' wss://api.binarysearchgang.com https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com https://api.binarysearchgang.com; object-src 'self';"
+    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' http://localhost:3000 wss://api.binarysearchgang.com https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com https://api.binarysearchgang.com; object-src 'self';"
   },
   "web_accessible_resources": [
     {
