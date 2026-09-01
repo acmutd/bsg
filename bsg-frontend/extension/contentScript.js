@@ -27,8 +27,8 @@
     //Check which browser we are working with 
     const browser = DetectBroswer();
 
-    if(browser === 'Brave'){
-
+    if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+      chrome.storage.local.set({ browser: browser })
     }
 
     const wrapper = qd.parentElement;

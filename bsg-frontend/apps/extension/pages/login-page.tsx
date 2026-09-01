@@ -1,9 +1,11 @@
 import { Button } from "@bsg/ui/button";
 import { useLogin } from "@/hooks/useLogin";
+import { useBrowser } from "@/hooks/useBrowser";
 
 export default function LoginPage() {
 
-    const { login } = useLogin()    
+    const { login } = useLogin()
+    const browser = useBrowser()
 
     return (
         <div className="min-h-full flex flex-col px-6 py-4 relative">
@@ -48,6 +50,28 @@ export default function LoginPage() {
                     <div className="flex-1 h-px bg-foreground/10" />
                     <div className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
                 </div>
+
+                {/* Brave blocks the Google sign-in popup under Shields */}
+                {browser === 'Brave' && (
+                    <div className="w-full flex gap-3 p-3 rounded-lg bg-[#F59E0B]/5 border border-[#F59E0B]/20">
+                        <svg
+                            className="w-4 h-4 shrink-0 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#F59E0B"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z" />
+                            <path d="M12 8v4" />
+                            <path d="M12 16h.01" />
+                        </svg>
+                        <p className="text-xs leading-relaxed text-foreground/60">
+                            <span className="font-medium text-foreground/80">Turn off Shields</span> for this site — Brave blocks the Google sign-in popup. Use the lion icon in the address bar.
+                        </p>
+                    </div>
+                )}
 
                 {/* Sign in button */}
                 <Button
