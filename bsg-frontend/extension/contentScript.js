@@ -3,10 +3,13 @@
 
   function DetectBrowser() {
     const data = navigator.userAgentData
-    const platform = data.platform
-    const currentBroswer = data.brands[2]
+    
+    // if ever we need to know which platform e.g.(macOS) for specific reason we can access here
+    const platform = data.platform 
 
-    return currentBroswer.brand
+    const currentBrowser = data.brands[2]
+
+    return currentBrowser.brand
   }
   function waitForQDContent() {
     return new Promise(function (resolve) {
