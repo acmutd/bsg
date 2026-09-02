@@ -1,7 +1,7 @@
 (function () {
   if (!/\/problems\//.test(location.pathname)) return;
 
-  function DetectBroswer() {
+  function DetectBrowser() {
     const data = navigator.userAgentData
     const platform = data.platform
     const currentBroswer = data.brands[2]
@@ -25,7 +25,7 @@
 
   waitForQDContent().then(async function (qd) {
     //Check which browser we are working with 
-    const browser = DetectBroswer();
+    const browser = DetectBrowser();
 
     if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
       chrome.storage.local.set({ browser: browser })
