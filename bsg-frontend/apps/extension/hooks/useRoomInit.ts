@@ -143,7 +143,8 @@ export const useRoomInit = () => {
                 numEasyProblems: options.easy || 0,
                 numMediumProblems: options.medium || 0,
                 numHardProblems: options.hard || 0,
-                tags: options.tags || []
+                tags: options.tags || [],
+                companies: options.companies || []
             };
             const roundRes = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',

@@ -3,28 +3,35 @@ import {Poppins} from 'next/font/google'
 import {Button} from '@bsg/ui/button'
 import {Label} from "@bsg/ui/label"
 import {Slider} from "@bsg/ui/slider"
+import {
+    Combobox,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxValue,
+    useComboboxAnchor,
+} from "@bsg/ui/combobox"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faDoorOpen, faPlus, faX} from '@fortawesome/free-solid-svg-icons'
 import Difficulty from "@bsg/models/Difficulty";
 import {IncDecButtons} from "@/customComponents/inc-dec-buttons";
 import {useRoomChoice} from "@/hooks/useRoomChoice";
-import {TopicComponent} from "@/customComponents/topic-component";
 import {NumberOfProblemsWithDifficultyLabel} from "@/customComponents/number-of-problems-with-difficulty-label";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
-export interface Topic {
-    name: string
-    numberOfProblems: number
-    isSelected: boolean
-}
-
 interface RoomChoiceProps {
     onJoin: (roomCode: string) => Promise<{ success: true } | { success: false; message: string }>
-    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[] }) => Promise<{ success: true } | { success: false; message: string }>
+    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[] }) => Promise<{ success: true } | { success: false; message: string }>
 }
 
 export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
+    const topicComboboxAnchor = useComboboxAnchor()
+    const companyComboboxAnchor = useComboboxAnchor()
 
     const {
         setShowCreateOptions,
@@ -38,7 +45,12 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
         increment,
         decrement,
         topics,
-        toggleTopic,
+        topicCounts,
+        selectedTopics,
+        setSelectedTopics,
+        companies,
+        selectedCompanies,
+        setSelectedCompanies,
         duration,
         setDuration,
         handleCreateRoom,
@@ -165,19 +177,76 @@ export default function RoomChoice({onJoin, onCreate}: RoomChoiceProps) {
                         <div className="flex items-center gap-2 mb-5">
                             <div className="w-1.5 h-1.5 rounded-full bg-foreground/20"/>
                             <div className="flex-1 h-px bg-foreground/10"/>
-                            <div className="w-1.5 h-1.5 rounded-full bg-foreground/20"/>
                         </div>
 
                         {/* Topics */}
                         <div className="mb-5">
                             <Label className="text-sm text-foreground/60">Select Topics</Label>
-                            <div
-                                className="max-h-32 overflow-y-auto rounded-md p-2 mt-2 bg-background">
-                                <div className="flex flex-wrap gap-2">
-                                    {topics.map((t, i) => <TopicComponent key={i} topic={t}
-                                                                          toggle={() => toggleTopic(i)}/>)}
-                                </div>
-                            </div>
+                            <Combobox
+                                multiple
+                                autoHighlight
+                                items={topics}
+                                value={selectedTopics}
+                                onValueChange={setSelectedTopics}
+                            >
+                                <ComboboxChips ref={topicComboboxAnchor} className="w-full mt-2">
+                                    <ComboboxValue>
+                                        {(values: string[]) => (
+                                            <React.Fragment>
+                                                {values.map((value) => (
+                                                    <ComboboxChip key={value}>{value}</ComboboxChip>
+                                                ))}
+                                                <ComboboxChipsInput placeholder={selectedTopics.length ? '' : 'e.g. Array, Dynamic Programming...'}/>
+                                            </React.Fragment>
+                                        )}
+                                    </ComboboxValue>
+                                </ComboboxChips>
+                                <ComboboxContent anchor={topicComboboxAnchor}>
+                                    <ComboboxEmpty>No topics found.</ComboboxEmpty>
+                                    <ComboboxList>
+                                        {(item: string) => (
+                                            <ComboboxItem key={item} value={item}>
+                                                {item}{typeof topicCounts[item] === 'number' ? ` (${topicCounts[item]})` : ''}
+                                            </ComboboxItem>
+                                        )}
+                                    </ComboboxList>
+                                </ComboboxContent>
+                            </Combobox>
+                        </div>
+
+                        {/* Companies */}
+                        <div className="mb-5">
+                            <Label className="text-sm text-foreground/60">Select Companies</Label>
+                            <Combobox
+                                multiple
+                                autoHighlight
+                                items={companies}
+                                value={selectedCompanies}
+                                onValueChange={setSelectedCompanies}
+                            >
+                                <ComboboxChips ref={companyComboboxAnchor} className="w-full mt-2">
+                                    <ComboboxValue>
+                                        {(values: string[]) => (
+                                            <React.Fragment>
+                                                {values.map((value) => (
+                                                    <ComboboxChip key={value}>{value}</ComboboxChip>
+                                                ))}
+                                                <ComboboxChipsInput placeholder={selectedCompanies.length ? '' : 'e.g. Google, Amazon...'}/>
+                                            </React.Fragment>
+                                        )}
+                                    </ComboboxValue>
+                                </ComboboxChips>
+                                <ComboboxContent anchor={companyComboboxAnchor}>
+                                    <ComboboxEmpty>No companies found.</ComboboxEmpty>
+                                    <ComboboxList>
+                                        {(item: string) => (
+                                            <ComboboxItem key={item} value={item}>
+                                                {item}
+                                            </ComboboxItem>
+                                        )}
+                                    </ComboboxList>
+                                </ComboboxContent>
+                            </Combobox>
                         </div>
 
                         {/* Duration */}
