@@ -31,6 +31,7 @@ type RoundCreationParameters struct {
 	NumMediumProblems int      `json:"numMediumProblems"`
 	NumHardProblems   int      `json:"numHardProblems"`
 	Tags              []string `json:"tags"`
+	Companies         []string `json:"companies"`
 }
 
 type RoundSubmissionParameters struct {
@@ -76,6 +77,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 		NumMediumProblems: params.NumMediumProblems,
 		NumHardProblems:   params.NumHardProblems,
 		Tags:              params.Tags,
+		Companies:         params.Companies,
 	})
 	if err != nil {
 		return nil, false, err

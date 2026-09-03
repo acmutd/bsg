@@ -38,4 +38,24 @@ router.get('/tags', ensureAuth, async (req, res) => {
     }
 });
 
+router.get('/companies', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/problems/companies`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID,
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error fetching problem companies', error, {
+            user_id: authID,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;

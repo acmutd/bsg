@@ -57,12 +57,19 @@ func (controller *ProblemController) FindProblemsEndpoint(c echo.Context) error 
 		tags = strings.Split(tagsParam, ",")
 	}
 
-	problems, err := controller.problemService.FindProblems(count, offset, tags)
+	companiesParam := c.QueryParam("companies")
+	var companies []string
+	if companiesParam != "" {
+		companies = strings.Split(companiesParam, ",")
+	}
+
+	problems, err := controller.problemService.FindProblems(count, offset, tags, companies)
 	if err != nil {
 		controller.logger.Error("Failed to search for problems", err, map[string]interface{}{
-			"count":  count,
-			"offset": offset,
-			"tags":   tags,
+			"count":     count,
+			"offset":    offset,
+			"tags":      tags,
+			"companies": companies,
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
@@ -105,8 +112,21 @@ func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context)
 	})
 }
 
+func (controller *ProblemController) FindProblemCompanyStatsEndpoint(c echo.Context) error {
+	stats, err := controller.problemService.FindProblemCompanyStats()
+	if err != nil {
+		controller.logger.Error("Failed to fetch problem company stats", err, nil)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, map[string][]models.ProblemCompanyStat{
+		"data": stats,
+	})
+}
+
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
 	g.GET("/tags", controller.FindProblemTagStatsEndpoint)
+	g.GET("/companies", controller.FindProblemCompanyStatsEndpoint)
 	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)

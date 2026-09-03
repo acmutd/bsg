@@ -19,6 +19,7 @@ type DifficultyParameter struct {
 	NumMediumProblems int
 	NumHardProblems   int
 	Tags              []string
+	Companies         []string
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -69,7 +70,7 @@ func (service *ProblemService) UpdateProblemData(problemId uint, problemData *mo
 	return searchResult, nil
 }
 
-func (service *ProblemService) FindProblems(count uint, offset uint, tags []string) ([]models.Problem, error) {
+func (service *ProblemService) FindProblems(count uint, offset uint, tags []string, companies []string) ([]models.Problem, error) {
 	var problems []models.Problem
 	count = min(count, 100) // count should not exceed 100
 	query := service.db.Limit(int(count)).Offset(int(offset))
@@ -84,6 +85,7 @@ func (service *ProblemService) FindProblems(count uint, offset uint, tags []stri
 		}
 		query = query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 	}
+	query = applyCompanyFilters(query, normalizeTags(companies))
 
 	searchResult := query.Find(&problems)
 	if searchResult.Error != nil {
@@ -112,6 +114,7 @@ func escapeLikePattern(pattern string) string {
 func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, bool, error) {
 	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
 	normalizedTags := normalizeTags(params.Tags)
+	normalizedCompanies := normalizeTags(params.Companies)
 	requestedTotal := params.NumEasyProblems + params.NumMediumProblems + params.NumHardProblems
 	fallbackUsed := false
 	err := service.db.Transaction(func(tx *gorm.DB) error {
@@ -121,6 +124,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			},
 		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false)
 		easyQuery = applyTagFilters(easyQuery, normalizedTags)
+		easyQuery = applyCompanyFilters(easyQuery, normalizedCompanies)
 		if err := easyQuery.Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
 			return err
 		}
@@ -131,6 +135,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			},
 		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false)
 		mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
+		mediumQuery = applyCompanyFilters(mediumQuery, normalizedCompanies)
 		if err := mediumQuery.Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
 			return err
 		}
@@ -141,6 +146,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			},
 		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false)
 		hardQuery = applyTagFilters(hardQuery, normalizedTags)
+		hardQuery = applyCompanyFilters(hardQuery, normalizedCompanies)
 		if err := hardQuery.Limit(params.NumHardProblems).Order(clause.Expr{
 			SQL: "RANDOM()",
 		}).Find(&hardProblems).Error; err != nil {
@@ -174,6 +180,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{SQL: "RANDOM()"},
 		}).Where("is_paid = ?", false)
 		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
+		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
 		if len(selectedIDs) > 0 {
 			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
 		}
@@ -187,7 +194,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		return nil, false, BSGError{
 			StatusCode: 400,
 			Message: fmt.Sprintf(
-				"Not enough tagged problems found. requested_total=%d found_total=%d requested={easy:%d,medium:%d,hard:%d} found={easy:%d,medium:%d,hard:%d} tags=%v",
+				"Not enough tagged problems found. requested_total=%d found_total=%d requested={easy:%d,medium:%d,hard:%d} found={easy:%d,medium:%d,hard:%d} tags=%v companies=%v",
 				requestedTotal,
 				len(problems),
 				params.NumEasyProblems,
@@ -197,6 +204,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 				len(mediumProblems),
 				len(hardProblems),
 				normalizedTags,
+				normalizedCompanies,
 			),
 		}
 	}
@@ -221,6 +229,36 @@ func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
 	}
 
 	return query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
+}
+
+// applyCompanyFilters restricts query to problems tagged with at least one of the
+// given companies (case-insensitive), via a subquery against ProblemCompanyTag -
+// unlike Tags, companies live in a separate join table rather than a column on Problem.
+func applyCompanyFilters(query *gorm.DB, companies []string) *gorm.DB {
+	if len(companies) == 0 {
+		return query
+	}
+
+	normalized := make([]string, len(companies))
+	for i, company := range companies {
+		normalized[i] = strings.ToLower(company)
+	}
+
+	subquery := query.Session(&gorm.Session{NewDB: true}).
+		Model(&models.ProblemCompanyTag{}).
+		Select("problem_id").
+		Where("LOWER(company) IN ?", normalized)
+
+	return query.Where("id IN (?)", subquery)
+}
+
+func (service *ProblemService) FindProblemCompanyStats() ([]models.ProblemCompanyStat, error) {
+	var stats []models.ProblemCompanyStat
+	result := service.db.Order("total_count DESC").Order("company ASC").Find(&stats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return stats, nil
 }
 
 func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem) uint {

@@ -1,0 +1,14 @@
+package models
+
+// ProblemCompanyTag records that a Problem was asked by a given Company,
+// sourced from https://github.com/liquidslr/leetcode-company-wise-problems.
+// Windows holds the subset of that repo's time windows (e.g. "ThirtyDays",
+// "SixMonths", "All") the pairing appeared in, so recency filtering can be
+// added later without re-seeding.
+type ProblemCompanyTag struct {
+	ID        uint     `json:"id"`
+	ProblemID uint     `gorm:"uniqueIndex:idx_problem_company;not null" json:"problemId"`
+	Company   string   `gorm:"uniqueIndex:idx_problem_company;size:128;not null" json:"company"`
+	Frequency float64  `json:"frequency"`
+	Windows   []string `gorm:"serializer:json" json:"windows"`
+}
