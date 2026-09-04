@@ -131,6 +131,86 @@ func (service *SeedingService) SeedProblems(filePath string) error {
 	return nil
 }
 
+// SeedProblemList marks existing problems as belonging to a curated, static list (e.g.
+// Blind 75, NeetCode 150) by reading a CSV with a "LeetCode URL" column, matching problems
+// by slug, and setting the given boolean column to true for every match. column is a
+// hardcoded internal string (never user input), so passing it straight into the update is
+// safe. listName is used only for logging.
+func (service *SeedingService) SeedProblemList(filePath string, column string, listName string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open csv file: %w", err)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	header, err := reader.Read()
+	if err != nil {
+		return fmt.Errorf("failed to read csv header: %w", err)
+	}
+
+	index := make(map[string]int, len(header))
+	for i, col := range header {
+		index[strings.ToLower(strings.TrimSpace(col))] = i
+	}
+
+	urlIndex, ok := index["leetcode url"]
+	if !ok {
+		return fmt.Errorf("csv missing required column: LeetCode URL")
+	}
+
+	var slugs []string
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Printf("Error reading %s CSV record: %v", listName, err)
+			continue
+		}
+		if urlIndex >= len(record) {
+			continue
+		}
+		slug := slugFromLeetCodeURL(record[urlIndex])
+		if slug == "" {
+			continue
+		}
+		slugs = append(slugs, slug)
+	}
+
+	if len(slugs) == 0 {
+		return fmt.Errorf("no slugs parsed from %s", filePath)
+	}
+
+	result := service.db.Model(&models.Problem{}).Where("slug IN ?", slugs).Update(column, true)
+	if result.Error != nil {
+		return fmt.Errorf("failed to mark %s problems: %w", listName, result.Error)
+	}
+
+	if int(result.RowsAffected) != len(slugs) {
+		log.Printf("%s: matched %d of %d slugs to seeded problems", listName, result.RowsAffected, len(slugs))
+	}
+	log.Printf("%s seeding completed: %d problems marked", listName, result.RowsAffected)
+	return nil
+}
+
+// slugFromLeetCodeURL extracts "two-sum" from "https://leetcode.com/problems/two-sum/".
+func slugFromLeetCodeURL(link string) string {
+	link = strings.TrimSpace(link)
+	link = strings.TrimSuffix(link, "/")
+	const marker = "/problems/"
+	idx := strings.Index(link, marker)
+	if idx == -1 {
+		return ""
+	}
+	slug := link[idx+len(marker):]
+	if i := strings.IndexAny(slug, "/?"); i != -1 {
+		slug = slug[:i]
+	}
+	return slug
+}
+
 // SeedCompanyProblems loads (slug, company) pairings produced by
 // cmd/fetch-company-problems from https://github.com/liquidslr/leetcode-company-wise-problems
 // into ProblemCompanyTag rows, matched to existing Problem rows by slug.

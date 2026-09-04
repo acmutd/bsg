@@ -10,6 +10,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// recentlyAskedWindows are the ProblemCompanyTag.Windows values that count as "recently
+// asked" (asked within the last 6 months) - excludes rows that are only tagged
+// MoreThanSixMonths/All.
+var recentlyAskedWindows = []string{"ThirtyDays", "ThreeMonths", "SixMonths"}
+
 type ProblemService struct {
 	db *gorm.DB
 }
@@ -20,6 +25,9 @@ type DifficultyParameter struct {
 	NumHardProblems   int
 	Tags              []string
 	Companies         []string
+	Blind75           bool
+	NeetCode150       bool
+	RecentlyAsked     bool
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -70,7 +78,7 @@ func (service *ProblemService) UpdateProblemData(problemId uint, problemData *mo
 	return searchResult, nil
 }
 
-func (service *ProblemService) FindProblems(count uint, offset uint, tags []string, companies []string) ([]models.Problem, error) {
+func (service *ProblemService) FindProblems(count uint, offset uint, tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool) ([]models.Problem, error) {
 	var problems []models.Problem
 	count = min(count, 100) // count should not exceed 100
 	query := service.db.Limit(int(count)).Offset(int(offset))
@@ -85,7 +93,10 @@ func (service *ProblemService) FindProblems(count uint, offset uint, tags []stri
 		}
 		query = query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 	}
-	query = applyCompanyFilters(query, normalizeTags(companies))
+	normalizedCompanies := normalizeTags(companies)
+	query = applyCompanyFilters(query, normalizedCompanies)
+	query = applyProblemListFilters(query, blind75, neetCode150)
+	query = applyRecentlyAskedFilter(query, recentlyAsked, normalizedCompanies)
 
 	searchResult := query.Find(&problems)
 	if searchResult.Error != nil {
@@ -117,6 +128,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	normalizedCompanies := normalizeTags(params.Companies)
 	requestedTotal := params.NumEasyProblems + params.NumMediumProblems + params.NumHardProblems
 	fallbackUsed := false
+
 	err := service.db.Transaction(func(tx *gorm.DB) error {
 		easyQuery := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
@@ -125,6 +137,8 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false)
 		easyQuery = applyTagFilters(easyQuery, normalizedTags)
 		easyQuery = applyCompanyFilters(easyQuery, normalizedCompanies)
+		easyQuery = applyProblemListFilters(easyQuery, params.Blind75, params.NeetCode150)
+		easyQuery = applyRecentlyAskedFilter(easyQuery, params.RecentlyAsked, normalizedCompanies)
 		if err := easyQuery.Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
 			return err
 		}
@@ -136,6 +150,8 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false)
 		mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
 		mediumQuery = applyCompanyFilters(mediumQuery, normalizedCompanies)
+		mediumQuery = applyProblemListFilters(mediumQuery, params.Blind75, params.NeetCode150)
+		mediumQuery = applyRecentlyAskedFilter(mediumQuery, params.RecentlyAsked, normalizedCompanies)
 		if err := mediumQuery.Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
 			return err
 		}
@@ -147,6 +163,8 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false)
 		hardQuery = applyTagFilters(hardQuery, normalizedTags)
 		hardQuery = applyCompanyFilters(hardQuery, normalizedCompanies)
+		hardQuery = applyProblemListFilters(hardQuery, params.Blind75, params.NeetCode150)
+		hardQuery = applyRecentlyAskedFilter(hardQuery, params.RecentlyAsked, normalizedCompanies)
 		if err := hardQuery.Limit(params.NumHardProblems).Order(clause.Expr{
 			SQL: "RANDOM()",
 		}).Find(&hardProblems).Error; err != nil {
@@ -166,7 +184,11 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	problems = append(easyProblems, mediumProblems...)
 	problems = append(problems, hardProblems...)
 
-	// If exact per-difficulty selection is not possible, keep tag filter and fill remaining slots from any difficulty.
+	// If exact per-difficulty selection is not possible, keep tag/company filters and fill
+	// remaining slots from any difficulty. RecentlyAsked is deliberately dropped here (like
+	// difficulty, unlike tags/companies) - its pool is small by design, so treating it as a
+	// hard requirement even in the fallback would turn "not enough recent problems" into a
+	// full round-creation failure instead of a graceful, older-problem substitution.
 	if len(problems) < requestedTotal {
 		fallbackUsed = true
 		missing := requestedTotal - len(problems)
@@ -181,6 +203,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		}).Where("is_paid = ?", false)
 		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
 		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
+		fallbackQuery = applyProblemListFilters(fallbackQuery, params.Blind75, params.NeetCode150)
 		if len(selectedIDs) > 0 {
 			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
 		}
@@ -248,6 +271,54 @@ func applyCompanyFilters(query *gorm.DB, companies []string) *gorm.DB {
 		Model(&models.ProblemCompanyTag{}).
 		Select("problem_id").
 		Where("LOWER(company) IN ?", normalized)
+
+	return query.Where("id IN (?)", subquery)
+}
+
+// applyProblemListFilters restricts query to problems in the selected curated lists.
+// Blind75 and NeetCode150 live as plain boolean columns on Problem (unlike Companies)
+// since each problem's list membership is fixed data, not a variable-length relationship.
+// When both are selected, matches either list (OR), not just problems in both.
+func applyProblemListFilters(query *gorm.DB, blind75 bool, neetCode150 bool) *gorm.DB {
+	if !blind75 && !neetCode150 {
+		return query
+	}
+	if blind75 && neetCode150 {
+		return query.Where("is_blind75 = ? OR is_neetcode150 = ?", true, true)
+	}
+	if blind75 {
+		return query.Where("is_blind75 = ?", true)
+	}
+	return query.Where("is_neetcode150 = ?", true)
+}
+
+// applyRecentlyAskedFilter restricts query to problems asked by the given companies
+// within the last 6 months (ThirtyDays/ThreeMonths/SixMonths windows), via a subquery
+// against ProblemCompanyTag - same subquery shape as applyCompanyFilters. No-op unless
+// recentlyAsked is true and at least one company is selected, since recency is only
+// meaningful relative to a selected company.
+func applyRecentlyAskedFilter(query *gorm.DB, recentlyAsked bool, companies []string) *gorm.DB {
+	if !recentlyAsked || len(companies) == 0 {
+		return query
+	}
+
+	normalized := make([]string, len(companies))
+	for i, company := range companies {
+		normalized[i] = strings.ToLower(company)
+	}
+
+	windowConditions := make([]string, len(recentlyAskedWindows))
+	windowArgs := make([]interface{}, len(recentlyAskedWindows))
+	for i, window := range recentlyAskedWindows {
+		windowConditions[i] = "windows LIKE ?"
+		windowArgs[i] = "%\"" + window + "\"%"
+	}
+
+	subquery := query.Session(&gorm.Session{NewDB: true}).
+		Model(&models.ProblemCompanyTag{}).
+		Select("problem_id").
+		Where("LOWER(company) IN ?", normalized).
+		Where("("+strings.Join(windowConditions, " OR ")+")", windowArgs...)
 
 	return query.Where("id IN (?)", subquery)
 }

@@ -63,13 +63,20 @@ func (controller *ProblemController) FindProblemsEndpoint(c echo.Context) error 
 		companies = strings.Split(companiesParam, ",")
 	}
 
-	problems, err := controller.problemService.FindProblems(count, offset, tags, companies)
+	blind75 := c.QueryParam("blind75") == "true"
+	neetCode150 := c.QueryParam("neetcode150") == "true"
+	recentlyAsked := c.QueryParam("recentlyAsked") == "true"
+
+	problems, err := controller.problemService.FindProblems(count, offset, tags, companies, blind75, neetCode150, recentlyAsked)
 	if err != nil {
 		controller.logger.Error("Failed to search for problems", err, map[string]interface{}{
-			"count":     count,
-			"offset":    offset,
-			"tags":      tags,
-			"companies": companies,
+			"count":         count,
+			"offset":        offset,
+			"tags":          tags,
+			"companies":     companies,
+			"blind75":       blind75,
+			"neetcode150":   neetCode150,
+			"recentlyAsked": recentlyAsked,
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}

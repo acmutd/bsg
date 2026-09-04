@@ -121,6 +121,20 @@ func main() {
 			})
 		}
 	}
+	if err := seedingService.SeedProblemList("../seed-service/blind_75.csv", "is_blind75", "Blind 75"); err != nil {
+		if err := seedingService.SeedProblemList("seed-service/blind_75.csv", "is_blind75", "Blind 75"); err != nil {
+			logger.Warn("Failed to seed Blind 75 list", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}
+	if err := seedingService.SeedProblemList("../seed-service/neetcode_150.csv", "is_neetcode150", "NeetCode 150"); err != nil {
+		if err := seedingService.SeedProblemList("seed-service/neetcode_150.csv", "is_neetcode150", "NeetCode 150"); err != nil {
+			logger.Warn("Failed to seed NeetCode 150 list", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}
 
 	rtcClient, err := services.InitializeRTCClient("central-service")
 	if err != nil {
