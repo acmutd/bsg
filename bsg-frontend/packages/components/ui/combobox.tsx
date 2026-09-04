@@ -208,7 +208,7 @@ function ComboboxChips({
         <ComboboxPrimitive.Chips
             data-slot="combobox-chips"
             className={cn(
-                "flex min-h-8 max-h-20 flex-wrap items-center gap-1 overflow-y-auto no-scrollbar rounded-lg bg-background bg-clip-padding px-2.5 py-1 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-foreground/20 has-aria-invalid:ring-2 has-aria-invalid:ring-destructive/40 has-data-[slot=combobox-chip]:px-1",
+                "flex min-h-8 max-h-20 flex-wrap items-center gap-1 bg-bsg-surface overflow-y-auto no-scrollbar rounded-lg bg-clip-padding px-2.5 py-1 text-sm text-foreground transition-colors focus-within:ring-2 focus-within:ring-foreground/20 has-aria-invalid:ring-2 has-aria-invalid:ring-destructive/40 has-data-[slot=combobox-chip]:px-1",
                 className
             )}
             {...props}
@@ -228,7 +228,7 @@ function ComboboxChip({
         <ComboboxPrimitive.Chip
             data-slot="combobox-chip"
             className={cn(
-                "flex h-[1.3125rem] w-fit items-center justify-center gap-1 rounded-sm bg-bsg-surface px-1.5 text-xs font-medium whitespace-nowrap text-foreground has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50 has-data-[slot=combobox-chip-remove]:pr-0",
+                "flex h-[1.3125rem] w-fit items-center justify-center gap-1 rounded-sm px-1.5 text-xs font-medium whitespace-nowrap text-foreground has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50 has-data-[slot=combobox-chip-remove]:pr-0",
                 className
             )}
             {...props}
