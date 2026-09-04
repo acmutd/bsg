@@ -13,13 +13,13 @@ function TrophyIcon() {
             viewBox="0 0 81 65"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-16 h-auto"
+            className="w-12 h-auto"
             aria-hidden="true"
         >
             <path
                 d="M29.5 13.5L36.8326 20.5015L29.5 27.5M39.7661 27.5H51.5M41 47V61.5M26 61.5H56M65 13H77.5C77.3785 30.2972 72.1025 34.6283 57.5 37M15.5 13H3C3.12147 30.2972 8.3975 34.6283 23 37M15 3H65.5C65.5 3 65.1434 46.6785 40.5 46.5C15.9364 46.3221 15 3 15 3Z"
                 stroke="#62AF2E"
-                strokeWidth="6"
+                strokeWidth="4.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
