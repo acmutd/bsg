@@ -21,12 +21,14 @@ type ProblemCompanyStat = {
 
 type RoomActionResult = { success: true } | { success: false; message: string }
 
+// onJoin/onCreate are optional since room-choice-page only needs onJoin (its Create
+// button just navigates away) while create-room-page only needs onCreate - each page
+// calls this hook with just the callback it has.
 export const useRoomChoice = (props: {
-    onJoin: (roomCode: string) => Promise<RoomActionResult>,
-    onCreate: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[] }) => Promise<RoomActionResult>
-}) => {
+    onJoin?: (roomCode: string) => Promise<RoomActionResult>,
+    onCreate?: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean; recentlyAsked: boolean }) => Promise<RoomActionResult>
+} = {}) => {
     const [joinCode, setJoinCode] = useState('')
-    const [showCreateOptions, setShowCreateOptions] = useState(false)
 
     const [numberOfEasyProblems, setNumberOfEasyProblems] = useState(1)
     const [numberOfMediumProblems, setNumberOfMediumProblems] = useState(0)
@@ -41,9 +43,20 @@ export const useRoomChoice = (props: {
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
     const [companies, setCompanies] = useState<string[]>([])
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
+    const [blind75, setBlind75] = useState(false)
+    const [neetcode150, setNeetcode150] = useState(false)
+    const [recentlyAsked, setRecentlyAsked] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
     const [isSubmittingJoin, setIsSubmittingJoin] = useState(false)
+
+    // Recently asked only means anything relative to a selected company, so keep it
+    // in sync when the last company is removed (the UI also disables its checkbox).
+    useEffect(() => {
+        if (selectedCompanies.length === 0 && recentlyAsked) {
+            setRecentlyAsked(false)
+        }
+    }, [selectedCompanies, recentlyAsked]);
 
     useEffect(() => {
         const loadTopics = async (attempt = 0): Promise<void> => {
@@ -118,6 +131,7 @@ export const useRoomChoice = (props: {
     }
 
     const handleCreateRoom = () => {
+        if (!props.onCreate) return
         setFormError(null)
         const roomSettings = {
             easy: numberOfEasyProblems,
@@ -126,6 +140,9 @@ export const useRoomChoice = (props: {
             duration,
             tags: selectedTopics,
             companies: selectedCompanies,
+            blind75,
+            neetcode150,
+            recentlyAsked,
         }
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
         let code = ''
@@ -141,6 +158,7 @@ export const useRoomChoice = (props: {
     }
 
     const handleJoinRoom = () => {
+        if (!props.onJoin) return
         setFormError(null)
         if (!joinCode.trim()) return
         setIsSubmittingJoin(true)
@@ -153,9 +171,23 @@ export const useRoomChoice = (props: {
             .finally(() => setIsSubmittingJoin(false))
     }
 
+    // Restores every filter (and the join code) to its pristine default - used by the
+    // create-room wizard's Reset button.
+    const resetFilters = () => {
+        setNumberOfEasyProblems(1)
+        setNumberOfMediumProblems(0)
+        setNumberOfHardProblems(0)
+        setTotal(1)
+        setSelectedTopics([])
+        setSelectedCompanies([])
+        setBlind75(false)
+        setNeetcode150(false)
+        setRecentlyAsked(false)
+        setDuration(30)
+        setFormError(null)
+    }
+
     return {
-        setShowCreateOptions,
-        showCreateOptions,
         numberOfEasyProblems,
         numberOfMediumProblems,
         numberOfHardProblems,
@@ -171,10 +203,17 @@ export const useRoomChoice = (props: {
         companies,
         selectedCompanies,
         setSelectedCompanies,
+        blind75,
+        setBlind75,
+        neetcode150,
+        setNeetcode150,
+        recentlyAsked,
+        setRecentlyAsked,
         duration,
         setDuration,
         handleCreateRoom,
         handleJoinRoom,
+        resetFilters,
         joinCode,
         setJoinCode,
         formError,

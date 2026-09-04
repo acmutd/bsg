@@ -144,7 +144,10 @@ export const useRoomInit = () => {
                 numMediumProblems: options.medium || 0,
                 numHardProblems: options.hard || 0,
                 tags: options.tags || [],
-                companies: options.companies || []
+                companies: options.companies || [],
+                blind75: options.blind75 || false,
+                neetcode150: options.neetcode150 || false,
+                recentlyAsked: options.recentlyAsked || false
             };
             const roundRes = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
