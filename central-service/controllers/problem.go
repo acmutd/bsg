@@ -107,6 +107,46 @@ func (controller *ProblemController) FindProblemBySlugEndpoint(c echo.Context) e
 	})
 }
 
+func (controller *ProblemController) CountAvailableProblemsEndpoint(c echo.Context) error {
+	tagsParam := c.QueryParam("tags")
+	var tags []string
+	if tagsParam != "" {
+		tags = strings.Split(tagsParam, ",")
+	}
+
+	companiesParam := c.QueryParam("companies")
+	var companies []string
+	if companiesParam != "" {
+		companies = strings.Split(companiesParam, ",")
+	}
+
+	blind75 := c.QueryParam("blind75") == "true"
+	neetCode150 := c.QueryParam("neetcode150") == "true"
+	recentlyAsked := c.QueryParam("recentlyAsked") == "true"
+
+	difficultiesParam := c.QueryParam("difficulties")
+	var difficulties []string
+	if difficultiesParam != "" {
+		difficulties = strings.Split(difficultiesParam, ",")
+	}
+
+	count, err := controller.problemService.CountAvailableProblems(tags, companies, blind75, neetCode150, recentlyAsked, difficulties)
+	if err != nil {
+		controller.logger.Error("Failed to count available problems", err, map[string]interface{}{
+			"tags":          tags,
+			"companies":     companies,
+			"blind75":       blind75,
+			"neetcode150":   neetCode150,
+			"recentlyAsked": recentlyAsked,
+			"difficulties":  difficulties,
+		})
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string]int64{
+		"data": count,
+	})
+}
+
 func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context) error {
 	stats, err := controller.problemService.FindProblemTagStats()
 	if err != nil {
@@ -134,6 +174,7 @@ func (controller *ProblemController) FindProblemCompanyStatsEndpoint(c echo.Cont
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
 	g.GET("/tags", controller.FindProblemTagStatsEndpoint)
 	g.GET("/companies", controller.FindProblemCompanyStatsEndpoint)
+	g.GET("/count", controller.CountAvailableProblemsEndpoint)
 	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)

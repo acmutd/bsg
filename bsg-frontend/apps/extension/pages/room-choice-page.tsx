@@ -4,7 +4,7 @@ import {useRouter} from 'next/router'
 import {Button} from '@bsg/ui/button'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faDoorOpen, faPlus} from '@fortawesome/free-solid-svg-icons'
-import {useRoomChoice} from "@/hooks/useRoomChoice";
+import {useJoinRoom} from "@/hooks/useJoinRoom";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -22,7 +22,7 @@ export default function RoomChoice({onJoin}: RoomChoiceProps) {
         formError,
         setFormError,
         isSubmittingJoin,
-    } = useRoomChoice({onJoin})
+    } = useJoinRoom({onJoin})
 
     return (
         <div

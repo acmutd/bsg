@@ -188,6 +188,60 @@ describe('Rate Limit Integration', () => {
     await request(app).get('/test').expect(429);
   });
 
+  // The skip-counting path wraps res.json. If that wrapper loses its binding to
+  // the response, every JSON response 500s - and since skipFailedRequests
+  // defaults to true, that path is on for every route by default.
+  it('should not break res.json() responses', async () => {
+    const limiter = createRateLimitMiddleware(redisClient, { burstSize: 10 });
+
+    app.use(limiter);
+    app.get('/json', (req, res) => res.json({ data: 42 }));
+
+    const response = await request(app).get('/json').expect(200);
+    expect(response.body).toEqual({ data: 42 });
+  });
+
+  it('should refund the counter for failed JSON responses', async () => {
+    const limiter = createRateLimitMiddleware(redisClient, {
+      burstSize: 2,
+      skipFailedRequests: true,
+    });
+
+    app.use(limiter);
+    app.get('/fail', (req, res) => res.status(400).json({ error: 'nope' }));
+    app.get('/ok', (req, res) => res.json({ ok: true }));
+
+    // Errors are refunded, so they never consume the budget.
+    await request(app).get('/fail').expect(400);
+    await request(app).get('/fail').expect(400);
+    await request(app).get('/fail').expect(400);
+
+    await request(app).get('/ok').expect(200);
+  });
+
+  it('should count separately per time window', async () => {
+    const limiter = createRateLimitMiddleware(redisClient, {
+      burstSize: 1,
+      windowSeconds: 60,
+      skipFailedRequests: false,
+    });
+
+    app.use(limiter);
+    app.get('/test', (req, res) => res.json({ ok: true }));
+
+    await request(app).get('/test').expect(200);
+    await request(app).get('/test').expect(429);
+
+    // Advance past the window boundary - a new window means a fresh counter.
+    const realNow = Date.now;
+    Date.now = () => realNow() + 61_000;
+    try {
+      await request(app).get('/test').expect(200);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+
   it('should gracefully handle Redis errors', async () => {
     // Make Redis client throw errors
     redisClient.incr = jest.fn(async () => {

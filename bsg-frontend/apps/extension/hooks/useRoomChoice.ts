@@ -21,15 +21,11 @@ type ProblemCompanyStat = {
 
 type RoomActionResult = { success: true } | { success: false; message: string }
 
-// onJoin/onCreate are optional since room-choice-page only needs onJoin (its Create
-// button just navigates away) while create-room-page only needs onCreate - each page
-// calls this hook with just the callback it has.
+// Drives the create-room filter wizard. The join form lives in useJoinRoom
+// instead, so pages that only join don't pay for this hook's filter fetches.
 export const useRoomChoice = (props: {
-    onJoin?: (roomCode: string) => Promise<RoomActionResult>,
     onCreate?: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean; recentlyAsked: boolean; anyDifficulty: boolean; anyDifficultyCount: number }) => Promise<RoomActionResult>
 } = {}) => {
-    const [joinCode, setJoinCode] = useState('')
-
     const [numberOfEasyProblems, setNumberOfEasyProblems] = useState(1)
     const [numberOfMediumProblems, setNumberOfMediumProblems] = useState(0)
     const [numberOfHardProblems, setNumberOfHardProblems] = useState(0)
@@ -48,9 +44,9 @@ export const useRoomChoice = (props: {
     const [blind75, setBlind75] = useState(false)
     const [neetcode150, setNeetcode150] = useState(false)
     const [recentlyAsked, setRecentlyAsked] = useState(false)
+    const [availableCount, setAvailableCount] = useState<number | null>(null)
     const [formError, setFormError] = useState<string | null>(null)
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
-    const [isSubmittingJoin, setIsSubmittingJoin] = useState(false)
 
     // Recently asked only means anything relative to a selected company, so keep it
     // in sync when the last company is removed (the UI also disables its checkbox).
@@ -120,6 +116,58 @@ export const useRoomChoice = (props: {
         void loadCompanies();
     }, []);
 
+    // Live count of problems matching the current filters - shown on the Create/Next
+    // button so users see the pool shrink (and can see it hit 0) instead of hitting a
+    // round-creation error after submitting. Restricted to whichever difficulty levels
+    // currently have a non-zero count (e.g. only "easy" when easy=1/medium=0/hard=0);
+    // Any Difficulty drops the difficulty restriction entirely, counting across all of
+    // them. Not capped by how many problems are being requested - this is the size of
+    // the pool, not a preview of what would be created.
+    // Debounced so rapid combobox typing/toggling doesn't spam the endpoint.
+    const activeDifficulties = anyDifficulty
+        ? ''
+        : [
+            numberOfEasyProblems > 0 ? 'easy' : null,
+            numberOfMediumProblems > 0 ? 'medium' : null,
+            numberOfHardProblems > 0 ? 'hard' : null,
+        ].filter(Boolean).join(',')
+
+    useEffect(() => {
+        const controller = new AbortController()
+        const timeout = setTimeout(async () => {
+            try {
+                const params = new URLSearchParams()
+                if (activeDifficulties) params.set('difficulties', activeDifficulties)
+                if (selectedTopics.length > 0) params.set('tags', selectedTopics.join(','))
+                if (selectedCompanies.length > 0) params.set('companies', selectedCompanies.join(','))
+                if (blind75) params.set('blind75', 'true')
+                if (neetcode150) params.set('neetcode150', 'true')
+                if (recentlyAsked) params.set('recentlyAsked', 'true')
+
+                const response = await fetch(`${getServerUrl()}/problems/count?${params.toString()}`, {
+                    credentials: 'include',
+                    signal: controller.signal
+                })
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch available count: ${response.status}`)
+                }
+
+                const payload = await response.json()
+                setAvailableCount(typeof payload?.data === 'number' ? payload.data : null)
+            } catch (error) {
+                if ((error as Error).name !== 'AbortError') {
+                    console.error('Failed to load available problem count', error)
+                }
+            }
+        }, 300)
+
+        return () => {
+            clearTimeout(timeout)
+            controller.abort()
+        }
+    }, [activeDifficulties, selectedTopics, selectedCompanies, blind75, neetcode150, recentlyAsked])
+
     const decrement = (setter: (v: number) => void, val: number) => {
         if (total <= 1 || val <= minNumberOfProblems) return
         setter(val - 1)
@@ -164,22 +212,8 @@ export const useRoomChoice = (props: {
             .finally(() => setIsSubmittingCreate(false))
     }
 
-    const handleJoinRoom = () => {
-        if (!props.onJoin) return
-        setFormError(null)
-        if (!joinCode.trim()) return
-        setIsSubmittingJoin(true)
-        props.onJoin(joinCode.trim())
-            .then((result) => {
-                if (!result.success) {
-                    setFormError(result.message)
-                }
-            })
-            .finally(() => setIsSubmittingJoin(false))
-    }
-
-    // Restores every filter (and the join code) to its pristine default - used by the
-    // create-room wizard's Reset button.
+    // Restores every filter to its pristine default - used by the create-room
+    // wizard's Reset button.
     const resetFilters = () => {
         setNumberOfEasyProblems(1)
         setNumberOfMediumProblems(0)
@@ -222,16 +256,13 @@ export const useRoomChoice = (props: {
         setNeetcode150,
         recentlyAsked,
         setRecentlyAsked,
+        availableCount,
         duration,
         setDuration,
         handleCreateRoom,
-        handleJoinRoom,
         resetFilters,
-        joinCode,
-        setJoinCode,
         formError,
         setFormError,
         isSubmittingCreate,
-        isSubmittingJoin,
     }
 }

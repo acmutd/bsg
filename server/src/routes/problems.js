@@ -58,4 +58,32 @@ router.get('/companies', ensureAuth, async (req, res) => {
     }
 });
 
+router.get('/count', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    try {
+        const params = new URLSearchParams();
+        if (req.query.tags) params.set('tags', req.query.tags);
+        if (req.query.companies) params.set('companies', req.query.companies);
+        if (req.query.blind75) params.set('blind75', req.query.blind75);
+        if (req.query.neetcode150) params.set('neetcode150', req.query.neetcode150);
+        if (req.query.recentlyAsked) params.set('recentlyAsked', req.query.recentlyAsked);
+        if (req.query.difficulties) params.set('difficulties', req.query.difficulties);
+
+        const response = await fetch(`${centralServiceUrl}/api/problems/count?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID,
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error counting available problems', error, {
+            user_id: authID,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;

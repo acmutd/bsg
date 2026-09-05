@@ -3,6 +3,8 @@ package services
 import (
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
@@ -16,7 +18,23 @@ import (
 var recentlyAskedWindows = []string{"ThirtyDays", "ThreeMonths", "SixMonths"}
 
 type ProblemService struct {
-	db *gorm.DB
+	db        *gorm.DB
+	statCache *problemStatCache
+}
+
+// Tag and company stats are only ever rewritten by seeding, which runs at
+// startup, so they're effectively static for a running service. The create-room
+// wizard reads both on every open, so cache them in-process rather than
+// re-running two aggregate reads per mount. The TTL exists only so a reseed
+// against a live service is picked up without a restart.
+const problemStatCacheTTL = 5 * time.Minute
+
+type problemStatCache struct {
+	mu             sync.RWMutex
+	tagStats       []models.ProblemTagStat
+	tagStatsAt     time.Time
+	companyStats   []models.ProblemCompanyStat
+	companyStatsAt time.Time
 }
 
 type DifficultyParameter struct {
@@ -31,7 +49,7 @@ type DifficultyParameter struct {
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
-	return ProblemService{db}
+	return ProblemService{db: db, statCache: &problemStatCache{}}
 }
 
 func (service *ProblemService) CreateProblem(problemData *models.Problem) (*models.Problem, error) {
@@ -299,6 +317,33 @@ func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags [
 	return problems, fallbackUsed, nil
 }
 
+// CountAvailableProblems returns how many problems currently match the given filters -
+// used by the create-room UI to show a live "N problems available" count as filters are
+// applied, so users see the pool shrink (and can see it hit 0) instead of hitting a
+// round-creation error after submitting. difficulties restricts to those difficulty
+// levels (e.g. ["easy"] when only the easy count is > 0); pass it empty for "Any
+// Difficulty", which counts across all difficulties. Paid/premium problems are included,
+// matching FindProblems.
+func (service *ProblemService) CountAvailableProblems(tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool, difficulties []string) (int64, error) {
+	normalizedTags := normalizeTags(tags)
+	normalizedCompanies := normalizeTags(companies)
+
+	query := service.db.Model(&models.Problem{})
+	if len(difficulties) > 0 {
+		query = query.Where("difficulty IN ?", difficulties)
+	}
+	query = applyTagFilters(query, normalizedTags)
+	query = applyCompanyFilters(query, normalizedCompanies)
+	query = applyProblemListFilters(query, blind75, neetCode150)
+	query = applyRecentlyAskedFilter(query, recentlyAsked, normalizedCompanies)
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
 	if len(tags) == 0 {
 		return query
@@ -384,10 +429,25 @@ func applyRecentlyAskedFilter(query *gorm.DB, recentlyAsked bool, companies []st
 }
 
 func (service *ProblemService) FindProblemCompanyStats() ([]models.ProblemCompanyStat, error) {
+	if cache := service.statCache; cache != nil {
+		cache.mu.RLock()
+		cached, fresh := cache.companyStats, time.Since(cache.companyStatsAt) < problemStatCacheTTL
+		cache.mu.RUnlock()
+		if fresh && cached != nil {
+			return cached, nil
+		}
+	}
+
 	var stats []models.ProblemCompanyStat
 	result := service.db.Order("total_count DESC").Order("company ASC").Find(&stats)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	if cache := service.statCache; cache != nil {
+		cache.mu.Lock()
+		cache.companyStats, cache.companyStatsAt = stats, time.Now()
+		cache.mu.Unlock()
 	}
 	return stats, nil
 }
@@ -417,10 +477,25 @@ func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, 
 }
 
 func (service *ProblemService) FindProblemTagStats() ([]models.ProblemTagStat, error) {
+	if cache := service.statCache; cache != nil {
+		cache.mu.RLock()
+		cached, fresh := cache.tagStats, time.Since(cache.tagStatsAt) < problemStatCacheTTL
+		cache.mu.RUnlock()
+		if fresh && cached != nil {
+			return cached, nil
+		}
+	}
+
 	var stats []models.ProblemTagStat
 	result := service.db.Order("total_count DESC").Order("tag ASC").Find(&stats)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	if cache := service.statCache; cache != nil {
+		cache.mu.Lock()
+		cache.tagStats, cache.tagStatsAt = stats, time.Now()
+		cache.mu.Unlock()
 	}
 	return stats, nil
 }
