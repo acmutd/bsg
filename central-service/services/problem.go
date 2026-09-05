@@ -239,6 +239,66 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	return problems, fallbackUsed, nil
 }
 
+// GenerateProblemsetAnyDifficulty picks `count` problems without regard to difficulty -
+// used when the "Any difficulty" option is selected instead of an explicit
+// easy/medium/hard split. Tags/companies/curated-list filters are still enforced.
+// RecentlyAsked is relaxed on a shortfall, same soft-preference policy as
+// GenerateProblemsetByDifficultyParameters.
+func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool) ([]models.Problem, bool, error) {
+	normalizedTags := normalizeTags(tags)
+	normalizedCompanies := normalizeTags(companies)
+	fallbackUsed := false
+
+	query := service.db.Clauses(clause.OrderBy{
+		Expression: clause.Expr{SQL: "RANDOM()"},
+	}).Where("is_paid = ?", false)
+	query = applyTagFilters(query, normalizedTags)
+	query = applyCompanyFilters(query, normalizedCompanies)
+	query = applyProblemListFilters(query, blind75, neetCode150)
+	query = applyRecentlyAskedFilter(query, recentlyAsked, normalizedCompanies)
+
+	var problems []models.Problem
+	if err := query.Limit(count).Find(&problems).Error; err != nil {
+		return nil, false, err
+	}
+
+	if len(problems) < count && recentlyAsked && len(normalizedCompanies) > 0 {
+		fallbackUsed = true
+		missing := count - len(problems)
+		selectedIDs := make([]uint, 0, len(problems))
+		for _, problem := range problems {
+			selectedIDs = append(selectedIDs, problem.ID)
+		}
+
+		var fallbackProblems []models.Problem
+		fallbackQuery := service.db.Clauses(clause.OrderBy{
+			Expression: clause.Expr{SQL: "RANDOM()"},
+		}).Where("is_paid = ?", false)
+		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
+		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
+		fallbackQuery = applyProblemListFilters(fallbackQuery, blind75, neetCode150)
+		if len(selectedIDs) > 0 {
+			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
+		}
+		if err := fallbackQuery.Limit(missing).Find(&fallbackProblems).Error; err != nil {
+			return nil, false, err
+		}
+		problems = append(problems, fallbackProblems...)
+	}
+
+	if len(problems) < count {
+		return nil, false, BSGError{
+			StatusCode: 400,
+			Message: fmt.Sprintf(
+				"Not enough problems found. requested=%d found=%d tags=%v companies=%v",
+				count, len(problems), normalizedTags, normalizedCompanies,
+			),
+		}
+	}
+
+	return problems, fallbackUsed, nil
+}
+
 func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
 	if len(tags) == 0 {
 		return query

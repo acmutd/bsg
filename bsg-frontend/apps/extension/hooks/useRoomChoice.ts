@@ -26,13 +26,15 @@ type RoomActionResult = { success: true } | { success: false; message: string }
 // calls this hook with just the callback it has.
 export const useRoomChoice = (props: {
     onJoin?: (roomCode: string) => Promise<RoomActionResult>,
-    onCreate?: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean; recentlyAsked: boolean }) => Promise<RoomActionResult>
+    onCreate?: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean; recentlyAsked: boolean; anyDifficulty: boolean; anyDifficultyCount: number }) => Promise<RoomActionResult>
 } = {}) => {
     const [joinCode, setJoinCode] = useState('')
 
     const [numberOfEasyProblems, setNumberOfEasyProblems] = useState(1)
     const [numberOfMediumProblems, setNumberOfMediumProblems] = useState(0)
     const [numberOfHardProblems, setNumberOfHardProblems] = useState(0)
+    const [anyDifficulty, setAnyDifficulty] = useState(false)
+    const [anyDifficultyCount, setAnyDifficultyCount] = useState(1)
     const [duration, setDuration] = useState(30)
     const [total, setTotal] = useState(1)
     const minNumberOfProblems = 0
@@ -133,16 +135,21 @@ export const useRoomChoice = (props: {
     const handleCreateRoom = () => {
         if (!props.onCreate) return
         setFormError(null)
+        // When "Any difficulty" is checked, the per-difficulty counts are irrelevant -
+        // send zeros for those and the any-difficulty count instead, so the backend
+        // sees one unambiguous mode.
         const roomSettings = {
-            easy: numberOfEasyProblems,
-            medium: numberOfMediumProblems,
-            hard: numberOfHardProblems,
+            easy: anyDifficulty ? 0 : numberOfEasyProblems,
+            medium: anyDifficulty ? 0 : numberOfMediumProblems,
+            hard: anyDifficulty ? 0 : numberOfHardProblems,
             duration,
             tags: selectedTopics,
             companies: selectedCompanies,
             blind75,
             neetcode150,
             recentlyAsked,
+            anyDifficulty,
+            anyDifficultyCount: anyDifficulty ? anyDifficultyCount : 0,
         }
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
         let code = ''
@@ -178,6 +185,8 @@ export const useRoomChoice = (props: {
         setNumberOfMediumProblems(0)
         setNumberOfHardProblems(0)
         setTotal(1)
+        setAnyDifficulty(false)
+        setAnyDifficultyCount(1)
         setSelectedTopics([])
         setSelectedCompanies([])
         setBlind75(false)
@@ -194,6 +203,10 @@ export const useRoomChoice = (props: {
         setNumberOfEasyProblems,
         setNumberOfMediumProblems,
         setNumberOfHardProblems,
+        anyDifficulty,
+        setAnyDifficulty,
+        anyDifficultyCount,
+        setAnyDifficultyCount,
         increment,
         decrement,
         topics,

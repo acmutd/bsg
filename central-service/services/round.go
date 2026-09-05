@@ -35,6 +35,10 @@ type RoundCreationParameters struct {
 	Blind75           bool     `json:"blind75"`
 	NeetCode150       bool     `json:"neetcode150"`
 	RecentlyAsked     bool     `json:"recentlyAsked"`
+	// AnyDifficulty, when true, ignores NumEasy/Medium/HardProblems entirely and picks
+	// NumAnyDifficultyProblems problems regardless of difficulty.
+	AnyDifficulty            bool `json:"anyDifficulty"`
+	NumAnyDifficultyProblems int  `json:"numAnyDifficultyProblems"`
 }
 
 type RoundSubmissionParameters struct {
@@ -75,16 +79,30 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 		return nil, false, result.Error
 	}
 	// TODO: Add logic for problem generation
-	problemSet, fallbackUsed, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
-		NumEasyProblems:   params.NumEasyProblems,
-		NumMediumProblems: params.NumMediumProblems,
-		NumHardProblems:   params.NumHardProblems,
-		Tags:              params.Tags,
-		Companies:         params.Companies,
-		Blind75:           params.Blind75,
-		NeetCode150:       params.NeetCode150,
-		RecentlyAsked:     params.RecentlyAsked,
-	})
+	var problemSet []models.Problem
+	var fallbackUsed bool
+	var err error
+	if params.AnyDifficulty {
+		problemSet, fallbackUsed, err = service.problemAccessor.GetProblemAccessor().GenerateProblemsetAnyDifficulty(
+			params.NumAnyDifficultyProblems,
+			params.Tags,
+			params.Companies,
+			params.Blind75,
+			params.NeetCode150,
+			params.RecentlyAsked,
+		)
+	} else {
+		problemSet, fallbackUsed, err = service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+			NumEasyProblems:   params.NumEasyProblems,
+			NumMediumProblems: params.NumMediumProblems,
+			NumHardProblems:   params.NumHardProblems,
+			Tags:              params.Tags,
+			Companies:         params.Companies,
+			Blind75:           params.Blind75,
+			NeetCode150:       params.NeetCode150,
+			RecentlyAsked:     params.RecentlyAsked,
+		})
+	}
 	if err != nil {
 		return nil, false, err
 	}

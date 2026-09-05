@@ -193,3 +193,27 @@ func TestGenerateProblemsetByDifficultyParametersFiltersByCompany(t *testing.T) 
 	})
 	assert.Error(t, err)
 }
+
+func TestGenerateProblemsetAnyDifficulty(t *testing.T) {
+	db := setupProblemTestDB(t)
+	service := InitializeProblemService(db)
+
+	seedProblemWithCompanies(t, db, "Two Sum", "two-sum", constants.DIFFICULTY_EASY, "Google")
+	seedProblemWithCompanies(t, db, "Add Two Numbers", "add-two-numbers", constants.DIFFICULTY_MEDIUM, "Google")
+	seedProblemWithCompanies(t, db, "Median of Two Sorted Arrays", "median-of-two-sorted-arrays", constants.DIFFICULTY_HARD, "Google")
+	seedProblemWithCompanies(t, db, "Unrelated", "unrelated", constants.DIFFICULTY_EASY, "Meta")
+
+	// Any-difficulty ignores difficulty entirely but still respects company.
+	problems, fallbackUsed, err := service.GenerateProblemsetAnyDifficulty(3, nil, []string{"Google"}, false, false, false)
+	assert.NoError(t, err)
+	assert.False(t, fallbackUsed)
+	assert.Len(t, problems, 3)
+	for _, p := range problems {
+		assert.NotEqual(t, "unrelated", p.Slug)
+	}
+
+	// Requesting more than exist for the company should error, same as the
+	// per-difficulty path.
+	_, _, err = service.GenerateProblemsetAnyDifficulty(4, nil, []string{"Google"}, false, false, false)
+	assert.Error(t, err)
+}

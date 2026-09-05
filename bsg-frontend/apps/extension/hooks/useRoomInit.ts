@@ -147,7 +147,9 @@ export const useRoomInit = () => {
                 companies: options.companies || [],
                 blind75: options.blind75 || false,
                 neetcode150: options.neetcode150 || false,
-                recentlyAsked: options.recentlyAsked || false
+                recentlyAsked: options.recentlyAsked || false,
+                anyDifficulty: options.anyDifficulty || false,
+                numAnyDifficultyProblems: options.anyDifficultyCount || 0
             };
             const roundRes = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
