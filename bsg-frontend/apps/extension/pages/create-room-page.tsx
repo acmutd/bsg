@@ -76,6 +76,7 @@ export default function CreateRoomPage() {
         recentlyAsked,
         setRecentlyAsked,
         availableCount,
+        isLoadingFilter,
         duration,
         setDuration,
         handleCreateRoom,
@@ -395,12 +396,14 @@ export default function CreateRoomPage() {
                     </Button>
                     <Button
                         onClick={handlePrimaryAction}
-                        disabled={isSubmittingCreate || (showCreateLabel && availableCount === 0)}
+                        disabled={isSubmittingCreate || isLoadingFilter || (showCreateLabel && availableCount === 0)}
                         className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
                     >
                         {isSubmittingCreate
                             ? 'Creating...'
-                            : `${showCreateLabel ? 'Create' : 'Next'}${availableCount !== null ? ` (${availableCount} problem${availableCount === 1 ? '' : 's'})` : ''}`}
+                            : isLoadingFilter
+                                ? 'Loading...'
+                                : `${showCreateLabel ? 'Create' : 'Next'}${availableCount !== null ? ` (${availableCount} problem${availableCount === 1 ? '' : 's'})` : ''}`}
                     </Button>
                 </div>
             </div>

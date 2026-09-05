@@ -46,6 +46,7 @@ export const useRoomChoice = (props: {
     const [neetcode150, setNeetcode150] = useState(false)
     const [recentlyAsked, setRecentlyAsked] = useState(false)
     const [availableCount, setAvailableCount] = useState<number | null>(null)
+    const [isLoadingFilter, setIsLoadingFilter] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
 
@@ -149,8 +150,14 @@ export const useRoomChoice = (props: {
         const cached = useProblemCountStore.getState().getCount(cacheKey)
         if (cached !== undefined) {
             setAvailableCount(cached)
+            setIsLoadingFilter(false)
             return
         }
+
+        // Not cached - a request will actually go out (after the debounce below).
+        // Cover the whole span with "loading" so the Create/Next button can't be
+        // clicked against a count that's about to change.
+        setIsLoadingFilter(true)
 
         const controller = new AbortController()
         const timeout = setTimeout(async () => {
@@ -175,13 +182,18 @@ export const useRoomChoice = (props: {
                 const payload = await response.json()
                 const count = typeof payload?.data === 'number' ? payload.data : null
                 setAvailableCount(count)
+                setIsLoadingFilter(false)
                 if (count !== null) {
                     useProblemCountStore.getState().setCount(cacheKey, count)
                 }
             } catch (error) {
                 if ((error as Error).name !== 'AbortError') {
                     console.error('Failed to load available problem count', error)
+                    setIsLoadingFilter(false)
                 }
+                // AbortError means a newer filter change already superseded this
+                // request - that newer effect run owns isLoadingFilter now, so
+                // leave it alone here to avoid clearing a still-in-flight load.
             }
         }, 300)
 
@@ -280,6 +292,7 @@ export const useRoomChoice = (props: {
         recentlyAsked,
         setRecentlyAsked,
         availableCount,
+        isLoadingFilter,
         duration,
         setDuration,
         handleCreateRoom,
