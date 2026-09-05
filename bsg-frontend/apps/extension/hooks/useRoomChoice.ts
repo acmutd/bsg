@@ -1,5 +1,6 @@
 import {useEffect, useState} from "react";
 import { getServerUrl } from '@/lib/config';
+import { useProblemCountStore, buildProblemCountKey } from '@/stores/useProblemCountStore';
 
 type ProblemTagStat = {
     id: number;
@@ -133,6 +134,24 @@ export const useRoomChoice = (props: {
         ].filter(Boolean).join(',')
 
     useEffect(() => {
+        const cacheKey = buildProblemCountKey({
+            difficulties: activeDifficulties,
+            tags: selectedTopics,
+            companies: selectedCompanies,
+            blind75,
+            neetcode150,
+            recentlyAsked,
+        })
+
+        // Read the cache imperatively (not via the reactive selector) so this
+        // effect isn't re-run every time some other filter combo gets cached -
+        // it only cares about the one key it just computed.
+        const cached = useProblemCountStore.getState().getCount(cacheKey)
+        if (cached !== undefined) {
+            setAvailableCount(cached)
+            return
+        }
+
         const controller = new AbortController()
         const timeout = setTimeout(async () => {
             try {
@@ -154,7 +173,11 @@ export const useRoomChoice = (props: {
                 }
 
                 const payload = await response.json()
-                setAvailableCount(typeof payload?.data === 'number' ? payload.data : null)
+                const count = typeof payload?.data === 'number' ? payload.data : null
+                setAvailableCount(count)
+                if (count !== null) {
+                    useProblemCountStore.getState().setCount(cacheKey, count)
+                }
             } catch (error) {
                 if ((error as Error).name !== 'AbortError') {
                     console.error('Failed to load available problem count', error)
