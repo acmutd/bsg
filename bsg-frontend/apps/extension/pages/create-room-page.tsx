@@ -77,6 +77,7 @@ export default function CreateRoomPage() {
         setRecentlyAsked,
         availableCount,
         isLoadingFilter,
+        requestedTotal,
         duration,
         setDuration,
         handleCreateRoom,
@@ -94,6 +95,10 @@ export default function CreateRoomPage() {
 
     const isLastStep = currentStep === LAST_STEP
     const showCreateLabel = (currentStep === 0 && !firstStepTouched) || isLastStep
+
+    // The backend rejects the whole round if the filtered pool can't cover the
+    // requested count, so block Create on that rather than only on an empty pool.
+    const notEnoughProblems = availableCount !== null && availableCount < requestedTotal
 
     const touchFirstStep = () => {
         if (!firstStepTouched) setFirstStepTouched(true)
@@ -396,7 +401,7 @@ export default function CreateRoomPage() {
                     </Button>
                     <Button
                         onClick={handlePrimaryAction}
-                        disabled={isSubmittingCreate || isLoadingFilter || (showCreateLabel && availableCount === 0)}
+                        disabled={isSubmittingCreate || isLoadingFilter || (showCreateLabel && notEnoughProblems)}
                         className="px-4 py-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,34%)] transition-colors"
                     >
                         {isSubmittingCreate
@@ -406,6 +411,14 @@ export default function CreateRoomPage() {
                                 : `${showCreateLabel ? 'Create' : 'Next'}${availableCount !== null ? ` (${availableCount} problem${availableCount === 1 ? '' : 's'})` : ''}`}
                     </Button>
                 </div>
+
+                {!isLoadingFilter && showCreateLabel && notEnoughProblems && (
+                    <p className="mt-2 text-sm text-red-500 text-center">
+                        {availableCount === 0
+                            ? 'No problems found with these filters, try adjusting them!'
+                            : `Only ${availableCount} problem${availableCount === 1 ? '' : 's'} found with these filters but you asked for ${requestedTotal}, try adjusting them!`}
+                    </p>
+                )}
             </div>
         </div>
     )

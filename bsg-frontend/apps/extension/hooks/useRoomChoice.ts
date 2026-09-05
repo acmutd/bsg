@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import { getServerUrl } from '@/lib/config';
 import { useProblemCountStore, buildProblemCountKey } from '@/stores/useProblemCountStore';
 
@@ -22,6 +22,13 @@ type ProblemCompanyStat = {
 
 type RoomActionResult = { success: true } | { success: false; message: string }
 
+type TopicDifficultyCounts = {
+    total: number;
+    easy: number;
+    medium: number;
+    hard: number;
+}
+
 // Drives the create-room filter wizard. The join form lives in useJoinRoom
 // instead, so pages that only join don't pay for this hook's filter fetches.
 export const useRoomChoice = (props: {
@@ -38,7 +45,9 @@ export const useRoomChoice = (props: {
     const maxNumberOfProblems = 10
 
     const [topics, setTopics] = useState<string[]>([])
-    const [topicCounts, setTopicCounts] = useState<Record<string, number>>({})
+    // Full per-difficulty breakdown, kept so the dropdown counts can follow the
+    // difficulty selection. topicCounts (derived below) is what consumers read.
+    const [topicStats, setTopicStats] = useState<Record<string, TopicDifficultyCounts>>({})
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
     const [companies, setCompanies] = useState<string[]>([])
     const [selectedCompanies, setSelectedCompanies] = useState<string[]>([])
@@ -78,11 +87,16 @@ export const useRoomChoice = (props: {
                 const payload = await response.json();
                 const stats: ProblemTagStat[] = payload?.data || [];
                 setTopics(stats.map((stat) => stat.tag));
-                setTopicCounts(Object.fromEntries(stats.map((stat) => [stat.tag, stat.totalCount])));
+                setTopicStats(Object.fromEntries(stats.map((stat) => [stat.tag, {
+                    total: stat.totalCount,
+                    easy: stat.easyCount,
+                    medium: stat.mediumCount,
+                    hard: stat.hardCount,
+                }])));
             } catch (error) {
                 console.error('Failed to load tag stats', error);
                 setTopics([]);
-                setTopicCounts({});
+                setTopicStats({});
             }
         };
 
@@ -133,6 +147,30 @@ export const useRoomChoice = (props: {
             numberOfMediumProblems > 0 ? 'medium' : null,
             numberOfHardProblems > 0 ? 'hard' : null,
         ].filter(Boolean).join(',')
+
+    // How many problems the round will actually ask for. Compared against
+    // availableCount to catch requests the backend would reject outright (e.g.
+    // 4 problems requested from a tag that only has 1 match).
+    const requestedTotal = anyDifficulty
+        ? anyDifficultyCount
+        : numberOfEasyProblems + numberOfMediumProblems + numberOfHardProblems
+
+    // Counts shown next to each topic in the dropdown, narrowed to the active
+    // difficulties - a topic whose problems are all the wrong difficulty reads
+    // as (0) instead of advertising problems this round can't use.
+    const topicCounts = useMemo(() => {
+        const active = activeDifficulties ? activeDifficulties.split(',') : []
+        return Object.fromEntries(
+            Object.entries(topicStats).map(([tag, stat]) => {
+                if (active.length === 0) return [tag, stat.total]
+                let count = 0
+                if (active.includes('easy')) count += stat.easy
+                if (active.includes('medium')) count += stat.medium
+                if (active.includes('hard')) count += stat.hard
+                return [tag, count]
+            })
+        ) as Record<string, number>
+    }, [topicStats, activeDifficulties])
 
     useEffect(() => {
         const cacheKey = buildProblemCountKey({
@@ -293,6 +331,7 @@ export const useRoomChoice = (props: {
         setRecentlyAsked,
         availableCount,
         isLoadingFilter,
+        requestedTotal,
         duration,
         setDuration,
         handleCreateRoom,
