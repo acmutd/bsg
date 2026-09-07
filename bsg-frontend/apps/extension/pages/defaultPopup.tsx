@@ -13,7 +13,7 @@ function TrophyIcon() {
             viewBox="0 0 81 65"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-12 h-auto"
+            className="w-16 h-auto"
             aria-hidden="true"
         >
             <path
@@ -60,15 +60,15 @@ export default function DefaultPopup() {
                     <div className="pt-3">
                         <TrophyIcon/>
                     </div>
-                    <p className="mt-1 text-3xl font-semibold" style={{color: "rgb(var(--primary))"}}>BSG_</p>
+                    <p className="mt-1 text-2xl font-semibold" style={{color: "rgb(var(--primary))"}}>BSG_</p>
 
                     {isOnLeetCode ? (
-                        <p className="mt-5 text-sm font-medium text-center" style={{textWrap: "balance"} as React.CSSProperties}>You are on LeetCode. Go to a problem to open up the side panel!</p>
+                        <p className="mt-4 text-xs font-medium text-center" style={{textWrap: "balance"} as React.CSSProperties}>You are on LeetCode. Go to a problem to open up the side panel!</p>
                     ) : (
                         <>
-                            <p className="mt-5 text-sm font-medium text-center" style={{textWrap: "balance"} as React.CSSProperties}>You are not on LeetCode. Once you go to the website you can open up the side
+                            <p className="mt-4 text-xs font-medium text-center" style={{textWrap: "balance"} as React.CSSProperties}>You are not on LeetCode. Once you go to the website you can open up the side
                                 panel to start solving!</p>
-                            <Button onClick={redirectToLeetCode} className="mt-5 w-[85%] bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] text-white font-semibold transition-colors">Go to LeetCode</Button>
+                            <Button onClick={redirectToLeetCode} size="sm" className="mt-4 w-[85%] text-xs bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] text-white font-semibold transition-colors">Go to LeetCode</Button>
                         </>
                     )}
                 </div>
