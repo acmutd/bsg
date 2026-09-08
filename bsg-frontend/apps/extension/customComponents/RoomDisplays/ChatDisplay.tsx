@@ -90,7 +90,9 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                                     key={j}
                                                     className={`max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-bsg-surface rounded-2xl border border-bsg-glass ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
                                                 >
-                                                    {msg.data}
+                                                    <span className={msg.containsProfanity ? 'transition-[filter] blur-sm hover:blur-none' : ''}>
+                                                        {msg.data}
+                                                    </span>
                                                 </div>
                                             ))}
                                         </div>
@@ -113,7 +115,9 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                                         key={j}
                                                         className={`w-fit max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-bsg-surface rounded-2xl rounded-tl-sm border border-bsg-glass ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
                                                     >
-                                                        {msg.data}
+                                                        <span className={msg.containsProfanity ? 'transition-[filter] blur-sm hover:blur-none' : ''}>
+                                                            {msg.data}
+                                                        </span>
                                                     </div>
                                                 ))}
                                             </div>

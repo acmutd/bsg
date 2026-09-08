@@ -3,8 +3,9 @@ package requests
 import (
 	"encoding/json"
 	"errors"
-	
+
 	"github.com/acmutd/bsg/rtc-service/chatmanager"
+	"github.com/acmutd/bsg/rtc-service/profanity"
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
 )
@@ -69,11 +70,18 @@ func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, 
 	}
 
 	// Return data as JSON so response handler can parse it easily
-	responseData := map[string]string{
-		"userHandle": r.UserHandle,
-		"userName":   r.UserName,
-		"userPhoto":  r.UserPhoto,
-		"message":    r.Message,
+	responseData := struct {
+		UserHandle        string `json:"userHandle"`
+		UserName          string `json:"userName"`
+		UserPhoto         string `json:"userPhoto"`
+		Message           string `json:"message"`
+		ContainsProfanity bool   `json:"containsProfanity"`
+	}{
+		UserHandle:        r.UserHandle,
+		UserName:          r.UserName,
+		UserPhoto:         r.UserPhoto,
+		Message:           r.Message,
+		ContainsProfanity: profanity.Contains(r.Message),
 	}
 	jsonBytes, _ := json.Marshal(responseData)
 

@@ -29,6 +29,7 @@ export type Message = {
     data: string;
     roomID: string;
     isSystem?: boolean;
+    containsProfanity?: boolean;
 }
 
 export const useChatSocket = () => {
@@ -107,7 +108,8 @@ export const useChatSocket = () => {
                             userPhoto: message.userPhoto,
                             data: message.message || message.data,
                             roomID: message.roomID,
-                            isSystem: false
+                            isSystem: false,
+                            containsProfanity: message.containsProfanity
                         }]);
 
                         // checks user handle to know if the message is sent by the user or received from others
