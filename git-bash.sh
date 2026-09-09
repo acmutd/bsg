@@ -25,6 +25,14 @@ else
 fi
 
 
+if [[ "$before" == "$after" ]]; then
+	echo "No new changes"
+else
+	docker compose down
+	git pull
+	docker compose --env-file ./.env up -d --build --force-recreate
+fi
+
 
 
 
