@@ -4,8 +4,9 @@ import React from "react";
 
 // A true sine, three periods wide (x from -100 to 200) in a 0-100 viewBox, so
 // the card only ever shows the middle third. Q/T keeps every period identical,
-// which is what lets the scroll loop seamlessly. Mid-line 45, amplitude ~15.
-const WAVE = "M-100,45 Q-75,25 -50,45 T0,45 T50,45 T100,45 T150,45 T200,45";
+// which is what lets the scroll loop seamlessly. Mid-line y=45, amplitude 10
+// (for a quadratic the crest lands halfway between mid-line and control point).
+const WAVE = "M-100,45 Q-75,25 -50,45 T0,45 T50,45 T100,45 T150,45 T200,45 L200,100 L-100,100 Z";
 
 // One period is 100 user units, so translating by exactly that lands the wave
 // back on itself and the loop point is invisible.
@@ -15,6 +16,7 @@ const WAVE_CSS = `
     to   { transform: translateX(-100px); }
 }
 .bsg-wave { animation: bsg-wave-drift 14s linear infinite; }
+
 @media (prefers-reduced-motion: reduce) {
     .bsg-wave { animation: none; }
 }
@@ -64,7 +66,7 @@ export default function DefaultPopup() {
                     <defs>
                         {/* Transparent where it meets the wave, ramping to green at the bottom.
                             The extra stops ease the transition so there is no visible band. */}
-                        <linearGradient id="bsg-wave-fill" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="bsg-wave-fill" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="100">
                             <stop offset="0%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0}} />
                             <stop offset="25%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.05}} />
                             <stop offset="50%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.16}} />
@@ -73,7 +75,7 @@ export default function DefaultPopup() {
                         </linearGradient>
                     </defs>
                     <g className="bsg-wave">
-                        <path d={`${WAVE} L200,100 L-100,100 Z`} fill="url(#bsg-wave-fill)" />
+                        <path d={WAVE} fill="url(#bsg-wave-fill)" />
                     </g>
                 </svg>
 
