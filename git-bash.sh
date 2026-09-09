@@ -1,5 +1,5 @@
 #/bin/bash
-if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
 	echo "Inside a working git tree" >&2
 else
 	echo "Failure not inside of git tree" >&2
