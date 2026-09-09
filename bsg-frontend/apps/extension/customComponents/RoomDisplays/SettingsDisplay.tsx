@@ -30,6 +30,8 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
 
     const chatNotificationsEnabled = useSettingsStore(s => s.chatNotificationsEnabled);
     const setChatNotificationsEnabled = useSettingsStore(s => s.setChatNotificationsEnabled);
+    const blurProfanity = useSettingsStore(s => s.blurProfanity);
+    const setBlurProfanity = useSettingsStore(s => s.setBlurProfanity);
     const themePreference = useSettingsStore(s => s.themePreference);
     const setThemePreference = useSettingsStore(s => s.setThemePreference);
     const loadSettings = useSettingsStore(s => s.loadSettings);
@@ -135,6 +137,19 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
                 <NotificationToggle
                     enabled={chatNotificationsEnabled}
                     onChange={setChatNotificationsEnabled}
+                />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                    <span className="text-sm font-medium">Blur profanity</span>
+                    <span className="text-xs text-foreground/50">
+                        Blur messages that contain profanity until hovered
+                    </span>
+                </div>
+                <NotificationToggle
+                    enabled={blurProfanity}
+                    onChange={setBlurProfanity}
                 />
             </div>
 

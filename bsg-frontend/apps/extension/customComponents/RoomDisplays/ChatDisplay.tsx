@@ -1,6 +1,7 @@
 import { Button } from '@bsg/ui/button'
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useUserStore } from '@/stores/useUserStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useChatSocket } from '@/hooks/useChatSocket'
 import { useState } from 'react';
 
@@ -30,6 +31,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
     const username = useUserStore(s => s.username);
     const userId = useUserStore(s => s.userId)
     const email = useUserStore(s => s.email);     // ← add this line
+    const blurProfanity = useSettingsStore(s => s.blurProfanity);
     const emojiMap = require('@bsg/ui-styles/assets/emojis.json') as Record<string, { emoji: string; name: string; keywords: string[] }[]>;
     const emojiList = Object.entries(emojiMap).flatMap(([category, emojis]) =>
         emojis.map(emoji => ({ ...emoji, category }))
@@ -90,7 +92,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                                     key={j}
                                                     className={`max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-bsg-surface rounded-2xl border border-bsg-glass ${(j == 0) ? '' : 'rounded-tr-sm'} ${(j == group.length - 1) ? '' : 'rounded-br-sm'}`}
                                                 >
-                                                    <span className={msg.containsProfanity ? 'transition-[filter] blur-sm hover:blur-none' : ''}>
+                                                    <span className={blurProfanity && msg.containsProfanity ? 'transition-[filter] blur-sm hover:blur-none' : ''}>
                                                         {msg.data}
                                                     </span>
                                                 </div>
@@ -115,7 +117,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                                         key={j}
                                                         className={`w-fit max-w-[80%] whitespace-pre-wrap break-words px-3 py-2 bg-bsg-surface rounded-2xl rounded-tl-sm border border-bsg-glass ${(j == group.length - 1) ? '' : 'rounded-bl-sm'}`}
                                                     >
-                                                        <span className={msg.containsProfanity ? 'transition-[filter] blur-sm hover:blur-none' : ''}>
+                                                        <span className={blurProfanity && msg.containsProfanity ? 'transition-[filter] blur-sm hover:blur-none' : ''}>
                                                             {msg.data}
                                                         </span>
                                                     </div>
