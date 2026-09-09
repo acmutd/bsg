@@ -47,10 +47,14 @@ export default function DefaultPopup() {
                     aria-hidden="true"
                 >
                     <defs>
-                        <linearGradient id="bsg-wave-fill" x1="0" y1="0" x2="0.35" y2="1">
-                            <stop offset="0%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.12}} />
-                            <stop offset="55%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.3}} />
-                            <stop offset="100%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.55}} />
+                        {/* Transparent where it meets the wave, ramping to green at the bottom.
+                            The extra stops ease the transition so there is no visible band. */}
+                        <linearGradient id="bsg-wave-fill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0}} />
+                            <stop offset="25%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.05}} />
+                            <stop offset="50%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.16}} />
+                            <stop offset="75%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.34}} />
+                            <stop offset="100%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.58}} />
                         </linearGradient>
                     </defs>
                     <path d={`${WAVE} L100,100 L0,100 Z`} fill="url(#bsg-wave-fill)" />
