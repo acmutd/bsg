@@ -2,9 +2,23 @@ import {Button} from "@bsg/ui/button";
 import useDefaultPopup from "@/hooks/useDefaultPopup";
 import React from "react";
 
-// One period of a sine-like curve across the card, drawn in a 0-100 box so it
-// stretches to whatever size the popup ends up being.
-const WAVE = "M0,30 C20,25 30,52 50,58 C70,64 82,56 100,42";
+// A true sine, three periods wide (x from -100 to 200) in a 0-100 viewBox, so
+// the card only ever shows the middle third. Q/T keeps every period identical,
+// which is what lets the scroll loop seamlessly. Mid-line 45, amplitude ~15.
+const WAVE = "M-100,45 Q-75,25 -50,45 T0,45 T50,45 T100,45 T150,45 T200,45";
+
+// One period is 100 user units, so translating by exactly that lands the wave
+// back on itself and the loop point is invisible.
+const WAVE_CSS = `
+@keyframes bsg-wave-drift {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-100px); }
+}
+.bsg-wave { animation: bsg-wave-drift 14s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+    .bsg-wave { animation: none; }
+}
+`;
 
 // The BSG trophy mark, same path as the auth screen (pages/login-page.tsx).
 function TrophyIcon() {
@@ -40,6 +54,7 @@ export default function DefaultPopup() {
 
             <div className="relative p-5 rounded-2xl overflow-hidden bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
                 {/* Sine wave with the theme-colored gradient filling everything under it */}
+                <style>{WAVE_CSS}</style>
                 <svg
                     className="absolute inset-0 w-full h-full pointer-events-none"
                     viewBox="0 0 100 100"
@@ -57,7 +72,9 @@ export default function DefaultPopup() {
                             <stop offset="100%" style={{stopColor: "rgb(var(--primary))", stopOpacity: 0.58}} />
                         </linearGradient>
                     </defs>
-                    <path d={`${WAVE} L100,100 L0,100 Z`} fill="url(#bsg-wave-fill)" />
+                    <g className="bsg-wave">
+                        <path d={`${WAVE} L200,100 L-100,100 Z`} fill="url(#bsg-wave-fill)" />
+                    </g>
                 </svg>
 
                 <div className="relative flex flex-col items-center">
