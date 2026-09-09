@@ -60,3 +60,5 @@ All you have to do is run regardless of local or production
 ```
 cd bsg-frontend/ && npm run build-extension
 ```
+
+for testing
