@@ -15,7 +15,7 @@ const TopicList = ({topics, maxVisible = 5}: TopicListProps) => {
     const visibleTopics = expanded ? topics : topics.slice(0, maxVisible);
 
     return (
-        <div className="relative w-full max-w-[650px]">
+        <div className="relative w-full">
             <div className="flex flex-wrap gap-2">
                 {visibleTopics.map((topic, index) => (
                     <Topic topic={topic} key={index}/>
@@ -24,8 +24,10 @@ const TopicList = ({topics, maxVisible = 5}: TopicListProps) => {
                 {topics.length > maxVisible && (
                     <TooltipWrapper text={expanded ? "Show less" : "Show more"}>
                         <button
+                            type="button"
+                            aria-expanded={expanded}
                             onClick={() => setExpanded(!expanded)}
-                            className="px-3 py-1 text-sm font-medium rounded-full transition bg-inputBackground hover:opacity-75 flex items-center"
+                            className="btn-ghost inline-flex h-8 w-8 items-center justify-center rounded-full text-xs text-foreground/70"
                         >
                             {expanded ? <FontAwesomeIcon icon={faAnglesUp}/> : <FontAwesomeIcon icon={faAnglesDown}/>}
                         </button>

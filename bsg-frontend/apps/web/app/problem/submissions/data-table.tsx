@@ -22,14 +22,17 @@ export function DataTable<TData, TValue>({
 
     return (
         <div>
-            <div className="rounded-md border">
+            <div className="overflow-hidden rounded-xl border border-bsg-border bg-white/[0.02]">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="border-bsg-border hover:bg-transparent">
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead
+                                            key={header.id}
+                                            className="h-10 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/45"
+                                        >
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -47,9 +50,10 @@ export function DataTable<TData, TValue>({
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
+                                    className="border-bsg-border/60 hover:bg-white/[0.04]"
                                     data-state={row.getIsSelected() && "selected"}>
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell key={cell.id} className="py-3 text-sm">
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),
@@ -70,16 +74,16 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
+            <div className="flex items-center justify-end gap-2 py-4">
                 <Button
-                    variant="outline"
+                    className="btn-ghost h-8 rounded-full px-4 text-xs disabled:hover:translate-y-0"
                     size="sm"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}>
                     Previous
                 </Button>
                 <Button
-                    variant="outline"
+                    className="btn-ghost h-8 rounded-full px-4 text-xs disabled:hover:translate-y-0"
                     size="sm"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}>

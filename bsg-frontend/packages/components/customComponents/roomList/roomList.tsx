@@ -7,13 +7,16 @@ const RoomList = (props: { roomList: RoomItem[] }) => {
     };
 
     return (
-        <div className='bg-inputBackground p-4 rounded-md w-80 overflow-y-auto'>
-            <div className='flex items-center justify-between px-2 mb-2'>
-                <p className='text-2xl my-2 font-medium'>Rooms</p>
+        <div className='surface-panel rounded-2xl p-4 w-full lg:max-h-[calc(100vh-8rem)] flex flex-col'>
+            <div className='flex items-center justify-between px-1 mb-4'>
+                <div>
+                    <p className='eyebrow mb-1'>Live</p>
+                    <p className='font-display text-xl font-semibold tracking-tight'>Rooms</p>
+                </div>
 
                 <CreateRoom/>
             </div>
-            <div className='flex flex-col space-y-4'>
+            <div className='flex flex-col gap-2 overflow-y-auto no-scrollbar'>
                 {props.roomList.map((it, index) => (
                     <RoomItem roomItem={it} key={index}/>
                 ))}

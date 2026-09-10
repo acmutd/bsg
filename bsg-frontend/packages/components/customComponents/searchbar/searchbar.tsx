@@ -14,14 +14,24 @@ const SearchBar = React.forwardRef<HTMLInputElement, InputProps>(
         const {searchRef, isFocused, setIsFocused} = useSearchbar();
         return (
             <div
-                className={`hover:brightness-125 items-center w-80 flex-row bg-inputBackground rounded-md flex ${isFocused ? 'ring-2 ring-ring ring-offset-2 outline-none ring-offset-background' : ''}`}>
-                <button className={'pl-2.5'} onClick={() => searchRef.current?.focus()}>
-                    <FontAwesomeIcon icon={faMagnifyingGlass} className={'text-muted-foreground'}/>
+                className={cn(
+                    "flex h-11 w-full sm:w-80 items-center rounded-full border bg-inputBackground/80 pl-4 pr-2 transition-[border-color,box-shadow] duration-200",
+                    isFocused
+                        ? "border-signal/60 shadow-glow-sm"
+                        : "border-bsg-border hover:border-bsg-hover",
+                )}>
+                <button
+                    type="button"
+                    aria-label="Focus search"
+                    className="text-foreground/45 transition-colors hover:text-signal"
+                    onClick={() => searchRef.current?.focus()}
+                >
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="h-3.5 w-3.5"/>
                 </button>
                 <input
                     type={type}
                     className={cn(
-                        "flex h-10 w-full rounded-md border-0 bg-inputBackground px-3 py-2 text-sm file:border-0 file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 outline-none",
+                        "h-full w-full bg-transparent px-3 text-sm outline-none placeholder:text-foreground/35 disabled:cursor-not-allowed disabled:opacity-50",
                         className
                     )}
                     placeholder={"Search..."}

@@ -328,22 +328,33 @@ const Dashboard = () => {
     }, [problemList, remoteProblemList, selectedTags]);
 
     return (
-        <div className="flex">
-            <div className={"w-fit m-5 flex flex-col space-y-8"}>
-                <div className={"flex row-auto space-x-2"}>
-                    <SearchBar
-                        value={tagsQuery}
-                        onChange={(event) => setTagsQuery(event.target.value)}
-                        placeholder={"Filter by tags (e.g. Array, Hash Table)"}
-                    />
-                    <DifficultyDropdown position={difficulty} setPosition={setDifficulty}/>
-                    <QuickStart/>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+            <header className="reveal mb-8 space-y-2" style={{"--i": 0} as React.CSSProperties}>
+                <p className="eyebrow">Dashboard</p>
+                <h1 className="display text-[clamp(2rem,4vw,3rem)]">Pick a problem. Start a room.</h1>
+            </header>
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+                <div className="min-w-0 flex flex-col gap-6">
+                    <div className="reveal flex flex-wrap items-center gap-2" style={{"--i": 1} as React.CSSProperties}>
+                        <SearchBar
+                            value={tagsQuery}
+                            onChange={(event) => setTagsQuery(event.target.value)}
+                            placeholder={"Filter by tags (e.g. Array, Hash Table)"}
+                        />
+                        <DifficultyDropdown position={difficulty} setPosition={setDifficulty}/>
+                        <QuickStart/>
+                    </div>
+                    <div className="reveal" style={{"--i": 2} as React.CSSProperties}>
+                        <TopicList topics={topics}/>
+                    </div>
+                    <div className="reveal" style={{"--i": 3} as React.CSSProperties}>
+                        <ProblemList problemList={filteredProblemList} page={problemPage}/>
+                    </div>
                 </div>
-                <TopicList topics={topics}/>
-                <ProblemList problemList={filteredProblemList} page={problemPage}/>
-            </div>
-            <div className="mr-5 mt-5 mb-5g">
-                <RoomList roomList={roomList}/>
+                <aside className="reveal lg:sticky lg:top-24" style={{"--i": 2} as React.CSSProperties}>
+                    <RoomList roomList={roomList}/>
+                </aside>
             </div>
         </div>
     );

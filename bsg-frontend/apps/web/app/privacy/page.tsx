@@ -9,21 +9,21 @@ export const metadata: Metadata = {
 };
 
 const SECTION = "space-y-3";
-const H2 = "text-xl sm:text-2xl font-semibold text-white pt-4";
-const P = "text-white/70 text-sm sm:text-base leading-relaxed";
-const LI = "text-white/70 text-sm sm:text-base leading-relaxed list-disc ml-6";
+const H2 = "font-display text-2xl sm:text-3xl font-semibold tracking-tight pt-6";
+const P = "text-foreground/70 text-sm sm:text-base leading-relaxed";
+const LI = "text-foreground/70 text-sm sm:text-base leading-relaxed list-disc ml-6 marker:text-signal";
+const H3 = "text-base font-semibold text-foreground/90 pt-2";
 
 export default function PrivacyPage() {
   return (
-    <div className="w-full flex flex-col text-white">
-      <div className="fixed inset-0 -z-10 bg-[#0a0a0a]" />
-
-      <div className="w-full max-w-3xl mx-auto px-6 sm:px-8 py-12 sm:py-16 space-y-8">
-        <header className="space-y-3">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
+    <div className="w-full flex flex-col">
+      <div className="reveal w-full max-w-3xl mx-auto px-6 sm:px-8 py-12 sm:py-16 space-y-8">
+        <header className="space-y-4">
+          <p className="eyebrow">Legal</p>
+          <h1 className="display text-[clamp(2.5rem,6vw,4.5rem)]">
             Privacy Policy
           </h1>
-          <p className="text-white/50 text-sm">Effective date: July 21, 2026</p>
+          <p className="font-mono text-xs text-foreground/45">Effective date: July 21, 2026</p>
           <p className={P}>
             BSG (&quot;Binary Search Gang&quot;) is a browser extension and web
             application built by ACM at UT Dallas that lets you solve LeetCode
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
         <section className={SECTION}>
           <h2 className={H2}>Information We Collect</h2>
 
-          <h3 className="text-lg font-medium text-white/90 pt-2">
+          <h3 className={H3}>
             Account information
           </h3>
           <p className={P}>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
             with your profile.
           </p>
 
-          <h3 className="text-lg font-medium text-white/90 pt-2">
+          <h3 className={H3}>
             Authentication tokens
           </h3>
           <p className={P}>
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
             shared with anyone else.
           </p>
 
-          <h3 className="text-lg font-medium text-white/90 pt-2">
+          <h3 className={H3}>
             Activity within BSG
           </h3>
           <ul className="space-y-1">
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
             </li>
           </ul>
 
-          <h3 className="text-lg font-medium text-white/90 pt-2">
+          <h3 className={H3}>
             LeetCode page content
           </h3>
           <p className={P}>
@@ -151,7 +151,7 @@ export default function PrivacyPage() {
               href="https://github.com/acmutd/bsg"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#63AB1C] hover:underline"
+              className="text-signal underline-offset-4 hover:underline"
             >
               GitHub repository
             </a>{" "}
@@ -160,7 +160,7 @@ export default function PrivacyPage() {
               href="https://acmutd.co"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#63AB1C] hover:underline"
+              className="text-signal underline-offset-4 hover:underline"
             >
               ACM UTD website
             </a>
@@ -169,12 +169,14 @@ export default function PrivacyPage() {
         </section>
 
         <footer className="pt-8">
-          <div className="w-full border-t border-white/20" />
-          <div className="flex items-center justify-between mt-3">
-            <p className="text-sm tracking-wider font-extrabold">BSG</p>
+          <div className="w-full border-t border-white/10" />
+          <div className="flex items-center justify-between mt-4">
+            <p className="font-display text-lg font-bold tracking-tight">
+              BSG<span className="text-signal">_</span>
+            </p>
             <Link
               href="/"
-              className="text-sm text-white/60 hover:text-white transition-colors"
+              className="font-mono text-xs text-foreground/50 hover:text-foreground transition-colors"
             >
               Back to home
             </Link>

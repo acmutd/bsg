@@ -1,12 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import Logo from "./Logo";
-import {
-  NavigationMenu,
-  NavigationMenuLink,
-  navigationMenuTriggerStyle,
-} from "@bsg/ui/navigation-menu";
+import { NavigationMenu, NavigationMenuLink } from "@bsg/ui/navigation-menu";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -36,31 +31,26 @@ const Navbar = () => {
     if (isLandingPage && window.scrollY !== 0) setIsHidden(true);
   };
 
-  // Keep original font — only shrink at very small widths
-  const navItemClass = `
-    ${navigationMenuTriggerStyle()}
-    max-[640px]:text-xs
-  `;
-
   return (
     <nav
       onMouseEnter={() => isLandingPage && setIsHidden(false)}
       onMouseLeave={handleMouseLeave}
       className={`
         fixed top-0 left-0 right-0 z-50
-        border-b border-white/10
-        bg-grey/40 backdrop-blur-xl
-        transition-all duration-300
+        px-4 sm:px-6 pt-3
+        transition-[opacity,transform] duration-500 ease-spring
         ${
           isLandingPage && isHidden
-            ? "opacity-0 -translate-y-4"
+            ? "opacity-0 -translate-y-6 pointer-events-none"
             : "opacity-100 translate-y-0"
         }
       `}
     >
-      <div className="flex items-center justify-between px-10 py-2">
+      <div className="glass-panel mx-auto flex max-w-6xl items-center justify-between rounded-2xl px-3 sm:px-5 py-2">
         {/* Logo */}
-        <div
+        <button
+          type="button"
+          aria-label="BSG home"
           onClick={() => {
             if (window.location.pathname === "/") {
               window.scrollTo({ top: 0, behavior: "smooth" });
@@ -68,33 +58,34 @@ const Navbar = () => {
               window.location.href = "/";
             }
           }}
-          className="
-            cursor-pointer
-            hover:opacity-80
-            transition-all
-            scale-100
-            max-[900px]:scale-90
-            max-[640px]:scale-80
-          "
+          className="group flex items-center gap-2.5 rounded-lg px-1.5 py-1 transition-opacity hover:opacity-85"
         >
-          <Logo />
-        </div>
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inset-0 rounded-full bg-signal animate-pulse-dot" />
+          </span>
+          <span className="font-display text-xl font-bold tracking-tight">
+            BSG<span className="text-signal">_</span>
+          </span>
+        </button>
 
         {/* Navigation Links */}
-        <NavigationMenu className="flex gap-8 max-[640px]:gap-4">
-          <NavigationMenuLink className={navItemClass} href="#three-columns">
+        <NavigationMenu className="flex items-center gap-5 sm:gap-8">
+          <NavigationMenuLink className="nav-link hidden sm:inline-block" href="#three-columns">
             About
           </NavigationMenuLink>
 
-          <NavigationMenuLink className={navItemClass} href="#coming-soon">
+          <NavigationMenuLink className="nav-link hidden sm:inline-block" href="#coming-soon">
             Upcoming
           </NavigationMenuLink>
 
-          <NavigationMenuLink className={navItemClass} href="/contact">
+          <NavigationMenuLink className="nav-link" href="/contact">
             Contact
           </NavigationMenuLink>
 
-          <NavigationMenuLink className={navItemClass} href="/auth/signUp">
+          <NavigationMenuLink
+            className="btn-signal inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold"
+            href="/auth/signUp"
+          >
             Sign Up
           </NavigationMenuLink>
         </NavigationMenu>

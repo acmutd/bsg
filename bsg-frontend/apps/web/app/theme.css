@@ -1,0 +1,312 @@
+/*
+ * Web-only theme. Loaded after @bsg/ui-styles/global.css so these tokens win
+ * inside the web app while the extension (which never imports this file)
+ * keeps its own palette.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Ink: near-black with a green cast so the lime accent feels native. */
+  --background: 9 12 10;
+  --foreground: 240 244 236;
+
+  --card: 17 22 18;
+  --card-foreground: 240 244 236;
+
+  --popover: 17 22 18;
+  --popover-foreground: 240 244 236;
+
+  /* Electric lime on ink — dark text on the accent keeps contrast high. */
+  --primary: 132 224 60;
+  --primary-foreground: 9 12 10;
+
+  --secondary: 23 30 25;
+  --secondary-foreground: 240 244 236;
+
+  --muted: 23 30 25;
+  --muted-foreground: 150 164 150;
+
+  --accent: 30 38 32;
+  --accent-foreground: 240 244 236;
+
+  --destructive: 255 96 96;
+  --destructive-foreground: 9 12 10;
+
+  --border: 40 52 44;
+  --input: 40 52 44;
+  --inputBackground: 22 28 24;
+  --ring: 132 224 60;
+
+  --brand: 150 164 150;
+  --radius: 0.75rem;
+
+  --bsg-bg: 9 12 10;
+  --bsg-surface: 17 22 18;
+  --bsg-surface-alt: 23 30 25;
+  --bsg-surface-mid: 30 38 32;
+  --bsg-surface-input: 22 28 24;
+  --bsg-border: 40 52 44;
+  --bsg-separator: 40 52 44;
+  --bsg-hover: 44 58 48;
+  --bsg-hover-subtle: 34 44 37;
+  --bsg-dark: 5 7 6;
+  --bsg-glass: rgba(255 255 255 / 0.07);
+  --bsg-glass-strong: rgba(255 255 255 / 0.16);
+  --bsg-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+
+  --signal: 190 255 80;
+  --amber: 245 180 60;
+  --coral: 255 110 100;
+
+  --font-display: var(--font-bricolage);
+  --font-sans: var(--font-instrument);
+  --font-mono: var(--font-jetbrains);
+}
+
+html {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgb(var(--signal) / 0.28);
+  color: rgb(var(--foreground));
+}
+
+/*
+ * Keyframes referenced from plain CSS below live here rather than in the
+ * Tailwind config: Tailwind only emits a keyframe when its animate-* utility
+ * appears in markup, so a CSS-only reference would silently never animate.
+ */
+@keyframes rise-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/*
+ * Native cascade layer (not Tailwind's `components` layer, which needs the
+ * @tailwind directives in the same file). Layered rules lose to unlayered
+ * Tailwind utilities, so call sites can still override with utility classes.
+ */
+@layer bsg {
+  /* Fixed atmospheric ground: lime glow top-left, cool depth bottom-right, faint grid. */
+  .bsg-atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 40rem at 12% -10%, rgb(var(--signal) / 0.16), transparent 60%),
+      radial-gradient(48rem 36rem at 100% 100%, rgb(var(--primary) / 0.10), transparent 60%),
+      rgb(var(--background));
+  }
+
+  .bsg-atmosphere::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 70%);
+  }
+
+  .bsg-atmosphere::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .glass-panel {
+    background: rgb(var(--bsg-surface) / 0.62);
+    border: 1px solid var(--bsg-glass);
+    box-shadow: var(--bsg-glass-shadow);
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+  }
+
+  .surface-panel {
+    background: rgb(var(--bsg-surface) / 0.85);
+    border: 1px solid rgb(var(--bsg-border) / 0.8);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 24px 60px -30px rgb(0 0 0 / 0.8);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--signal));
+  }
+
+  .display {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+
+  .text-glow {
+    background: linear-gradient(180deg, rgb(var(--foreground)) 30%, rgb(var(--foreground) / 0.62));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .text-signal-gradient {
+    background: linear-gradient(120deg, rgb(var(--signal)), rgb(var(--primary)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Staggered entry on mount: set --i on each .reveal element. */
+  .reveal {
+    opacity: 0;
+    animation: rise-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 90ms + 60ms);
+  }
+
+  /* Staggered entry on scroll: direct children animate once the group gets .is-shown. */
+  .reveal-group > * {
+    opacity: 0;
+  }
+
+  .reveal-group.is-shown > * {
+    animation: rise-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 110ms);
+  }
+
+  .btn-signal {
+    position: relative;
+    isolation: isolate;
+    background: linear-gradient(180deg, rgb(var(--signal)), rgb(var(--primary)));
+    color: rgb(var(--primary-foreground));
+    box-shadow: 0 0 0 1px rgb(var(--signal) / 0.4), 0 14px 36px -14px rgb(var(--signal) / 0.6);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  }
+
+  .btn-signal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 1px rgb(var(--signal) / 0.6), 0 20px 44px -14px rgb(var(--signal) / 0.75);
+  }
+
+  .btn-signal:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--bsg-glass-strong);
+    background: rgb(255 255 255 / 0.03);
+    color: rgb(var(--foreground));
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .btn-ghost:hover {
+    background: rgb(255 255 255 / 0.07);
+    border-color: rgb(var(--signal) / 0.5);
+    transform: translateY(-2px);
+  }
+
+  /* Cursor spotlight: --mx / --my are set per-card from a pointer handler. */
+  .spotlight {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    background: radial-gradient(
+      260px circle at var(--mx, 50%) var(--my, 50%),
+      rgb(var(--signal) / 0.14),
+      transparent 60%
+    );
+  }
+
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+
+  .row-link {
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .row-link:hover {
+    background: rgb(var(--bsg-hover-subtle));
+    border-color: rgb(var(--signal) / 0.35);
+    transform: translateX(3px);
+  }
+
+  .nav-link {
+    position: relative;
+    padding-block: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--foreground) / 0.72);
+    transition: color 0.2s ease;
+  }
+
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: rgb(var(--signal));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .nav-link:hover {
+    color: rgb(var(--foreground));
+  }
+
+  .nav-link:hover::after {
+    transform: scaleX(1);
+  }
+
+  .difficulty-easy { color: rgb(var(--signal)); }
+  .difficulty-medium { color: rgb(var(--amber)); }
+  .difficulty-hard { color: rgb(var(--coral)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-group > *,
+  .animate-fade-in,
+  .animate-drift,
+  .animate-pulse-dot {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .btn-signal,
+  .btn-ghost,
+  .row-link {
+    transition: none;
+  }
+}

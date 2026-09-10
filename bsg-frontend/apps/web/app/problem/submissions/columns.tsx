@@ -23,7 +23,7 @@ export const columns: ColumnDef<Submission>[] = [
         header: "Status",
         cell: ({row}) => {
             const status = row.getValue<string>("status");
-            const color = status === "Accepted" ? "text-green-500" : "text-red-500";
+            const color = status === "Accepted" ? "difficulty-easy" : "difficulty-hard";
             return <div className={`font-medium ${color}`}>{status}</div>;
         },
     },
@@ -32,7 +32,7 @@ export const columns: ColumnDef<Submission>[] = [
         header: "Runtime",
         cell: ({row}) => {
             const runtime = parseInt(row.getValue("runtime"));
-            return <div className="text-right font-medium">{runtime + " ms"}</div>;
+            return <div className="text-right font-mono text-xs tabular-nums">{runtime + " ms"}</div>;
         },
     },
     {
@@ -40,7 +40,7 @@ export const columns: ColumnDef<Submission>[] = [
         header: "Memory",
         cell: ({row}) => {
             const memory = parseFloat(row.getValue("memory"));
-            return <div className="text-right font-medium">{memory + " MB"}</div>;
+            return <div className="text-right font-mono text-xs tabular-nums">{memory + " MB"}</div>;
         },
     },
     {

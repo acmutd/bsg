@@ -20,38 +20,40 @@ const ProblemItem = ({problemItem}: { problemItem: ProblemItem }) => {
     let difficultyColorClass = '';
     switch (difficulty) {
         case Difficulty.Easy:
-            difficultyColorClass = 'text-green-400'; // 초록색
+            difficultyColorClass = 'difficulty-easy'; // 초록색
             break;
         case Difficulty.Medium:
-            difficultyColorClass = 'text-yellow-400'; // 노란색
+            difficultyColorClass = 'difficulty-medium'; // 노란색
             break;
         case Difficulty.Hard:
-            difficultyColorClass = 'text-red-400'; // 빨간색
+            difficultyColorClass = 'difficulty-hard'; // 빨간색
             break;
         default:
-            difficultyColorClass = 'text-gray-400'; // 기본색
+            difficultyColorClass = 'text-foreground/50'; // 기본색
     }
 
     return (
-        <Link href={`/apps/web/app/problem/${id}`}>
+        <Link href={`/apps/web/app/problem/${id}`} className='block'>
             <div
-                className='grid grid-cols-12 gap-4 bg-background px-4 py-2 rounded-md text-primary-foreground hover:bg-background/70'>
-                <div className='grid grid-cols-subgrid gap-4 col-span-4'>{`${id}. ${name}`}</div>
-                <div className='col-span-3 flex flex-wrap gap-1'>
+                className='row-link grid grid-cols-2 sm:grid-cols-12 gap-x-4 gap-y-1.5 items-center rounded-xl border border-white/[0.05] bg-white/[0.03] px-4 py-3'>
+                <div className='col-span-2 sm:col-span-5 min-w-0 truncate text-sm font-medium'>
+                    <span className='font-mono text-xs text-foreground/45 mr-2'>{id}.</span>
+                    {name}
+                </div>
+                <div className='col-span-2 sm:col-span-3 flex flex-wrap gap-1'>
                     {displayTags.map((tag) => (
                         <span
                             key={`${id}-${tag}`}
-                            className='inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground'
+                            className='inline-flex items-center rounded-full border border-white/[0.06] bg-white/[0.04] px-2 py-0.5 text-[11px] text-foreground/60'
                         >
                             {tag}
                         </span>
                     ))}
                 </div>
-                <div className='grid grid-cols-subgrid gap-4 col-span-2'>
+                <div className='sm:col-span-2 font-mono text-xs text-foreground/60 tabular-nums'>
                     {`${acceptance}%`}
                 </div>
-                <div
-                    className={`grid grid-cols-subgrid gap-4 col-span-3 ${difficultyColorClass}`}>
+                <div className={`sm:col-span-2 text-right sm:text-left font-mono text-xs ${difficultyColorClass}`}>
                     {difficulty}
                 </div>
             </div>

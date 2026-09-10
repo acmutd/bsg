@@ -108,7 +108,7 @@ export default function SubmissionPage() {
     const data = getData();
 
     return (
-        <div className="container mx-auto py-4">
+        <div className="w-full py-2">
             <DataTable columns={columns} data={data}/>
         </div>
     );

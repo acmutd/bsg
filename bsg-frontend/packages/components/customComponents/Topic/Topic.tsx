@@ -13,14 +13,18 @@ const Topic = ({topic}: { topic: Topic }) => {
 
     return (
         <button
-            className={`flex items-center space-x-2 px-3 py-1 rounded-full transition 
-            ${isTopicSelected ? 'bg-primary text-white border-primary' : 'bg-inputBackground  hover:opacity-75'}`}
+            type="button"
+            aria-pressed={isTopicSelected}
+            className={`inline-flex items-center gap-2 rounded-full border pl-3 pr-1.5 py-1 text-sm font-medium transition-all duration-200 ease-spring active:scale-95
+            ${isTopicSelected
+                ? 'border-signal/60 bg-signal text-primary-foreground shadow-glow-sm'
+                : 'border-bsg-border bg-inputBackground/70 text-foreground/80 hover:border-signal/40 hover:text-foreground'}`}
             onClick={handleTopicPress}
         >
-            <span className="text-sm font-medium">{topic.name}</span>
+            <span>{topic.name}</span>
             <span
-                className={`px-2 py-0.5 text-xs font-medium rounded-full 
-                ${isTopicSelected ? 'bg-white text-primary' : 'bg-gray-300 text-gray-700 opacity-75'}`}
+                className={`rounded-full px-1.5 py-0.5 font-mono text-[11px] leading-none
+                ${isTopicSelected ? 'bg-primary-foreground/15 text-primary-foreground' : 'bg-white/[0.06] text-foreground/55'}`}
             >
                 {topic.numberOfProblems}
             </span>
