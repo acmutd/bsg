@@ -47,14 +47,14 @@ export default function DefaultPopup() {
     const {redirectToLeetCode, isOnLeetCode} = useDefaultPopup();
 
     return (
-        <div className="relative w-[250px] p-2 overflow-hidden">
+        <div className="relative w-[250px] overflow-hidden">
             {/* Decorative background elements */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-[-30%] left-[-30%] w-[60%] h-[60%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
                 <div className="absolute bottom-[-30%] right-[-30%] w-[50%] h-[50%] rounded-full bg-[#62AF2E]/5 blur-3xl" />
             </div>
 
-            <div className="relative p-5 rounded-2xl overflow-hidden bg-bsg-surface/50 backdrop-blur-md border border-bsg-glass shadow-bsg-glass">
+            <div className="relative p-5 overflow-hidden bg-bsg-surface/50 backdrop-blur-md shadow-bsg-glass">
                 {/* Sine wave with the theme-colored gradient filling everything under it */}
                 <style>{WAVE_CSS}</style>
                 <svg
@@ -83,7 +83,7 @@ export default function DefaultPopup() {
                     <div className="pt-3">
                         <TrophyIcon/>
                     </div>
-                    <p className="mt-1 text-2xl font-semibold" style={{color: "rgb(var(--primary))"}}>BSG_</p>
+                    <p className="mt-1 text-2xl font-semibold" style={{color: "rgb(var(--primary))"}}>BSG</p>
 
                     {isOnLeetCode ? (
                         <p className="mt-4 text-xs font-medium text-center" style={{textWrap: "balance"} as React.CSSProperties}>You are on LeetCode. Go to a problem to open up the side panel!</p>
