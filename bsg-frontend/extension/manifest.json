@@ -8,7 +8,7 @@
   "permissions": [
     "tabs",
     "storage",
-    "notifications"
+    "notifications"66
   ],
   "host_permissions": [
     "https://leetcode.com/*",
