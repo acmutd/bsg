@@ -32,9 +32,11 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
 
         if (node) {
             const handler = (e: WheelEvent) => {
-                if (e.deltaY !== 0) {
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+
+                if (delta !== 0) {
                     e.preventDefault();
-                    node.scrollBy({ left: e.deltaY, behavior: 'smooth' });
+                    node.scrollBy({ left: delta, behavior: 'smooth' });
                 }
             };
             node.addEventListener('wheel', handler, { passive: false });
