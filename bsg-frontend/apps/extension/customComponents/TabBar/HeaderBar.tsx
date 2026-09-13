@@ -227,7 +227,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
             }
 
             {/* Toolbar */}
-            <div className="flex items-center absolute right-0 h-full pr-2 pointer-events-none">
+            <div className="flex items-center absolute right-0 h-full pointer-events-none ">
 
                 {/* Fade */}
                 <div className="w-8 h-full bg-[linear-gradient(to_left,rgb(var(--bsg-surface))_33.3%,transparent)]" />
