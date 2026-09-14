@@ -88,6 +88,7 @@ router.get('/count', ensureAuth, async (req, res) => {
         if (req.query.neetcode150) params.set('neetcode150', req.query.neetcode150);
         if (req.query.recentlyAsked) params.set('recentlyAsked', req.query.recentlyAsked);
         if (req.query.difficulties) params.set('difficulties', req.query.difficulties);
+        if (req.query.excludePaid) params.set('excludePaid', req.query.excludePaid);
 
         const response = await fetch(`${centralServiceUrl}/api/problems/count?${params.toString()}`, {
             method: 'GET',

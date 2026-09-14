@@ -13,6 +13,8 @@ type ProblemListSectionProps = {
     setBlind75: Dispatch<SetStateAction<boolean>>;
     neetcode150: boolean;
     setNeetcode150: Dispatch<SetStateAction<boolean>>;
+    excludePaid: boolean;
+    setExcludePaid: Dispatch<SetStateAction<boolean>>;
 };
 
 // Curated problem lists - restricts the pool to a well-known set.
@@ -21,6 +23,8 @@ export const ProblemListSection = ({
     setBlind75,
     neetcode150,
     setNeetcode150,
+    excludePaid,
+    setExcludePaid,
 }: ProblemListSectionProps) => (
     <FieldGroup>
         <Field orientation="horizontal" className="items-start">
@@ -45,6 +49,17 @@ export const ProblemListSection = ({
                     <a href="https://neetcode.io/" target="_blank" rel="noopener noreferrer">
                         neetcode.io
                     </a>
+                </FieldDescription>
+            </FieldContent>
+        </Field>
+        <Field orientation="horizontal" className="items-start">
+            <Checkbox id="exclude-paid-checkbox" checked={excludePaid} onCheckedChange={setExcludePaid}/>
+            <FieldContent>
+                <FieldLabel htmlFor="exclude-paid-checkbox">
+                    Exclude paid problems
+                </FieldLabel>
+                <FieldDescription>
+                    Skip LeetCode Premium problems, which need a subscription to open
                 </FieldDescription>
             </FieldContent>
         </Field>

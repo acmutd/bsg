@@ -102,7 +102,7 @@ export const ProblemCountSection = ({
                             }}
                         />
                         <FieldContent>
-                            <FieldLabel htmlFor="any-difficulty-checkbox" className="text-lg">
+                            <FieldLabel htmlFor="any-difficulty-checkbox" className="text-base">
                                 Any Difficulty: {anyDifficultyCount}
                             </FieldLabel>
                         </FieldContent>

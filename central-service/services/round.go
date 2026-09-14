@@ -35,6 +35,9 @@ type RoundCreationParameters struct {
 	Blind75           bool     `json:"blind75"`
 	NeetCode150       bool     `json:"neetcode150"`
 	RecentlyAsked     bool     `json:"recentlyAsked"`
+	// ExcludePaid drops premium/paid problems from the pool. Off by default, so
+	// paid problems are eligible unless the user ticks the create-room checkbox.
+	ExcludePaid bool `json:"excludePaid"`
 	// AnyDifficulty, when true, ignores NumEasy/Medium/HardProblems entirely and picks
 	// NumAnyDifficultyProblems problems regardless of difficulty.
 	AnyDifficulty            bool `json:"anyDifficulty"`
@@ -115,6 +118,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 			params.Blind75,
 			params.NeetCode150,
 			params.RecentlyAsked,
+			params.ExcludePaid,
 		)
 	} else {
 		problemSet, fallbackUsed, err = service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
@@ -126,6 +130,7 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 			Blind75:           params.Blind75,
 			NeetCode150:       params.NeetCode150,
 			RecentlyAsked:     params.RecentlyAsked,
+			ExcludePaid:       params.ExcludePaid,
 		})
 	}
 	if err != nil {

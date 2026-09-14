@@ -119,12 +119,6 @@ export const ChooseProblemsTab = ({createRoom}: {
                     {isSubmittingCreate ? 'Creating...' : 'Create'}
                 </Button>
             </div>
-
-            {selectedProblems.length === 0 && (
-                <p className="text-sm text-red-500 text-center">
-                    Pick at least one problem to create a room!
-                </p>
-            )}
         </div>
     )
 }

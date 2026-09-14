@@ -130,7 +130,9 @@ func (controller *ProblemController) CountAvailableProblemsEndpoint(c echo.Conte
 		difficulties = strings.Split(difficultiesParam, ",")
 	}
 
-	count, err := controller.problemService.CountAvailableProblems(tags, companies, blind75, neetCode150, recentlyAsked, difficulties)
+	excludePaid := c.QueryParam("excludePaid") == "true"
+
+	count, err := controller.problemService.CountAvailableProblems(tags, companies, blind75, neetCode150, recentlyAsked, difficulties, excludePaid)
 	if err != nil {
 		controller.logger.Error("Failed to count available problems", err, map[string]interface{}{
 			"tags":          tags,
@@ -139,6 +141,7 @@ func (controller *ProblemController) CountAvailableProblemsEndpoint(c echo.Conte
 			"neetcode150":   neetCode150,
 			"recentlyAsked": recentlyAsked,
 			"difficulties":  difficulties,
+			"excludePaid":   excludePaid,
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}

@@ -23,7 +23,7 @@ export const FilterProblemsTab = ({createRoom}: {
         options: {
             easy: number; medium: number; hard: number; duration: number;
             tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean;
-            recentlyAsked: boolean; anyDifficulty: boolean; anyDifficultyCount: number
+            recentlyAsked: boolean; excludePaid: boolean; anyDifficulty: boolean; anyDifficultyCount: number
         },
     ) => Promise<{ success: true } | { success: false; message: string }>
 }) => {
@@ -53,6 +53,8 @@ export const FilterProblemsTab = ({createRoom}: {
         setNeetcode150,
         recentlyAsked,
         setRecentlyAsked,
+        excludePaid,
+        setExcludePaid,
         availableCount,
         isLoadingFilter,
         requestedTotal,
@@ -104,7 +106,14 @@ export const FilterProblemsTab = ({createRoom}: {
             >
                 {/* # of problems */}
                 <AccordionItem value="problems">
-                    <AccordionTrigger>Number of Problems</AccordionTrigger>
+                    <AccordionTrigger>
+                        <span className="flex flex-1 items-baseline justify-between gap-2">
+                            Number of Problems
+                            <span className="text-xs font-normal text-gray-500">
+                                {requestedTotal} problem{requestedTotal === 1 ? '' : 's'}
+                            </span>
+                        </span>
+                    </AccordionTrigger>
                     <AccordionContent>
                         <ProblemCountSection
                             numberOfEasyProblems={numberOfEasyProblems}
@@ -133,6 +142,8 @@ export const FilterProblemsTab = ({createRoom}: {
                             setBlind75={setBlind75}
                             neetcode150={neetcode150}
                             setNeetcode150={setNeetcode150}
+                            excludePaid={excludePaid}
+                            setExcludePaid={setExcludePaid}
                         />
                     </AccordionContent>
                 </AccordionItem>
@@ -166,7 +177,14 @@ export const FilterProblemsTab = ({createRoom}: {
 
                 {/* Duration */}
                 <AccordionItem value="duration">
-                    <AccordionTrigger>Duration</AccordionTrigger>
+                    <AccordionTrigger>
+                        <span className="flex flex-1 items-baseline justify-between gap-2">
+                            Duration
+                            <span className="text-xs font-normal text-gray-500">
+                                {duration} minutes
+                            </span>
+                        </span>
+                    </AccordionTrigger>
                     <AccordionContent>
                         <DurationPicker duration={duration} onDurationChange={setDuration}/>
                     </AccordionContent>
@@ -194,12 +212,12 @@ export const FilterProblemsTab = ({createRoom}: {
                         ? 'Creating...'
                         : isLoadingFilter
                             ? 'Loading...'
-                            : `${showCreateLabel ? 'Create' : 'Next'}${availableCount !== null ? ` (${availableCount} problem${availableCount === 1 ? '' : 's'})` : ''}`}
+                            : `${showCreateLabel ? 'Create' : 'Next'}${availableCount !== null ? ` (${availableCount} result${availableCount === 1 ? '' : 's'})` : ''}`}
                 </Button>
             </div>
 
             {!isLoadingFilter && showCreateLabel && notEnoughProblems && (
-                <p className="mt-2 text-sm text-red-500 text-center">
+                <p className="mt-4 text-sm text-red-500 text-center">
                     {availableCount === 0
                         ? 'No problems found with these filters, try adjusting them!'
                         : `Only ${availableCount} problem${availableCount === 1 ? '' : 's'} found with these filters but you asked for ${requestedTotal}, try adjusting them!`}

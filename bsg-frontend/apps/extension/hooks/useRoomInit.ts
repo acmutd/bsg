@@ -148,6 +148,7 @@ export const useRoomInit = () => {
                 blind75: options.blind75 || false,
                 neetcode150: options.neetcode150 || false,
                 recentlyAsked: options.recentlyAsked || false,
+                excludePaid: options.excludePaid || false,
                 anyDifficulty: options.anyDifficulty || false,
                 numAnyDifficultyProblems: options.anyDifficultyCount || 0,
                 // Non-empty only for the "Choose" tab, where the backend skips

@@ -32,7 +32,7 @@ type TopicDifficultyCounts = {
 // Drives the create-room filter wizard. The join form lives in useJoinRoom
 // instead, so pages that only join don't pay for this hook's filter fetches.
 export const useRoomChoice = (props: {
-    onCreate?: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean; recentlyAsked: boolean; anyDifficulty: boolean; anyDifficultyCount: number }) => Promise<RoomActionResult>
+    onCreate?: (roomCode: string, options: { easy: number; medium: number; hard: number; duration: number; tags: string[]; companies: string[]; blind75: boolean; neetcode150: boolean; recentlyAsked: boolean; excludePaid: boolean; anyDifficulty: boolean; anyDifficultyCount: number }) => Promise<RoomActionResult>
 } = {}) => {
     const [numberOfEasyProblems, setNumberOfEasyProblems] = useState(1)
     const [numberOfMediumProblems, setNumberOfMediumProblems] = useState(0)
@@ -54,6 +54,7 @@ export const useRoomChoice = (props: {
     const [blind75, setBlind75] = useState(false)
     const [neetcode150, setNeetcode150] = useState(false)
     const [recentlyAsked, setRecentlyAsked] = useState(false)
+    const [excludePaid, setExcludePaid] = useState(true)
     const [availableCount, setAvailableCount] = useState<number | null>(null)
     const [isLoadingFilter, setIsLoadingFilter] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
@@ -180,6 +181,7 @@ export const useRoomChoice = (props: {
             blind75,
             neetcode150,
             recentlyAsked,
+            excludePaid,
         })
 
         // Read the cache imperatively (not via the reactive selector) so this
@@ -207,6 +209,7 @@ export const useRoomChoice = (props: {
                 if (blind75) params.set('blind75', 'true')
                 if (neetcode150) params.set('neetcode150', 'true')
                 if (recentlyAsked) params.set('recentlyAsked', 'true')
+                if (excludePaid) params.set('excludePaid', 'true')
 
                 const response = await fetch(`${getServerUrl()}/problems/count?${params.toString()}`, {
                     credentials: 'include',
@@ -239,7 +242,7 @@ export const useRoomChoice = (props: {
             clearTimeout(timeout)
             controller.abort()
         }
-    }, [activeDifficulties, selectedTopics, selectedCompanies, blind75, neetcode150, recentlyAsked])
+    }, [activeDifficulties, selectedTopics, selectedCompanies, blind75, neetcode150, recentlyAsked, excludePaid])
 
     const decrement = (setter: (v: number) => void, val: number) => {
         if (total <= 1 || val <= minNumberOfProblems) return
@@ -269,6 +272,7 @@ export const useRoomChoice = (props: {
             blind75,
             neetcode150,
             recentlyAsked,
+            excludePaid,
             anyDifficulty,
             anyDifficultyCount: anyDifficulty ? anyDifficultyCount : 0,
         }
@@ -299,6 +303,7 @@ export const useRoomChoice = (props: {
         setBlind75(false)
         setNeetcode150(false)
         setRecentlyAsked(false)
+        setExcludePaid(false)
         setDuration(30)
         setFormError(null)
     }
@@ -329,6 +334,8 @@ export const useRoomChoice = (props: {
         setNeetcode150,
         recentlyAsked,
         setRecentlyAsked,
+        excludePaid,
+        setExcludePaid,
         availableCount,
         isLoadingFilter,
         requestedTotal,

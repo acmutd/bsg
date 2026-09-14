@@ -204,7 +204,7 @@ func TestGenerateProblemsetAnyDifficulty(t *testing.T) {
 	seedProblemWithCompanies(t, db, "Unrelated", "unrelated", constants.DIFFICULTY_EASY, "Meta")
 
 	// Any-difficulty ignores difficulty entirely but still respects company.
-	problems, fallbackUsed, err := service.GenerateProblemsetAnyDifficulty(3, nil, []string{"Google"}, false, false, false)
+	problems, fallbackUsed, err := service.GenerateProblemsetAnyDifficulty(3, nil, []string{"Google"}, false, false, false, false)
 	assert.NoError(t, err)
 	assert.False(t, fallbackUsed)
 	assert.Len(t, problems, 3)
@@ -214,6 +214,50 @@ func TestGenerateProblemsetAnyDifficulty(t *testing.T) {
 
 	// Requesting more than exist for the company should error, same as the
 	// per-difficulty path.
-	_, _, err = service.GenerateProblemsetAnyDifficulty(4, nil, []string{"Google"}, false, false, false)
+	_, _, err = service.GenerateProblemsetAnyDifficulty(4, nil, []string{"Google"}, false, false, false, false)
 	assert.Error(t, err)
+}
+
+func TestExcludePaidFiltersPaidProblems(t *testing.T) {
+	db := setupProblemTestDB(t)
+	service := InitializeProblemService(db)
+
+	free := seedProblemWithCompanies(t, db, "Two Sum", "two-sum", constants.DIFFICULTY_EASY)
+	paid := seedProblemWithCompanies(t, db, "Alien Dictionary", "alien-dictionary", constants.DIFFICULTY_EASY)
+	if err := db.Model(&models.Problem{}).Where("id = ?", paid.ID).Update("is_paid", true).Error; err != nil {
+		t.Fatalf("failed to mark problem as paid: %v", err)
+	}
+
+	// Counting: paid problems are in the pool unless excluded.
+	withPaid, err := service.CountAvailableProblems(nil, nil, false, false, false, nil, false)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(2), withPaid)
+
+	withoutPaid, err := service.CountAvailableProblems(nil, nil, false, false, false, nil, true)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), withoutPaid)
+
+	// Generation honours the same flag: excluding paid leaves only the free problem,
+	// so asking for both is a shortfall rather than a round containing a paid problem.
+	problems, _, err := service.GenerateProblemsetAnyDifficulty(1, nil, nil, false, false, false, true)
+	assert.NoError(t, err)
+	assert.Len(t, problems, 1)
+	assert.Equal(t, free.Slug, problems[0].Slug)
+
+	_, _, err = service.GenerateProblemsetAnyDifficulty(2, nil, nil, false, false, false, true)
+	assert.Error(t, err)
+
+	// Without the flag both are eligible.
+	both, _, err := service.GenerateProblemsetAnyDifficulty(2, nil, nil, false, false, false, false)
+	assert.NoError(t, err)
+	assert.Len(t, both, 2)
+
+	// Per-difficulty path honours it too.
+	byDifficulty, _, err := service.GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+		NumEasyProblems: 1,
+		ExcludePaid:     true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, byDifficulty, 1)
+	assert.Equal(t, free.Slug, byDifficulty[0].Slug)
 }

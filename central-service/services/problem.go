@@ -57,6 +57,7 @@ type DifficultyParameter struct {
 	Blind75           bool
 	NeetCode150       bool
 	RecentlyAsked     bool
+	ExcludePaid       bool
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
@@ -163,8 +164,9 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false)
-		easyQuery = applyTagFilters(easyQuery, normalizedTags)
+		}).Where("difficulty = ?", constants.DIFFICULTY_EASY)
+		easyQuery = applyPaidFilter(easyQuery, params.ExcludePaid)
+	easyQuery = applyTagFilters(easyQuery, normalizedTags)
 		easyQuery = applyCompanyFilters(easyQuery, normalizedCompanies)
 		easyQuery = applyProblemListFilters(easyQuery, params.Blind75, params.NeetCode150)
 		easyQuery = applyRecentlyAskedFilter(easyQuery, params.RecentlyAsked, normalizedCompanies)
@@ -176,8 +178,9 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false)
-		mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
+		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM)
+		mediumQuery = applyPaidFilter(mediumQuery, params.ExcludePaid)
+	mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
 		mediumQuery = applyCompanyFilters(mediumQuery, normalizedCompanies)
 		mediumQuery = applyProblemListFilters(mediumQuery, params.Blind75, params.NeetCode150)
 		mediumQuery = applyRecentlyAskedFilter(mediumQuery, params.RecentlyAsked, normalizedCompanies)
@@ -189,8 +192,9 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false)
-		hardQuery = applyTagFilters(hardQuery, normalizedTags)
+		}).Where("difficulty = ?", constants.DIFFICULTY_HARD)
+		hardQuery = applyPaidFilter(hardQuery, params.ExcludePaid)
+	hardQuery = applyTagFilters(hardQuery, normalizedTags)
 		hardQuery = applyCompanyFilters(hardQuery, normalizedCompanies)
 		hardQuery = applyProblemListFilters(hardQuery, params.Blind75, params.NeetCode150)
 		hardQuery = applyRecentlyAskedFilter(hardQuery, params.RecentlyAsked, normalizedCompanies)
@@ -229,7 +233,8 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		var fallbackProblems []models.Problem
 		fallbackQuery := service.db.Clauses(clause.OrderBy{
 			Expression: clause.Expr{SQL: "RANDOM()"},
-		}).Where("is_paid = ?", false)
+		})
+		fallbackQuery = applyPaidFilter(fallbackQuery, params.ExcludePaid)
 		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
 		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
 		fallbackQuery = applyProblemListFilters(fallbackQuery, params.Blind75, params.NeetCode150)
@@ -273,14 +278,15 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 // easy/medium/hard split. Tags/companies/curated-list filters are still enforced.
 // RecentlyAsked is relaxed on a shortfall, same soft-preference policy as
 // GenerateProblemsetByDifficultyParameters.
-func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool) ([]models.Problem, bool, error) {
+func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool, excludePaid bool) ([]models.Problem, bool, error) {
 	normalizedTags := normalizeTags(tags)
 	normalizedCompanies := normalizeTags(companies)
 	fallbackUsed := false
 
 	query := service.db.Clauses(clause.OrderBy{
 		Expression: clause.Expr{SQL: "RANDOM()"},
-	}).Where("is_paid = ?", false)
+	})
+	query = applyPaidFilter(query, excludePaid)
 	query = applyTagFilters(query, normalizedTags)
 	query = applyCompanyFilters(query, normalizedCompanies)
 	query = applyProblemListFilters(query, blind75, neetCode150)
@@ -302,7 +308,8 @@ func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags [
 		var fallbackProblems []models.Problem
 		fallbackQuery := service.db.Clauses(clause.OrderBy{
 			Expression: clause.Expr{SQL: "RANDOM()"},
-		}).Where("is_paid = ?", false)
+		})
+		fallbackQuery = applyPaidFilter(fallbackQuery, excludePaid)
 		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
 		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
 		fallbackQuery = applyProblemListFilters(fallbackQuery, blind75, neetCode150)
@@ -333,9 +340,9 @@ func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags [
 // applied, so users see the pool shrink (and can see it hit 0) instead of hitting a
 // round-creation error after submitting. difficulties restricts to those difficulty
 // levels (e.g. ["easy"] when only the easy count is > 0); pass it empty for "Any
-// Difficulty", which counts across all difficulties. Paid/premium problems are included,
-// matching FindProblems.
-func (service *ProblemService) CountAvailableProblems(tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool, difficulties []string) (int64, error) {
+// Difficulty", which counts across all difficulties. excludePaid mirrors the same
+// round-generation filter, so the count always reflects the pool a round would draw from.
+func (service *ProblemService) CountAvailableProblems(tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool, difficulties []string, excludePaid bool) (int64, error) {
 	normalizedTags := normalizeTags(tags)
 	normalizedCompanies := normalizeTags(companies)
 
@@ -343,6 +350,7 @@ func (service *ProblemService) CountAvailableProblems(tags []string, companies [
 	if len(difficulties) > 0 {
 		query = query.Where("difficulty IN ?", difficulties)
 	}
+	query = applyPaidFilter(query, excludePaid)
 	query = applyTagFilters(query, normalizedTags)
 	query = applyCompanyFilters(query, normalizedCompanies)
 	query = applyProblemListFilters(query, blind75, neetCode150)
@@ -459,6 +467,16 @@ func applyCompanyFilters(query *gorm.DB, companies []string) *gorm.DB {
 // Blind75 and NeetCode150 live as plain boolean columns on Problem (unlike Companies)
 // since each problem's list membership is fixed data, not a variable-length relationship.
 // When both are selected, matches either list (OR), not just problems in both.
+// applyPaidFilter drops premium/paid problems when the user asked to exclude them.
+// Left off entirely when excludePaid is false, so paid problems stay in the pool -
+// matching what CountAvailableProblems reports on the create-room screen.
+func applyPaidFilter(query *gorm.DB, excludePaid bool) *gorm.DB {
+	if !excludePaid {
+		return query
+	}
+	return query.Where("is_paid = ?", false)
+}
+
 func applyProblemListFilters(query *gorm.DB, blind75 bool, neetCode150 bool) *gorm.DB {
 	if !blind75 && !neetCode150 {
 		return query

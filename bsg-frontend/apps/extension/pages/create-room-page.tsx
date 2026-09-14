@@ -7,8 +7,7 @@ import {
     TabsList,
     TabsTrigger,
 } from "@bsg/ui/tabs"
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faX} from '@fortawesome/free-solid-svg-icons'
+import {X} from 'lucide-react'
 import {useRoomInit} from "@/hooks/useRoomInit";
 import {FilterProblemsTab} from "@/customComponents/CreateRoom/filter-problems-tab";
 import {ChooseProblemsTab} from "@/customComponents/CreateRoom/choose-problems-tab";
@@ -38,21 +37,21 @@ export default function CreateRoomPage() {
                         title="Cancel"
                         className="shrink-0 text-foreground/60 hover:text-foreground rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"
                     >
-                        <FontAwesomeIcon icon={faX}/>
+                        <X className="h-4 w-4"/>
                     </button>
                 </div>
 
                 <Tabs defaultValue="filter" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-bsg-dark mb-3">
+                    <TabsList className="grid h-8 w-full grid-cols-2 rounded-lg bg-bsg-dark mb-2">
                         <TabsTrigger
                             value="filter"
-                            className="text-foreground/60 data-[state=active]:bg-bsg-surface data-[state=active]:text-foreground"
+                            className="rounded-md py-1 text-xs text-foreground/60 data-[state=active]:bg-bsg-surface data-[state=active]:text-foreground"
                         >
                             Filter
                         </TabsTrigger>
                         <TabsTrigger
                             value="choose"
-                            className="text-foreground/60 data-[state=active]:bg-bsg-surface data-[state=active]:text-foreground"
+                            className="rounded-md py-1 text-xs text-foreground/60 data-[state=active]:bg-bsg-surface data-[state=active]:text-foreground"
                         >
                             Choose
                         </TabsTrigger>
