@@ -1,6 +1,16 @@
 (function () {
   if (!/\/problems\//.test(location.pathname)) return;
 
+  function DetectBrowser() {
+    const data = navigator.userAgentData
+    
+    // if ever we need to know which platform e.g.(macOS) for specific reason we can access here
+    const platform = data.platform 
+
+    const currentBrowser = data.brands[2]
+
+    return currentBrowser.brand
+  }
   function waitForQDContent() {
     return new Promise(function (resolve) {
       const existing = document.querySelector('#qd-content');
@@ -17,6 +27,13 @@
   }
 
   waitForQDContent().then(async function (qd) {
+    //Check which browser we are working with 
+    const browser = DetectBrowser();
+
+    if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+      chrome.storage.local.set({ browser: browser })
+    }
+
     const wrapper = qd.parentElement;
     if (!wrapper) {
       console.warn('where parent');

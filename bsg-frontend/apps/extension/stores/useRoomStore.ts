@@ -12,6 +12,7 @@ interface roomStoreState {
   roomCode: string | null;
   participants: User[];
   activeTab: TabName;
+  previousTab: Exclude<TabName, 'settings'>;
   isRoundStarted: boolean;
   roundEndTime: number | null;
   roundDuration: number | null;
@@ -57,6 +58,7 @@ const roomStoreInit = {
   roomCode: null,
   participants: [],
   activeTab: 'chat' as TabName,
+  previousTab: 'chat' as Exclude<TabName, 'settings'>,
   isRoundStarted: false,
   roundEndTime: null,
   roundDuration: null,
@@ -77,7 +79,13 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   setAdminId: (adminId) => set({ adminId: adminId }),
   setRoomCode: (roomCode) => set({ roomCode: roomCode }),
   setParticipants: (participants) => set({ participants: participants }),
-  setActiveTab: (activeTab) => set({ activeTab: activeTab }),
+  setActiveTab: (activeTab) => set((state) => ({
+    activeTab,
+    // Remember the screen that opened Settings so its button can return there.
+    previousTab: activeTab === 'settings'
+      ? (state.activeTab === 'settings' ? state.previousTab : state.activeTab)
+      : state.previousTab,
+  })),
   setIsRoundStarted: (isRoundStarted) => set({ isRoundStarted: isRoundStarted }),
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
   setRoundDuration: (roundDuration) => set({ roundDuration: roundDuration }),

@@ -27,6 +27,26 @@ export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | 
     return problems[0];
 }
 
+
+// The single door for every automatic navigation. rtc-service replays events to
+// each reconnecting socket, and navigating reloads the panel, so any mover that
+// can re-fire will bounce the user forever. Two invariants prevent that, kept
+// here so no future caller has to remember them:
+//   1. never navigate to the page we are already on
+//   2. decide from the tab's live URL, so a replay resolves to "stay put"
+//      instead of re-issuing a move the user has already acted past
+const navigateActiveTab = async (decide: (tabUrl: string) => string | null) => {
+    if (typeof chrome === 'undefined' || !chrome.tabs) return;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !tab.url) return;
+
+    const targetSlug = decide(tab.url);
+    if (!targetSlug || parseProblemSlug(tab.url) === targetSlug) return;
+
+    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+}
+
 export function useRoomEvents() {
 
     const [ nextProblem, setNextProblem ] = useState<string | null>(null);
@@ -81,14 +101,7 @@ export function useRoomEvents() {
 
                     if (!shouldResume || storedProblems.length === 0) return;
 
-                    if (!chrome.tabs) return;
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (!tab?.id || !tab.url) return;
-
-                    const targetSlug = resolveResumeSlug(tab.url, storedProblems);
-                    if (targetSlug) {
-                        chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
-                    }
+                    await navigateActiveTab(url => resolveResumeSlug(url, storedProblems));
                 }
 
             })
@@ -143,25 +156,10 @@ export function useRoomEvents() {
                 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                     chrome.storage.local.set({ problems: problems})
                 }
-                const targetSlug = problems[0]
-
-                const NavigateProblem = async () => {
-
-                if (!chrome.tabs) return;
-                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (!tab?.id || !tab.url) return;
-
-                const alreadyOnTarget = parseProblemSlug(tab.url) === targetSlug;
-                if (!alreadyOnTarget) {
-                    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
-                }
-                return;
-
-                }
-
-                NavigateProblem();
-
-
+                // Resume rather than force: someone already on one of this round's
+                // problems stays put, so the replayed round-start cannot undo a step
+                // they just took with the toolbar arrows.
+                navigateActiveTab(url => resolveResumeSlug(url, problems));
             }
         };
 
@@ -200,8 +198,11 @@ export function useRoomEvents() {
             const { nextProblem, userHandle } = eventData;
 
             // userHandle from backend is AuthID. userProfile.id is AuthID.
+            // The server addressed this move to one user, so unlike the resume
+            // paths it may move them off a valid round problem - but it still
+            // goes through the door, which no-ops once they have arrived.
             if (userId && (userHandle == userId)) {
-                window.open(problemUrl(nextProblem), '_top');
+                navigateActiveTab(() => nextProblem);
             }
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})

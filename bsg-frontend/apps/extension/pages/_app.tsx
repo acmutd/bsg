@@ -13,6 +13,8 @@ import { messageScript } from '@/utils/messageScript';
 import { useIsActive } from '@/hooks/useIsActive';
 import { useEffect, useRef, useState } from 'react';
 import { configReady } from '../lib/config';
+import { useSessionInit } from '@/hooks/useSessionInit';
+import Logo from '@bsg/components/Logo';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
 
@@ -92,7 +94,17 @@ export default function App({ Component, pageProps }: AppProps) {
     configReady.then(() => setConfigLoaded(true));
   }, []);
 
+  // Only surface an indicator if the restore is actually slow. A spinner that
+  // appears and vanishes in 80ms trades the login flash for a worse flicker,
+  // so stay blank until the wait is long enough to read as a wait.
+  const [isRestoreSlow, setIsRestoreSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsRestoreSlow(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
   const isDefaultPopup = (Component === DefaultPopup);
+  const sessionReady = useSessionInit(!isDefaultPopup);
   const isFolded = useIsFolded();
   const setIsPanelHovered = usePanelStore(s => s.setIsPanelHovered);
   const isInRoom = useRoomStore(s => s.isInRoom);
@@ -124,6 +136,22 @@ export default function App({ Component, pageProps }: AppProps) {
   // Wait for config (chrome.storage.local) to load before rendering
   if (!configLoaded) {
     return <div className={poppins.className} />;
+  }
+
+  // TODO: Display a loading screen while active room is being checked (start-page will be loaded only after failure)
+  // Effects run after paint, so without this gate login-page shows for a beat
+  // on every reload before useSessionInit redirects to start-page/room-page.
+  if (!sessionReady) {
+    return (
+      <div className={`${poppins.className} flex h-screen items-center justify-center`}>
+        {(isRestoreSlow && !isFolded) && (
+          <div className="flex flex-col items-center text-foreground/40 animate-pulse">
+            <Logo />
+            <p className="text-sm">Restoring session…</p>
+          </div>
+        )}
+      </div>
+    );
   }
 
   // On Leetcode extension render
