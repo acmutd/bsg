@@ -147,6 +147,19 @@ func (controller *ProblemController) CountAvailableProblemsEndpoint(c echo.Conte
 	})
 }
 
+// Returns every selectable problem in a trimmed shape, for the create-room
+// "Choose" tab picker to search over client-side.
+func (controller *ProblemController) FindProblemsForSelectionEndpoint(c echo.Context) error {
+	entries, err := controller.problemService.FindProblemsForSelection()
+	if err != nil {
+		controller.logger.Error("Failed to fetch problem list", err, nil)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string][]services.ProblemListEntry{
+		"data": entries,
+	})
+}
+
 func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context) error {
 	stats, err := controller.problemService.FindProblemTagStats()
 	if err != nil {
@@ -175,6 +188,7 @@ func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
 	g.GET("/tags", controller.FindProblemTagStatsEndpoint)
 	g.GET("/companies", controller.FindProblemCompanyStatsEndpoint)
 	g.GET("/count", controller.CountAvailableProblemsEndpoint)
+	g.GET("/list", controller.FindProblemsForSelectionEndpoint)
 	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)

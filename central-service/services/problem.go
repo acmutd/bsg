@@ -35,6 +35,17 @@ type problemStatCache struct {
 	tagStatsAt     time.Time
 	companyStats   []models.ProblemCompanyStat
 	companyStatsAt time.Time
+	problemList    []ProblemListEntry
+	problemListAt  time.Time
+}
+
+// ProblemListEntry is the trimmed-down shape used to populate the "Choose"
+// tab's problem picker - just enough to search by name and submit a selection,
+// without shipping tags/flags for every problem in the catalogue.
+type ProblemListEntry struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 }
 
 type DifficultyParameter struct {
@@ -342,6 +353,70 @@ func (service *ProblemService) CountAvailableProblems(tags []string, companies [
 		return 0, err
 	}
 	return count, nil
+}
+
+// FindProblemsForSelection returns every selectable problem in a trimmed shape,
+// for the create-room "Choose" tab's picker. Paid problems are excluded to match
+// what round generation will actually hand out. Cached like the stat lookups
+// since the catalogue only changes at seed time.
+func (service *ProblemService) FindProblemsForSelection() ([]ProblemListEntry, error) {
+	if cache := service.statCache; cache != nil {
+		cache.mu.RLock()
+		cached, fresh := cache.problemList, time.Since(cache.problemListAt) < problemStatCacheTTL
+		cache.mu.RUnlock()
+		if fresh && cached != nil {
+			return cached, nil
+		}
+	}
+
+	var entries []ProblemListEntry
+	result := service.db.Model(&models.Problem{}).
+		Select("id", "name", "slug").
+		Where("is_paid = ?", false).
+		Order("name ASC").
+		Find(&entries)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if cache := service.statCache; cache != nil {
+		cache.mu.Lock()
+		cache.problemList, cache.problemListAt = entries, time.Now()
+		cache.mu.Unlock()
+	}
+	return entries, nil
+}
+
+// FindProblemsByIDs looks up an explicit set of problems, preserving the order
+// the caller asked for so a hand-picked round keeps the user's ordering.
+// Unknown or duplicate ids are dropped; callers check the returned length.
+func (service *ProblemService) FindProblemsByIDs(ids []uint) ([]models.Problem, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	var found []models.Problem
+	if err := service.db.Where("id IN ?", ids).Find(&found).Error; err != nil {
+		return nil, err
+	}
+
+	byID := make(map[uint]models.Problem, len(found))
+	for _, problem := range found {
+		byID[problem.ID] = problem
+	}
+
+	ordered := make([]models.Problem, 0, len(ids))
+	seen := make(map[uint]bool, len(ids))
+	for _, id := range ids {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		if problem, ok := byID[id]; ok {
+			ordered = append(ordered, problem)
+		}
+	}
+	return ordered, nil
 }
 
 func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {

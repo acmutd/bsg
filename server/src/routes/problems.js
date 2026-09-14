@@ -58,6 +58,26 @@ router.get('/companies', ensureAuth, async (req, res) => {
     }
 });
 
+router.get('/list', ensureAuth, async (req, res) => {
+    const authID = req.user.id;
+    try {
+        const response = await fetch(`${centralServiceUrl}/api/problems/list`, {
+            method: 'GET',
+            headers: {
+                'X-Server-Secret': serverSecret,
+                'X-User-Auth-ID': authID,
+            }
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        logger.error('Error fetching problem list', error, {
+            user_id: authID,
+        });
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 router.get('/count', ensureAuth, async (req, res) => {
     const authID = req.user.id;
     try {

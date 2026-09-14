@@ -39,7 +39,15 @@ type RoundCreationParameters struct {
 	// NumAnyDifficultyProblems problems regardless of difficulty.
 	AnyDifficulty            bool `json:"anyDifficulty"`
 	NumAnyDifficultyProblems int  `json:"numAnyDifficultyProblems"`
+	// ProblemIDs, when non-empty, bypasses filter-based generation entirely and
+	// queues exactly these problems - the create-room "Choose" tab, where the user
+	// hand-picks problems instead of describing them with filters.
+	ProblemIDs []uint `json:"problemIds"`
 }
+
+// MaxHandPickedProblems caps how many problems a "Choose" round can queue,
+// matching the limit the picker enforces client-side.
+const MaxHandPickedProblems = 10
 
 type RoundSubmissionParameters struct {
 	RoundID       uint   `json:"roundID"`
@@ -82,7 +90,24 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 	var problemSet []models.Problem
 	var fallbackUsed bool
 	var err error
-	if params.AnyDifficulty {
+	if len(params.ProblemIDs) > 0 {
+		if len(params.ProblemIDs) > MaxHandPickedProblems {
+			return nil, false, BSGError{
+				StatusCode: 400,
+				Message: fmt.Sprintf(
+					"Too many problems selected. max=%d selected=%d",
+					MaxHandPickedProblems, len(params.ProblemIDs),
+				),
+			}
+		}
+		problemSet, err = service.problemAccessor.GetProblemAccessor().FindProblemsByIDs(params.ProblemIDs)
+		if err == nil && len(problemSet) == 0 {
+			err = BSGError{
+				StatusCode: 400,
+				Message:    "None of the selected problems could be found.",
+			}
+		}
+	} else if params.AnyDifficulty {
 		problemSet, fallbackUsed, err = service.problemAccessor.GetProblemAccessor().GenerateProblemsetAnyDifficulty(
 			params.NumAnyDifficultyProblems,
 			params.Tags,
