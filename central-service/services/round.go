@@ -31,7 +31,26 @@ type RoundCreationParameters struct {
 	NumMediumProblems int      `json:"numMediumProblems"`
 	NumHardProblems   int      `json:"numHardProblems"`
 	Tags              []string `json:"tags"`
+	Companies         []string `json:"companies"`
+	Blind75           bool     `json:"blind75"`
+	NeetCode150       bool     `json:"neetcode150"`
+	RecentlyAsked     bool     `json:"recentlyAsked"`
+	// ExcludePaid drops premium/paid problems from the pool. Off by default, so
+	// paid problems are eligible unless the user ticks the create-room checkbox.
+	ExcludePaid bool `json:"excludePaid"`
+	// AnyDifficulty, when true, ignores NumEasy/Medium/HardProblems entirely and picks
+	// NumAnyDifficultyProblems problems regardless of difficulty.
+	AnyDifficulty            bool `json:"anyDifficulty"`
+	NumAnyDifficultyProblems int  `json:"numAnyDifficultyProblems"`
+	// ProblemIDs, when non-empty, bypasses filter-based generation entirely and
+	// queues exactly these problems - the create-room "Choose" tab, where the user
+	// hand-picks problems instead of describing them with filters.
+	ProblemIDs []uint `json:"problemIds"`
 }
+
+// MaxHandPickedProblems caps how many problems a "Choose" round can queue,
+// matching the limit the picker enforces client-side.
+const MaxHandPickedProblems = 10
 
 type RoundSubmissionParameters struct {
 	RoundID       uint   `json:"roundID"`
@@ -71,12 +90,49 @@ func (service *RoundService) CreateRound(params *RoundCreationParameters, roomID
 		return nil, false, result.Error
 	}
 	// TODO: Add logic for problem generation
-	problemSet, fallbackUsed, err := service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
-		NumEasyProblems:   params.NumEasyProblems,
-		NumMediumProblems: params.NumMediumProblems,
-		NumHardProblems:   params.NumHardProblems,
-		Tags:              params.Tags,
-	})
+	var problemSet []models.Problem
+	var fallbackUsed bool
+	var err error
+	if len(params.ProblemIDs) > 0 {
+		if len(params.ProblemIDs) > MaxHandPickedProblems {
+			return nil, false, BSGError{
+				StatusCode: 400,
+				Message: fmt.Sprintf(
+					"Too many problems selected. max=%d selected=%d",
+					MaxHandPickedProblems, len(params.ProblemIDs),
+				),
+			}
+		}
+		problemSet, err = service.problemAccessor.GetProblemAccessor().FindProblemsByIDs(params.ProblemIDs)
+		if err == nil && len(problemSet) == 0 {
+			err = BSGError{
+				StatusCode: 400,
+				Message:    "None of the selected problems could be found.",
+			}
+		}
+	} else if params.AnyDifficulty {
+		problemSet, fallbackUsed, err = service.problemAccessor.GetProblemAccessor().GenerateProblemsetAnyDifficulty(
+			params.NumAnyDifficultyProblems,
+			params.Tags,
+			params.Companies,
+			params.Blind75,
+			params.NeetCode150,
+			params.RecentlyAsked,
+			params.ExcludePaid,
+		)
+	} else {
+		problemSet, fallbackUsed, err = service.problemAccessor.GetProblemAccessor().GenerateProblemsetByDifficultyParameters(DifficultyParameter{
+			NumEasyProblems:   params.NumEasyProblems,
+			NumMediumProblems: params.NumMediumProblems,
+			NumHardProblems:   params.NumHardProblems,
+			Tags:              params.Tags,
+			Companies:         params.Companies,
+			Blind75:           params.Blind75,
+			NeetCode150:       params.NeetCode150,
+			RecentlyAsked:     params.RecentlyAsked,
+			ExcludePaid:       params.ExcludePaid,
+		})
+	}
 	if err != nil {
 		return nil, false, err
 	}
