@@ -15,7 +15,7 @@ function playChatSound(filename: string) {
     audio.play().catch(() => { });
 }
 
-// for chat notification count - increment
+// for chat notification count - increment 
 function isChatVisible(): boolean {
     const { activeTab } = useRoomStore.getState();
     const { isFolded } = usePanelStore.getState();
