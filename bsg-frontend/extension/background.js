@@ -198,7 +198,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 // redirect logic
-const RTC_SERVICE_URL = CONFIG.RTC_SERVICE_URL;
+// NOTE: always read CONFIG.RTC_SERVICE_URL live (never snapshot it into a
+// const) so local-dev auto-detect / storage overrides actually take effect.
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
@@ -250,7 +251,7 @@ function connectWebSocket() {
     return;
   }
 
-  socket = new WebSocket(RTC_SERVICE_URL);
+  socket = new WebSocket(CONFIG.RTC_SERVICE_URL);
 
   socket.onopen = () => {
     if (activeRoomId && userProfile) {
