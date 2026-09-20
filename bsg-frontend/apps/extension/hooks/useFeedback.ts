@@ -1,11 +1,5 @@
-import {useState} from 'react';
- 
 const useFeedback = () => {
-    const [modalOpen, setModalOpen] = useState(false);
-    const openModal = () => setModalOpen(true);
-    const closeModal = () => setModalOpen(false);
-
-    return { modalOpen, openModal, closeModal, setModalOpen };
+    const TypeFormUrl = `https://acmutd.typeform.com/to/R0knpSwj`
 };
 
 export default useFeedback;
