@@ -55,6 +55,61 @@ async function doCopy(text) {
     return false;
 }
 
+// ─── Current-round touched problems ──────────────────────────────────────────
+// A problem is "touched" once the user actually types or pastes code into its
+// editor. That is the whole signal: a problem they never wrote anything in stays
+// indistinguishable from one they never opened, because not trying and not
+// getting round to it mean the same thing to the person reading the bar.
+//
+// This lives in storage.session, not zustand and not storage.local:
+//   - zustand is wiped whenever the top frame navigates, which is exactly the
+//     navigation that should turn a problem yellow
+//   - storage.session is memory-only, so it dies with the browser session
+//     instead of leaking into a later round from disk
+// The panel asks for a clear on round-start/join-round, keyed by round so the
+// replayed events don't wipe a round in progress; nothing else cleans it up.
+const TOUCHED_KEY = 'touchedSlugs';
+const TOUCHED_ROUND_KEY = 'touchedSlugsRound';
+
+// Each mutation is a read-modify-write, so chaining them keeps two concurrent
+// reads from both seeing the pre-write list and one clobbering the other.
+let touchedWrites = Promise.resolve();
+
+function markProblemTouched(slug) {
+  if (!slug) return;
+
+  touchedWrites = touchedWrites
+    .then(async () => {
+      const result = await chrome.storage.session.get([TOUCHED_KEY]);
+      const touched = result[TOUCHED_KEY] || [];
+      // Idempotent: the content script already reports once per slug, and this
+      // keeps a re-report from firing storage.onChanged and re-rendering the panel.
+      if (touched.includes(slug)) return;
+
+      await chrome.storage.session.set({ [TOUCHED_KEY]: [...touched, slug] });
+    })
+    .catch((e) => console.error('Background: touched-problem write failed', e));
+}
+
+// rtc-service replays round-start to every reconnecting socket, and the panel
+// reconnects each time a problem navigation reloads it - so the panel asks for a
+// reset many times within one round. Clearing only when the round identity
+// actually changes keeps those replays from wiping the list on exactly the
+// navigation that is supposed to turn a problem yellow.
+function resetTouchedProblems(roundKey) {
+  touchedWrites = touchedWrites
+    .then(async () => {
+      const result = await chrome.storage.session.get([TOUCHED_ROUND_KEY]);
+      if (result[TOUCHED_ROUND_KEY] === roundKey) return;
+
+      await chrome.storage.session.set({
+        [TOUCHED_ROUND_KEY]: roundKey,
+        [TOUCHED_KEY]: [],
+      });
+    })
+    .catch((e) => console.error('Background: touched-problem reset failed', e));
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request && request.type === 'COPY_TO_CLIPBOARD') {
@@ -121,6 +176,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(() => finishLogout());
 
     return true;
+  }
+
+  // problem progress intercept logic
+  if (request.type === 'PROBLEM_PROGRESS_RESET') {
+    // Queued rather than set directly so a report still in flight from the
+    // previous round can't land after the reset and survive into the new one.
+    resetTouchedProblems(request.roundKey);
+    sendResponse({ received: true });
+    return false;
+  }
+
+  if (request.type === 'PROBLEM_TOUCHED') {
+    markProblemTouched(request.slug);
+    sendResponse({ received: true });
+    return false;
   }
 
   // submission intercept logic

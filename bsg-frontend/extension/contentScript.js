@@ -1,6 +1,57 @@
 (function () {
   if (!/\/problems\//.test(location.pathname)) return;
 
+  // ─── Touched-problem tracking ──────────────────────────────────────────────
+  // A problem is "touched" once the user actually writes code in it, which is
+  // what separates a problem they gave up on from one they never tried.
+  //
+  // Reported once per slug rather than once per page: LeetCode routes between
+  // problems client-side, so this script survives the move and a single boolean
+  // would stop reporting after the first problem of the round. The slug is read
+  // at event time for the same reason - the one captured at load goes stale.
+  const reportedTouches = new Set();
+
+  // Keys that move the caret or hold a chord but never change the buffer.
+  const INERT_KEYS = new Set([
+    'Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'Home', 'End', 'PageUp', 'PageDown', 'Insert',
+    'ContextMenu', 'NumLock', 'ScrollLock', 'Pause',
+  ]);
+
+  function isEditingKey(e) {
+    if (INERT_KEYS.has(e.key) || /^F\d{1,2}$/.test(e.key)) return false;
+    // Ctrl/Cmd chords are editor commands (save, find, copy, run) rather than
+    // edits - except the ones that do change the buffer.
+    if (e.ctrlKey || e.metaKey) return ['v', 'x', 'z', 'y'].includes(e.key.toLowerCase());
+    return true;
+  }
+
+  function reportTouch() {
+    const match = location.pathname.match(/\/problems\/([^/?#]+)/);
+    const slug = match ? match[1] : null;
+    if (!slug || reportedTouches.has(slug)) return;
+
+    reportedTouches.add(slug);
+    chrome.runtime.sendMessage({ type: 'PROBLEM_TOUCHED', slug: slug }).catch(() => {});
+  }
+
+  function handleEditorInput(e) {
+    // Monaco puts focus on a hidden textarea inside .monaco-editor, so match on
+    // the ancestor. '.monaco-editor' is Monaco's own class, not LeetCode markup,
+    // which makes it the stabler thing to hang this off.
+    const target = e.target;
+    if (!target || typeof target.closest !== 'function') return;
+    if (!target.closest('.monaco-editor')) return;
+    if (e.type === 'keydown' && !isEditingKey(e)) return;
+
+    reportTouch();
+  }
+
+  // Capture phase so Monaco's own handlers can't stop these from reaching us.
+  document.addEventListener('keydown', handleEditorInput, true);
+  document.addEventListener('paste', handleEditorInput, true);
+
   function DetectBrowser() {
     const data = navigator.userAgentData
     

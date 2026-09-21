@@ -3,12 +3,31 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { useUserStore } from '@/stores/useUserStore';
 import { useStatistics } from '@/hooks/useStatistics';
 import { parseProblemSlug } from '@/hooks/useRoomEvents';
+import { useTouchedProblems } from '@/hooks/useTouchedProblems';
 
 const GREEN = '#62AF2E';
+const YELLOW = '#ffa500';
+const GREY = 'rgb(var(--foreground) / 0.25)';
+
+type SegmentState = 'solved' | 'active' | 'touched' | 'untouched';
+
+// Fill means the user put work in, stroke alone means they did not.
+const SEGMENT_STYLE: Record<SegmentState, { fill: string; stroke: string }> = {
+    solved:    { fill: GREEN,         stroke: GREEN },
+    active:    { fill: 'transparent', stroke: GREEN },
+    touched:   { fill: YELLOW,        stroke: YELLOW },
+    untouched: { fill: 'transparent', stroke: GREY },
+};
 
 /**
- * One segment per problem in the round: filled green when solved, green outline
- * for the one being worked on, grey outline for the rest.
+ * One segment per problem in the round:
+ *   solved     green fill     - accepted submission, from the server
+ *   active     green outline  - the problem currently open in the tab
+ *   touched    yellow fill    - code was written here, then left unsolved
+ *   untouched  grey outline   - never written in, whether or not it was opened
+ *
+ * Active outranks touched, so a problem goes yellow only once the user has
+ * actually moved on from it, and returns to green the moment they come back.
  *
  * The round comes from the server rather than the room store. Round-start
  * navigates the active tab, which reloads the panel and wipes zustand, so the
@@ -18,6 +37,7 @@ export const ProblemProgress = () => {
     const storeProblems = useRoomStore(s => s.problems);
     const userId = useUserStore(s => s.userId);
     const { roundDetails } = useStatistics();
+    const touchedSlugs = useTouchedProblems();
 
     // Server first, store as the fallback before the first fetch lands.
     const problems = useMemo(() => {
@@ -58,13 +78,19 @@ export const ProblemProgress = () => {
         return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
     }, []);
 
+    const segmentState = (slug: string): SegmentState => {
+        if (solvedSlugs.has(slug)) return 'solved';
+        if (slug === currSlug) return 'active';
+        if (touchedSlugs.has(slug)) return 'touched';
+        return 'untouched';
+    };
+
     if (problems.length === 0) return null;
 
     return (
         <div className="flex gap-[4.5px] px-2 py-1.5 shrink-0">
             {problems.map((slug, i) => {
-                const isSolved = solvedSlugs.has(slug);
-                const isCurrent = slug === currSlug;
+                const { fill, stroke } = SEGMENT_STYLE[segmentState(slug)];
 
                 return (
                     <div
@@ -74,10 +100,7 @@ export const ProblemProgress = () => {
                             i === 0 ? 'rounded-l-full' : '',
                             i === problems.length - 1 ? 'rounded-r-full' : '',
                         ].join(' ')}
-                        style={{
-                            backgroundColor: isSolved ? GREEN : 'transparent',
-                            borderColor: isSolved || isCurrent ? GREEN : 'rgb(var(--foreground) / 0.25)',
-                        }}
+                        style={{ backgroundColor: fill, borderColor: stroke }}
                     />
                 );
             })}
