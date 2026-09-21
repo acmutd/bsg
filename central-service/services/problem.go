@@ -3,6 +3,8 @@ package services
 import (
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/acmutd/bsg/central-service/constants"
 	"github.com/acmutd/bsg/central-service/models"
@@ -10,8 +12,40 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// recentlyAskedWindows are the ProblemCompanyTag.Windows values that count as "recently
+// asked" (asked within the last 6 months) - excludes rows that are only tagged
+// MoreThanSixMonths/All.
+var recentlyAskedWindows = []string{"ThirtyDays", "ThreeMonths", "SixMonths"}
+
 type ProblemService struct {
-	db *gorm.DB
+	db        *gorm.DB
+	statCache *problemStatCache
+}
+
+// Tag and company stats are only ever rewritten by seeding, which runs at
+// startup, so they're effectively static for a running service. The create-room
+// wizard reads both on every open, so cache them in-process rather than
+// re-running two aggregate reads per mount. The TTL exists only so a reseed
+// against a live service is picked up without a restart.
+const problemStatCacheTTL = 5 * time.Minute
+
+type problemStatCache struct {
+	mu             sync.RWMutex
+	tagStats       []models.ProblemTagStat
+	tagStatsAt     time.Time
+	companyStats   []models.ProblemCompanyStat
+	companyStatsAt time.Time
+	problemList    []ProblemListEntry
+	problemListAt  time.Time
+}
+
+// ProblemListEntry is the trimmed-down shape used to populate the "Choose"
+// tab's problem picker - just enough to search by name and submit a selection,
+// without shipping tags/flags for every problem in the catalogue.
+type ProblemListEntry struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 }
 
 type DifficultyParameter struct {
@@ -19,10 +53,15 @@ type DifficultyParameter struct {
 	NumMediumProblems int
 	NumHardProblems   int
 	Tags              []string
+	Companies         []string
+	Blind75           bool
+	NeetCode150       bool
+	RecentlyAsked     bool
+	ExcludePaid       bool
 }
 
 func InitializeProblemService(db *gorm.DB) ProblemService {
-	return ProblemService{db}
+	return ProblemService{db: db, statCache: &problemStatCache{}}
 }
 
 func (service *ProblemService) CreateProblem(problemData *models.Problem) (*models.Problem, error) {
@@ -69,7 +108,7 @@ func (service *ProblemService) UpdateProblemData(problemId uint, problemData *mo
 	return searchResult, nil
 }
 
-func (service *ProblemService) FindProblems(count uint, offset uint, tags []string) ([]models.Problem, error) {
+func (service *ProblemService) FindProblems(count uint, offset uint, tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool) ([]models.Problem, error) {
 	var problems []models.Problem
 	count = min(count, 100) // count should not exceed 100
 	query := service.db.Limit(int(count)).Offset(int(offset))
@@ -84,6 +123,10 @@ func (service *ProblemService) FindProblems(count uint, offset uint, tags []stri
 		}
 		query = query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
 	}
+	normalizedCompanies := normalizeTags(companies)
+	query = applyCompanyFilters(query, normalizedCompanies)
+	query = applyProblemListFilters(query, blind75, neetCode150)
+	query = applyRecentlyAskedFilter(query, recentlyAsked, normalizedCompanies)
 
 	searchResult := query.Find(&problems)
 	if searchResult.Error != nil {
@@ -112,15 +155,21 @@ func escapeLikePattern(pattern string) string {
 func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params DifficultyParameter) ([]models.Problem, bool, error) {
 	var problems, easyProblems, mediumProblems, hardProblems []models.Problem
 	normalizedTags := normalizeTags(params.Tags)
+	normalizedCompanies := normalizeTags(params.Companies)
 	requestedTotal := params.NumEasyProblems + params.NumMediumProblems + params.NumHardProblems
 	fallbackUsed := false
+
 	err := service.db.Transaction(func(tx *gorm.DB) error {
 		easyQuery := tx.Clauses(clause.OrderBy{
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_EASY, false)
-		easyQuery = applyTagFilters(easyQuery, normalizedTags)
+		}).Where("difficulty = ?", constants.DIFFICULTY_EASY)
+		easyQuery = applyPaidFilter(easyQuery, params.ExcludePaid)
+	easyQuery = applyTagFilters(easyQuery, normalizedTags)
+		easyQuery = applyCompanyFilters(easyQuery, normalizedCompanies)
+		easyQuery = applyProblemListFilters(easyQuery, params.Blind75, params.NeetCode150)
+		easyQuery = applyRecentlyAskedFilter(easyQuery, params.RecentlyAsked, normalizedCompanies)
 		if err := easyQuery.Limit(params.NumEasyProblems).Find(&easyProblems).Error; err != nil {
 			return err
 		}
@@ -129,8 +178,12 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_MEDIUM, false)
-		mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
+		}).Where("difficulty = ?", constants.DIFFICULTY_MEDIUM)
+		mediumQuery = applyPaidFilter(mediumQuery, params.ExcludePaid)
+	mediumQuery = applyTagFilters(mediumQuery, normalizedTags)
+		mediumQuery = applyCompanyFilters(mediumQuery, normalizedCompanies)
+		mediumQuery = applyProblemListFilters(mediumQuery, params.Blind75, params.NeetCode150)
+		mediumQuery = applyRecentlyAskedFilter(mediumQuery, params.RecentlyAsked, normalizedCompanies)
 		if err := mediumQuery.Limit(params.NumMediumProblems).Find(&mediumProblems).Error; err != nil {
 			return err
 		}
@@ -139,8 +192,12 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 			Expression: clause.Expr{
 				SQL: "RANDOM()",
 			},
-		}).Where("difficulty = ? AND is_paid = ?", constants.DIFFICULTY_HARD, false)
-		hardQuery = applyTagFilters(hardQuery, normalizedTags)
+		}).Where("difficulty = ?", constants.DIFFICULTY_HARD)
+		hardQuery = applyPaidFilter(hardQuery, params.ExcludePaid)
+	hardQuery = applyTagFilters(hardQuery, normalizedTags)
+		hardQuery = applyCompanyFilters(hardQuery, normalizedCompanies)
+		hardQuery = applyProblemListFilters(hardQuery, params.Blind75, params.NeetCode150)
+		hardQuery = applyRecentlyAskedFilter(hardQuery, params.RecentlyAsked, normalizedCompanies)
 		if err := hardQuery.Limit(params.NumHardProblems).Order(clause.Expr{
 			SQL: "RANDOM()",
 		}).Find(&hardProblems).Error; err != nil {
@@ -160,7 +217,11 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	problems = append(easyProblems, mediumProblems...)
 	problems = append(problems, hardProblems...)
 
-	// If exact per-difficulty selection is not possible, keep tag filter and fill remaining slots from any difficulty.
+	// If exact per-difficulty selection is not possible, keep tag/company filters and fill
+	// remaining slots from any difficulty. RecentlyAsked is deliberately dropped here (like
+	// difficulty, unlike tags/companies) - its pool is small by design, so treating it as a
+	// hard requirement even in the fallback would turn "not enough recent problems" into a
+	// full round-creation failure instead of a graceful, older-problem substitution.
 	if len(problems) < requestedTotal {
 		fallbackUsed = true
 		missing := requestedTotal - len(problems)
@@ -172,8 +233,11 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		var fallbackProblems []models.Problem
 		fallbackQuery := service.db.Clauses(clause.OrderBy{
 			Expression: clause.Expr{SQL: "RANDOM()"},
-		}).Where("is_paid = ?", false)
+		})
+		fallbackQuery = applyPaidFilter(fallbackQuery, params.ExcludePaid)
 		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
+		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
+		fallbackQuery = applyProblemListFilters(fallbackQuery, params.Blind75, params.NeetCode150)
 		if len(selectedIDs) > 0 {
 			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
 		}
@@ -187,7 +251,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 		return nil, false, BSGError{
 			StatusCode: 400,
 			Message: fmt.Sprintf(
-				"Not enough tagged problems found. requested_total=%d found_total=%d requested={easy:%d,medium:%d,hard:%d} found={easy:%d,medium:%d,hard:%d} tags=%v",
+				"Not enough tagged problems found. requested_total=%d found_total=%d requested={easy:%d,medium:%d,hard:%d} found={easy:%d,medium:%d,hard:%d} tags=%v companies=%v",
 				requestedTotal,
 				len(problems),
 				params.NumEasyProblems,
@@ -197,6 +261,7 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 				len(mediumProblems),
 				len(hardProblems),
 				normalizedTags,
+				normalizedCompanies,
 			),
 		}
 	}
@@ -206,6 +271,160 @@ func (service *ProblemService) GenerateProblemsetByDifficultyParameters(params D
 	}
 
 	return problems, fallbackUsed, nil
+}
+
+// GenerateProblemsetAnyDifficulty picks `count` problems without regard to difficulty -
+// used when the "Any difficulty" option is selected instead of an explicit
+// easy/medium/hard split. Tags/companies/curated-list filters are still enforced.
+// RecentlyAsked is relaxed on a shortfall, same soft-preference policy as
+// GenerateProblemsetByDifficultyParameters.
+func (service *ProblemService) GenerateProblemsetAnyDifficulty(count int, tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool, excludePaid bool) ([]models.Problem, bool, error) {
+	normalizedTags := normalizeTags(tags)
+	normalizedCompanies := normalizeTags(companies)
+	fallbackUsed := false
+
+	query := service.db.Clauses(clause.OrderBy{
+		Expression: clause.Expr{SQL: "RANDOM()"},
+	})
+	query = applyPaidFilter(query, excludePaid)
+	query = applyTagFilters(query, normalizedTags)
+	query = applyCompanyFilters(query, normalizedCompanies)
+	query = applyProblemListFilters(query, blind75, neetCode150)
+	query = applyRecentlyAskedFilter(query, recentlyAsked, normalizedCompanies)
+
+	var problems []models.Problem
+	if err := query.Limit(count).Find(&problems).Error; err != nil {
+		return nil, false, err
+	}
+
+	if len(problems) < count && recentlyAsked && len(normalizedCompanies) > 0 {
+		fallbackUsed = true
+		missing := count - len(problems)
+		selectedIDs := make([]uint, 0, len(problems))
+		for _, problem := range problems {
+			selectedIDs = append(selectedIDs, problem.ID)
+		}
+
+		var fallbackProblems []models.Problem
+		fallbackQuery := service.db.Clauses(clause.OrderBy{
+			Expression: clause.Expr{SQL: "RANDOM()"},
+		})
+		fallbackQuery = applyPaidFilter(fallbackQuery, excludePaid)
+		fallbackQuery = applyTagFilters(fallbackQuery, normalizedTags)
+		fallbackQuery = applyCompanyFilters(fallbackQuery, normalizedCompanies)
+		fallbackQuery = applyProblemListFilters(fallbackQuery, blind75, neetCode150)
+		if len(selectedIDs) > 0 {
+			fallbackQuery = fallbackQuery.Where("id NOT IN ?", selectedIDs)
+		}
+		if err := fallbackQuery.Limit(missing).Find(&fallbackProblems).Error; err != nil {
+			return nil, false, err
+		}
+		problems = append(problems, fallbackProblems...)
+	}
+
+	if len(problems) < count {
+		return nil, false, BSGError{
+			StatusCode: 400,
+			Message: fmt.Sprintf(
+				"Not enough problems found. requested=%d found=%d tags=%v companies=%v",
+				count, len(problems), normalizedTags, normalizedCompanies,
+			),
+		}
+	}
+
+	return problems, fallbackUsed, nil
+}
+
+// CountAvailableProblems returns how many problems currently match the given filters -
+// used by the create-room UI to show a live "N problems available" count as filters are
+// applied, so users see the pool shrink (and can see it hit 0) instead of hitting a
+// round-creation error after submitting. difficulties restricts to those difficulty
+// levels (e.g. ["easy"] when only the easy count is > 0); pass it empty for "Any
+// Difficulty", which counts across all difficulties. excludePaid mirrors the same
+// round-generation filter, so the count always reflects the pool a round would draw from.
+func (service *ProblemService) CountAvailableProblems(tags []string, companies []string, blind75 bool, neetCode150 bool, recentlyAsked bool, difficulties []string, excludePaid bool) (int64, error) {
+	normalizedTags := normalizeTags(tags)
+	normalizedCompanies := normalizeTags(companies)
+
+	query := service.db.Model(&models.Problem{})
+	if len(difficulties) > 0 {
+		query = query.Where("difficulty IN ?", difficulties)
+	}
+	query = applyPaidFilter(query, excludePaid)
+	query = applyTagFilters(query, normalizedTags)
+	query = applyCompanyFilters(query, normalizedCompanies)
+	query = applyProblemListFilters(query, blind75, neetCode150)
+	query = applyRecentlyAskedFilter(query, recentlyAsked, normalizedCompanies)
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// FindProblemsForSelection returns every selectable problem in a trimmed shape,
+// for the create-room "Choose" tab's picker. Paid problems are excluded to match
+// what round generation will actually hand out. Cached like the stat lookups
+// since the catalogue only changes at seed time.
+func (service *ProblemService) FindProblemsForSelection() ([]ProblemListEntry, error) {
+	if cache := service.statCache; cache != nil {
+		cache.mu.RLock()
+		cached, fresh := cache.problemList, time.Since(cache.problemListAt) < problemStatCacheTTL
+		cache.mu.RUnlock()
+		if fresh && cached != nil {
+			return cached, nil
+		}
+	}
+
+	var entries []ProblemListEntry
+	result := service.db.Model(&models.Problem{}).
+		Select("id", "name", "slug").
+		Where("is_paid = ?", false).
+		Order("name ASC").
+		Find(&entries)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if cache := service.statCache; cache != nil {
+		cache.mu.Lock()
+		cache.problemList, cache.problemListAt = entries, time.Now()
+		cache.mu.Unlock()
+	}
+	return entries, nil
+}
+
+// FindProblemsByIDs looks up an explicit set of problems, preserving the order
+// the caller asked for so a hand-picked round keeps the user's ordering.
+// Unknown or duplicate ids are dropped; callers check the returned length.
+func (service *ProblemService) FindProblemsByIDs(ids []uint) ([]models.Problem, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	var found []models.Problem
+	if err := service.db.Where("id IN ?", ids).Find(&found).Error; err != nil {
+		return nil, err
+	}
+
+	byID := make(map[uint]models.Problem, len(found))
+	for _, problem := range found {
+		byID[problem.ID] = problem
+	}
+
+	ordered := make([]models.Problem, 0, len(ids))
+	seen := make(map[uint]bool, len(ids))
+	for _, id := range ids {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		if problem, ok := byID[id]; ok {
+			ordered = append(ordered, problem)
+		}
+	}
+	return ordered, nil
 }
 
 func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
@@ -221,6 +440,109 @@ func applyTagFilters(query *gorm.DB, tags []string) *gorm.DB {
 	}
 
 	return query.Where("("+strings.Join(orParts, " OR ")+")", orArgs...)
+}
+
+// applyCompanyFilters restricts query to problems tagged with at least one of the
+// given companies (case-insensitive), via a subquery against ProblemCompanyTag -
+// unlike Tags, companies live in a separate join table rather than a column on Problem.
+func applyCompanyFilters(query *gorm.DB, companies []string) *gorm.DB {
+	if len(companies) == 0 {
+		return query
+	}
+
+	normalized := make([]string, len(companies))
+	for i, company := range companies {
+		normalized[i] = strings.ToLower(company)
+	}
+
+	subquery := query.Session(&gorm.Session{NewDB: true}).
+		Model(&models.ProblemCompanyTag{}).
+		Select("problem_id").
+		Where("LOWER(company) IN ?", normalized)
+
+	return query.Where("id IN (?)", subquery)
+}
+
+// applyProblemListFilters restricts query to problems in the selected curated lists.
+// Blind75 and NeetCode150 live as plain boolean columns on Problem (unlike Companies)
+// since each problem's list membership is fixed data, not a variable-length relationship.
+// When both are selected, matches either list (OR), not just problems in both.
+// applyPaidFilter drops premium/paid problems when the user asked to exclude them.
+// Left off entirely when excludePaid is false, so paid problems stay in the pool -
+// matching what CountAvailableProblems reports on the create-room screen.
+func applyPaidFilter(query *gorm.DB, excludePaid bool) *gorm.DB {
+	if !excludePaid {
+		return query
+	}
+	return query.Where("is_paid = ?", false)
+}
+
+func applyProblemListFilters(query *gorm.DB, blind75 bool, neetCode150 bool) *gorm.DB {
+	if !blind75 && !neetCode150 {
+		return query
+	}
+	if blind75 && neetCode150 {
+		return query.Where("is_blind75 = ? OR is_neetcode150 = ?", true, true)
+	}
+	if blind75 {
+		return query.Where("is_blind75 = ?", true)
+	}
+	return query.Where("is_neetcode150 = ?", true)
+}
+
+// applyRecentlyAskedFilter restricts query to problems asked by the given companies
+// within the last 6 months (ThirtyDays/ThreeMonths/SixMonths windows), via a subquery
+// against ProblemCompanyTag - same subquery shape as applyCompanyFilters. No-op unless
+// recentlyAsked is true and at least one company is selected, since recency is only
+// meaningful relative to a selected company.
+func applyRecentlyAskedFilter(query *gorm.DB, recentlyAsked bool, companies []string) *gorm.DB {
+	if !recentlyAsked || len(companies) == 0 {
+		return query
+	}
+
+	normalized := make([]string, len(companies))
+	for i, company := range companies {
+		normalized[i] = strings.ToLower(company)
+	}
+
+	windowConditions := make([]string, len(recentlyAskedWindows))
+	windowArgs := make([]interface{}, len(recentlyAskedWindows))
+	for i, window := range recentlyAskedWindows {
+		windowConditions[i] = "windows LIKE ?"
+		windowArgs[i] = "%\"" + window + "\"%"
+	}
+
+	subquery := query.Session(&gorm.Session{NewDB: true}).
+		Model(&models.ProblemCompanyTag{}).
+		Select("problem_id").
+		Where("LOWER(company) IN ?", normalized).
+		Where("("+strings.Join(windowConditions, " OR ")+")", windowArgs...)
+
+	return query.Where("id IN (?)", subquery)
+}
+
+func (service *ProblemService) FindProblemCompanyStats() ([]models.ProblemCompanyStat, error) {
+	if cache := service.statCache; cache != nil {
+		cache.mu.RLock()
+		cached, fresh := cache.companyStats, time.Since(cache.companyStatsAt) < problemStatCacheTTL
+		cache.mu.RUnlock()
+		if fresh && cached != nil {
+			return cached, nil
+		}
+	}
+
+	var stats []models.ProblemCompanyStat
+	result := service.db.Order("total_count DESC").Order("company ASC").Find(&stats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if cache := service.statCache; cache != nil {
+		cache.mu.Lock()
+		cache.companyStats, cache.companyStatsAt = stats, time.Now()
+		cache.mu.Unlock()
+	}
+	return stats, nil
 }
 
 func (service *ProblemService) DetermineScoreForProblem(problem *models.Problem) uint {
@@ -248,10 +570,25 @@ func (service *ProblemService) FindProblemBySlug(slug string) (*models.Problem, 
 }
 
 func (service *ProblemService) FindProblemTagStats() ([]models.ProblemTagStat, error) {
+	if cache := service.statCache; cache != nil {
+		cache.mu.RLock()
+		cached, fresh := cache.tagStats, time.Since(cache.tagStatsAt) < problemStatCacheTTL
+		cache.mu.RUnlock()
+		if fresh && cached != nil {
+			return cached, nil
+		}
+	}
+
 	var stats []models.ProblemTagStat
 	result := service.db.Order("total_count DESC").Order("tag ASC").Find(&stats)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	if cache := service.statCache; cache != nil {
+		cache.mu.Lock()
+		cache.tagStats, cache.tagStatsAt = stats, time.Now()
+		cache.mu.Unlock()
 	}
 	return stats, nil
 }
