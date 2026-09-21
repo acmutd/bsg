@@ -1,16 +1,12 @@
-import { useState } from 'react';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
-
 import { Button } from '@bsg/ui/button';
 import { useCopyCode } from '@/hooks/useCopyCode';
-import { FeedbackModal } from '../Modals/FeedbackModal';
 
 
 
 export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
   const { copyRoomCode, isCopied } = useCopyCode();
-  const [modalOpen, setModalOpen] = useState(false);
   const isConnected = useRoomStore(s => s.isConnected);
   const roomCode = useRoomStore(s => s.roomCode);
 
@@ -59,7 +55,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           {/* Feedback Button */}
           <TooltipWrapper text="Give us feedback">
             <Button
-              onClick={() => setModalOpen(true)}
+              onClick={() => window.open(`https://acmutd.typeform.com/to/R0knpSwj`)}
               className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
             >
               <svg
@@ -74,9 +70,6 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           </TooltipWrapper>
         </div>
       </div>
-
-      {/* Feedback Modal */}
-      <FeedbackModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </>
   );
 };
