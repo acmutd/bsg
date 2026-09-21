@@ -303,7 +303,7 @@ export const useRoomChoice = (props: {
         setBlind75(false)
         setNeetcode150(false)
         setRecentlyAsked(false)
-        setExcludePaid(false)
+        setExcludePaid(true)
         setDuration(30)
         setFormError(null)
     }
