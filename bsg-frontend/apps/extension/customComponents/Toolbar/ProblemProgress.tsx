@@ -33,6 +33,7 @@ const SEGMENT_STYLE: Record<SegmentState, { fill: string; stroke: string }> = {
  * navigates the active tab, which reloads the panel and wipes zustand, so the
  * store's `problems` is empty for most of a round's life.
  */
+
 export const ProblemProgress = () => {
     const storeProblems = useRoomStore(s => s.problems);
     const userId = useUserStore(s => s.userId);
