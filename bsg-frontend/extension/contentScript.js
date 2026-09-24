@@ -1,14 +1,10 @@
 (function () {
   if (!/\/problems\//.test(location.pathname)) return;
 
-  // ─── Touched-problem tracking ──────────────────────────────────────────────
-  // A problem is "touched" once the user actually writes code in it, which is
-  // what separates a problem they gave up on from one they never tried.
-  //
-  // Reported once per slug rather than once per page: LeetCode routes between
-  // problems client-side, so this script survives the move and a single boolean
-  // would stop reporting after the first problem of the round. The slug is read
-  // at event time for the same reason - the one captured at load goes stale.
+  // Marks a problem as "touched" once the user writes code in it.
+  // Slugs already reported, so we message the worker once instead of per keystroke.
+  // A Set, not a boolean: this script survives LeetCode's client-side routing
+  // between problems, so one flag would stop reporting after the first problem.
   const reportedTouches = new Set();
 
   // Keys that move the caret or hold a chord but never change the buffer.
@@ -21,13 +17,13 @@
 
   function isEditingKey(e) {
     if (INERT_KEYS.has(e.key) || /^F\d{1,2}$/.test(e.key)) return false;
-    // Ctrl/Cmd chords are editor commands (save, find, copy, run) rather than
-    // edits - except the ones that do change the buffer.
+    // Ctrl/Cmd chords are commands (save, find, run) - only these four edit.
     if (e.ctrlKey || e.metaKey) return ['v', 'x', 'z', 'y'].includes(e.key.toLowerCase());
     return true;
   }
 
   function reportTouch() {
+    // Read at event time; a slug captured at load goes stale on client-side routing.
     const match = location.pathname.match(/\/problems\/([^/?#]+)/);
     const slug = match ? match[1] : null;
     if (!slug || reportedTouches.has(slug)) return;
@@ -37,11 +33,10 @@
   }
 
   function handleEditorInput(e) {
-    // Monaco puts focus on a hidden textarea inside .monaco-editor, so match on
-    // the ancestor. '.monaco-editor' is Monaco's own class, not LeetCode markup,
-    // which makes it the stabler thing to hang this off.
     const target = e.target;
     if (!target || typeof target.closest !== 'function') return;
+    // Monaco focuses a hidden textarea, so match the ancestor. '.monaco-editor'
+    // is Monaco's own class, not LeetCode markup, so it survives their redesigns.
     if (!target.closest('.monaco-editor')) return;
     if (e.type === 'keydown' && !isEditingKey(e)) return;
 

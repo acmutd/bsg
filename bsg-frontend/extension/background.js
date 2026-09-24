@@ -55,24 +55,15 @@ async function doCopy(text) {
     return false;
 }
 
-// ─── Current-round touched problems ──────────────────────────────────────────
-// A problem is "touched" once the user actually types or pastes code into its
-// editor. That is the whole signal: a problem they never wrote anything in stays
-// indistinguishable from one they never opened, because not trying and not
-// getting round to it mean the same thing to the person reading the bar.
-//
-// This lives in storage.session, not zustand and not storage.local:
-//   - zustand is wiped whenever the top frame navigates, which is exactly the
-//     navigation that should turn a problem yellow
-//   - storage.session is memory-only, so it dies with the browser session
-//     instead of leaking into a later round from disk
-// The panel asks for a clear on round-start/join-round, keyed by round so the
-// replayed events don't wipe a round in progress; nothing else cleans it up.
+// Slugs the user typed code into this round. storage.session, not zustand:
+// zustand dies when the top frame navigates, which is the exact moment a
+// problem should turn yellow. Memory-only, so it can't leak into a later round.
 const TOUCHED_KEY = 'touchedSlugs';
+// The round these slugs belong to, so a replayed round-start can't wipe them.
 const TOUCHED_ROUND_KEY = 'touchedSlugsRound';
 
-// Each mutation is a read-modify-write, so chaining them keeps two concurrent
-// reads from both seeing the pre-write list and one clobbering the other.
+// Chained: each mutation is a read-modify-write, and two concurrent reads would
+// both see the pre-write list, so one would clobber the other.
 let touchedWrites = Promise.resolve();
 
 function markProblemTouched(slug) {
@@ -82,8 +73,7 @@ function markProblemTouched(slug) {
     .then(async () => {
       const result = await chrome.storage.session.get([TOUCHED_KEY]);
       const touched = result[TOUCHED_KEY] || [];
-      // Idempotent: the content script already reports once per slug, and this
-      // keeps a re-report from firing storage.onChanged and re-rendering the panel.
+      // Skip the write so a re-report can't fire onChanged and re-render the panel.
       if (touched.includes(slug)) return;
 
       await chrome.storage.session.set({ [TOUCHED_KEY]: [...touched, slug] });
@@ -91,15 +81,14 @@ function markProblemTouched(slug) {
     .catch((e) => console.error('Background: touched-problem write failed', e));
 }
 
-// rtc-service replays round-start to every reconnecting socket, and the panel
-// reconnects each time a problem navigation reloads it - so the panel asks for a
-// reset many times within one round. Clearing only when the round identity
-// actually changes keeps those replays from wiping the list on exactly the
-// navigation that is supposed to turn a problem yellow.
 function resetTouchedProblems(roundKey) {
   touchedWrites = touchedWrites
     .then(async () => {
       const result = await chrome.storage.session.get([TOUCHED_ROUND_KEY]);
+      // rtc-service replays round-start to every reconnecting socket, and the
+      // panel reconnects on each navigation, so this is asked for constantly.
+      // Clearing only on a real round change stops those replays from wiping
+      // the list on the very navigation meant to turn a problem yellow.
       if (result[TOUCHED_ROUND_KEY] === roundKey) return;
 
       await chrome.storage.session.set({

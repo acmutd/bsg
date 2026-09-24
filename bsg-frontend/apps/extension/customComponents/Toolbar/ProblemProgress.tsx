@@ -13,26 +13,13 @@ type SegmentState = 'solved' | 'active' | 'touched' | 'untouched';
 
 // Fill means the user put work in, stroke alone means they did not.
 const SEGMENT_STYLE: Record<SegmentState, { fill: string; stroke: string }> = {
-    solved:    { fill: GREEN,         stroke: GREEN },
-    active:    { fill: 'transparent', stroke: GREEN },
-    touched:   { fill: YELLOW,        stroke: YELLOW },
-    untouched: { fill: 'transparent', stroke: GREY },
+    solved:    { fill: GREEN,         stroke: GREEN },  // accepted submission
+    active:    { fill: 'transparent', stroke: GREEN },  // open in the tab now
+    touched:   { fill: YELLOW,        stroke: YELLOW }, // typed in, left unsolved
+    untouched: { fill: 'transparent', stroke: GREY },   // never typed in
 };
 
-/**
- * One segment per problem in the round:
- *   solved     green fill     - accepted submission, from the server
- *   active     green outline  - the problem currently open in the tab
- *   touched    yellow fill    - code was written here, then left unsolved
- *   untouched  grey outline   - never written in, whether or not it was opened
- *
- * Active outranks touched, so a problem goes yellow only once the user has
- * actually moved on from it, and returns to green the moment they come back.
- *
- * The round comes from the server rather than the room store. Round-start
- * navigates the active tab, which reloads the panel and wipes zustand, so the
- * store's `problems` is empty for most of a round's life.
- */
+/** One segment per problem in the round. */
 
 export const ProblemProgress = () => {
     const storeProblems = useRoomStore(s => s.problems);
@@ -40,7 +27,8 @@ export const ProblemProgress = () => {
     const { roundDetails } = useStatistics();
     const touchedSlugs = useTouchedProblems();
 
-    // Server first, store as the fallback before the first fetch lands.
+    // Server first: round-start navigates the tab, which reloads the panel and
+    // wipes zustand, so the store's `problems` is empty for most of a round.
     const problems = useMemo(() => {
         const fromServer = (roundDetails?.problems ?? []).map(p => p.slug).filter(Boolean);
         return fromServer.length > 0 ? fromServer : storeProblems;
@@ -79,6 +67,8 @@ export const ProblemProgress = () => {
         return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
     }, []);
 
+    // Active outranks touched, so a problem goes yellow only once the user moves
+    // on from it, and returns to green the moment they come back.
     const segmentState = (slug: string): SegmentState => {
         if (solvedSlugs.has(slug)) return 'solved';
         if (slug === currSlug) return 'active';

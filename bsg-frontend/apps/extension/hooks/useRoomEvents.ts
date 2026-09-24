@@ -145,18 +145,11 @@ export function useRoomEvents() {
                 chrome.storage.local.set({ roundEndTime: endTime });
             }
 
-            // Touched/visited problems are scoped to a single round, so a new
-            // round starts from nothing. Reset through the background worker,
-            // which owns every write to this state and serializes them.
-            //
-            // Identify the round by startTime, which the server sends and which
-            // is therefore identical on every replay. It has to be carried here
-            // because rtc-service replays round-start to each reconnecting
-            // socket and the panel reconnects on every problem navigation, so
-            // this runs many times per round - an unconditional reset would wipe
-            // the map on exactly the navigation meant to reveal the yellow.
-            // endTime is no good as an identity: it is recomputed from Date.now().
+            // Touched problems are scoped to one round, so a new round starts empty.
             if (typeof chrome !== 'undefined' && chrome.runtime) {
+                // startTime, not endTime: the server sends it, so it is identical
+                // on every replay, while endTime is recomputed from Date.now().
+                // The worker needs it to tell a real new round from a replayed one.
                 const roundKey = data?.startTime
                     ? String(data.startTime)
                     : (problems.join('|') || 'round');
