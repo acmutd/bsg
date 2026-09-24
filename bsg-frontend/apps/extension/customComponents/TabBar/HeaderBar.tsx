@@ -85,7 +85,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                         {/* Tabs */}
                         <div
                             ref={combinedRef}
-                            className="flex items-center h-full pl-8 pr-8 overflow-x-auto no-scrollbar"
+                            className="flex items-center h-full pl-8 pr-20 overflow-x-auto no-scrollbar "
                         >
 
                             <div className={`min-w-[1px] h-3 bg-bsg-separator ${(hoveredTab === 'roomInfo') ? 'invisible' : ''}`} />
@@ -205,7 +205,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     // Not in room render
                     <>
                         {/* Logo */}
-                        <div className="flex pl-2 gap-1 font-medium text-sm items-center">
+                        <div className="flex absolute left-2 gap-1 font-medium text-sm items-center">
                             <div className="w-5 h-5 flex items-center justify-center">
                                 <svg
                                     viewBox="0 0 81 65"
@@ -257,7 +257,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     </TooltipWrapper>
                 )}
 
-                <div className={`flex items-center gap-1 px-2 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
+                <div className={`flex h-full z-1000 items-center gap-1 px-2 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize / Exit Button */}
                     <TooltipWrapper text={isMaximized ? "Exit" : "Maximize"} shortcuts={["Alt", "+"]}>
