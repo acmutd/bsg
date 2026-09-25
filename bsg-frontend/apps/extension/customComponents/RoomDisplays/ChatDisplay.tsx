@@ -12,6 +12,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         chatRef,
         groupedMessages,
         inputRef,
+        counterRef,
         showJump,
         jumpToBottom,
         inputText,
@@ -183,7 +184,10 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             />
 
                             <div className='flex justify-between items-center text-xs'>
-                                <div className={`transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}>
+                                <div
+                                    ref={counterRef}
+                                    className={`hidden transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}
+                                >
                                     {inputText.length}/{MAX_CHARS}
                                 </div>
 

@@ -39,12 +39,14 @@ export const useChatSocket = () => {
     const pendingRoomIDRef = useRef<string | null>(null);
     const joinedRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const counterRef = useRef<HTMLDivElement | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const emojiMenuRef = useRef<HTMLDivElement | null>(null);
     const suppressChatSoundsRef = useRef(false); //sound allowed 
+    const hasExpandedRef = useRef<boolean>(false);
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState<string>('');
@@ -273,13 +275,27 @@ export const useChatSocket = () => {
     }, [userId]);
 
     const adjustHeight = (el: HTMLTextAreaElement) => {
+        const counter = counterRef.current;
         el.style.height = 'auto';
+
+        const lineHeight = parseInt(getComputedStyle(el).lineHeight) || 24;
+        const isMultiLine = el.scrollHeight > lineHeight + 4;
+
+        if (isMultiLine) {
+            hasExpandedRef.current = true;
+        }
+
+        if (counter) {
+            counter.classList.toggle('hidden', !hasExpandedRef.current);
+        }
+
         el.style.height = `${el.scrollHeight}px`;
     };
 
     const handleSubmit = () => {
         const chat = chatRef.current;
         const textArea = inputRef.current;
+        const counter = counterRef.current;
         if (!roomId || !chat || !textArea) return;
 
         const text = inputText.trim();
@@ -300,6 +316,10 @@ export const useChatSocket = () => {
             socketRef.current.send(JSON.stringify(payload));
 
             setInputText('');
+            hasExpandedRef.current = false;
+            if (counter) {
+                counter.classList.add('hidden');
+            }
             textArea.style.height = 'auto';
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
         }
@@ -307,6 +327,13 @@ export const useChatSocket = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newText = e.target.value;
+
+        if (newText.length === 0) {
+            hasExpandedRef.current = false;
+            if (counterRef.current) {
+                counterRef.current.classList.add('hidden');
+            }
+        }
 
         if (newText.length <= MAX_CHARS) {
             setInputText(newText);
@@ -433,6 +460,7 @@ export const useChatSocket = () => {
         chatRef,
         groupedMessages,
         inputRef,
+        counterRef,
         inputText,
         showJump,
         jumpToBottom,
