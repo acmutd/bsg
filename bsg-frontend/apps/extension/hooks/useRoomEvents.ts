@@ -145,6 +145,17 @@ export function useRoomEvents() {
                 chrome.storage.local.set({ roundEndTime: endTime });
             }
 
+            // Touched problems are scoped to one round, so a new round starts empty.
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                // startTime, not endTime: the server sends it, so it is identical
+                // on every replay, while endTime is recomputed from Date.now().
+                // The worker needs it to tell a real new round from a replayed one.
+                const roundKey = data?.startTime
+                    ? String(data.startTime)
+                    : (problems.join('|') || 'round');
+                chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey }).catch(() => {});
+            }
+
             // Clear stale nextProblem state
             setNextProblem(null);
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
