@@ -2,7 +2,7 @@ import { Button } from '@bsg/ui/button'
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useUserStore } from '@/stores/useUserStore';
 import { useChatSocket } from '@/hooks/useChatSocket'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -15,8 +15,6 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         showJump,
         jumpToBottom,
         inputText,
-        containerRef,
-        counterRef,
         atLimit,
         MAX_CHARS,
         insertEmoji,
@@ -26,6 +24,25 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         emojiSearch,
         setEmojiSearch
     } = useChatSocket();
+
+    // Auto-recalculate textarea height when the extension or panel width changes
+    useEffect(() => {
+        const textarea = inputRef.current;
+        if (!textarea) return;
+
+        let lastWidth = textarea.clientWidth;
+
+        const observer = new ResizeObserver(() => {
+            if (textarea.clientWidth !== lastWidth) {
+                lastWidth = textarea.clientWidth;
+                textarea.style.height = 'auto';
+                textarea.style.height = `${textarea.scrollHeight}px`;
+            }
+        });
+
+        observer.observe(textarea);
+        return () => observer.disconnect();
+    }, [inputRef]);
 
     const username = useUserStore(s => s.username);
     const userId = useUserStore(s => s.userId)
@@ -149,13 +166,10 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             </TooltipWrapper>
                         }
 
-                        <div
-                            ref={containerRef}
-                            className='flex w-full bg-bsg-surface rounded-[21px] px-4 py-3 gap-3 border border-bsg-glass shadow-lg'
-                        >
+                        <div className='flex flex-col w-full bg-bsg-surface rounded-[21px] px-4 py-3 gap-2 border border-bsg-glass shadow-lg'>
                             <textarea
                                 ref={inputRef}
-                                className="resize-none no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 placeholder:truncate flex-1 min-w-0"
+                                className="w-full resize-none outline-none bg-transparent text-foreground placeholder-foreground/60 break-words [word-break:break-word] whitespace-pre-wrap leading-6 overflow-hidden"
                                 placeholder="Type a message"
                                 rows={1}
                                 value={inputText}
@@ -168,11 +182,8 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 }}
                             />
 
-                            <div className='flex justify-between'>
-                                <div
-                                    ref={counterRef}
-                                    className={`transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}
-                                >
+                            <div className='flex justify-between items-center text-xs'>
+                                <div className={`transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}>
                                     {inputText.length}/{MAX_CHARS}
                                 </div>
 

@@ -12,15 +12,15 @@ function playChatSound(filename: string) {
     if (!useSettingsStore.getState().chatNotificationsEnabled) return; // checks if chat notifications are enabled
 
     const audio = new Audio(chrome.runtime.getURL(`sounds/${filename}`));
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
 }
 
-// for chat notification count - increment
+// for chat notification count - increment 
 function isChatVisible(): boolean {
     const { activeTab } = useRoomStore.getState();
     const { isFolded } = usePanelStore.getState();
     return activeTab === 'chat' && !isFolded;
-  }
+}
 
 export type Message = {
     userHandle: string;
@@ -39,8 +39,6 @@ export const useChatSocket = () => {
     const pendingRoomIDRef = useRef<string | null>(null);
     const joinedRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
-    const counterRef = useRef<HTMLDivElement | null>(null);
-    const containerRef = useRef<HTMLDivElement | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,12 +71,12 @@ export const useChatSocket = () => {
             //race-condition prevention joinRoom was happening before
             //the wb connection
             const targetRoomID = pendingRoomIDRef.current || roomId;
-            if(userId && targetRoomID){
+            if (userId && targetRoomID) {
                 if (joinedRoomIDRef.current === targetRoomID) {
                     return;
                 }
-                const payload ={
-                    name:userId,
+                const payload = {
+                    name: userId,
                     "request-type": "join-room",
                     data: JSON.stringify({
                         userHandle: userId,
@@ -197,19 +195,19 @@ export const useChatSocket = () => {
                         });
                     } else if (responseType === 'round-join') {
 
-                            const data = JSON.parse(message?.data || '{}');
-                            setMessages(prev => [...prev, {
-                                userHandle: 'System',
-                                data: `${data.userName || data.userID} joined the round`,
-                                roomID: message.roomID,
-                                isSystem: true
-                            }]);
-                            setLastGameEvent(
-                                {
+                        const data = JSON.parse(message?.data || '{}');
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: `${data.userName || data.userID} joined the round`,
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
+                        setLastGameEvent(
+                            {
                                 type: 'join-round',
                                 data,
                                 timestamp: Date.now()
-                                })
+                            })
 
                     } else if (responseType === 'next-problem') {
                         try {
@@ -274,6 +272,11 @@ export const useChatSocket = () => {
         }
     }, [userId]);
 
+    const adjustHeight = (el: HTMLTextAreaElement) => {
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+    };
+
     const handleSubmit = () => {
         const chat = chatRef.current;
         const textArea = inputRef.current;
@@ -302,50 +305,14 @@ export const useChatSocket = () => {
         }
     };
 
-    /*
-     *  Toggles expansion based on pre-expanded line height
-     *  Implementation can't be done using states because calculating the
-     *  pre-expanded height requires bypassing React's render cycle
-     */
-    const handleExpand = () => {
-        const chat = chatRef.current;
-        const container = containerRef.current;
-        const textArea = inputRef.current;
-        const counter = counterRef.current;
-        if (!chat || !container || !textArea || !counter) return;
-
-        // Collapse container
-        counter.classList.add('hidden');
-        container.classList.remove('flex-col', 'gap-2');
-
-        // Measure pre-expanded line height
-        textArea.style.height = 'auto';
-        const lineHeight = parseInt(getComputedStyle(textArea).lineHeight);
-        const isExpanded = textArea.scrollHeight > lineHeight;
-
-        // Toggle expansion based on measurement
-        counter.classList.toggle('hidden', !isExpanded);
-        container.classList.toggle('flex-col', isExpanded);
-        container.classList.toggle('gap-2', isExpanded);
-
-        // Cap text area height at 8 * line height
-        textArea.style.height = `${Math.min(textArea.scrollHeight, 8 * lineHeight)}px`
-
-        // Handle scroll changes due to adding/removing lines
-        if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
-        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
-    }
-
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newText = e.target.value;
 
         if (newText.length <= MAX_CHARS) {
             setInputText(newText);
-            handleExpand();
 
         } else if (inputText.length < MAX_CHARS) {
             setInputText(newText.substring(0, MAX_CHARS));
-            handleExpand();
 
             setAtLimit(true);
             if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
@@ -356,6 +323,8 @@ export const useChatSocket = () => {
             if (atLimitTimeoutRef.current) clearTimeout(atLimitTimeoutRef.current);
             atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
         }
+
+        adjustHeight(e.target);
     }
 
     const insertEmoji = (emoji: string) => {
@@ -372,13 +341,13 @@ export const useChatSocket = () => {
                 textarea.selectionStart = start + emoji.length;
                 textarea.selectionEnd = start + emoji.length;
                 textarea.focus();
-                handleExpand();
+                adjustHeight(textarea);
             });
         } else if (inputText.length < MAX_CHARS) {
             setInputText(newText.substring(0, MAX_CHARS));
             requestAnimationFrame(() => {
                 textarea.focus();
-                handleExpand();
+                adjustHeight(textarea);
             });
 
             setAtLimit(true);
@@ -403,32 +372,6 @@ export const useChatSocket = () => {
             }
         }, 0);
     }
-
-    useEffect(() => {
-        const textArea = inputRef.current;
-        const container = containerRef.current;
-        if (!textArea) return;
-
-        let frameID: number | null = null;
-        const scheduleExpand = () => {
-            if (frameID !== null) {
-                cancelAnimationFrame(frameID);
-            }
-            frameID = requestAnimationFrame(() => {
-                frameID = null;
-                handleExpand();
-            });
-        };
-        const resizeOberserver = new ResizeObserver(scheduleExpand);
-
-        resizeOberserver.observe(container || textArea);
-        return () => {
-            if (frameID !== null) {
-                cancelAnimationFrame(frameID);
-            }
-            resizeOberserver.disconnect();
-        };
-    }, []);
 
     // Derived from messages so will persist between tabs as well
     // TODO: make O(1) by only adding messages
@@ -493,8 +436,6 @@ export const useChatSocket = () => {
         inputText,
         showJump,
         jumpToBottom,
-        containerRef,
-        counterRef,
         atLimit,
         MAX_CHARS,
         clearMessages,

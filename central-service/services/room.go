@@ -497,6 +497,17 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 	}
 	round, fallbackUsed, err := service.roundService.CreateRound(params, &room.ID)
 	if err != nil {
+		// If this was the room's first round, it's otherwise empty and useless without
+		// one (the create-room flow creates the room, then immediately tries to create
+		// its first round) - clean it up rather than leaving an orphaned, round-less
+		// room behind. A room that already has other rounds is left alone, since a
+		// later round attempt failing shouldn't destroy its existing history.
+		if len(room.Rounds) == 0 {
+			service.cancelRoomExpiry(roomID)
+			if delErr := service.deleteRoom(*room); delErr != nil {
+				log.Printf("Error cleaning up room %s after failed round creation: %v\n", roomID, delErr)
+			}
+		}
 		return nil, false, err
 	}
 	if err := service.db.Model(&room).Association("Rounds").Append(round); err != nil {

@@ -143,7 +143,17 @@ export const useRoomInit = () => {
                 numEasyProblems: options.easy || 0,
                 numMediumProblems: options.medium || 0,
                 numHardProblems: options.hard || 0,
-                tags: options.tags || []
+                tags: options.tags || [],
+                companies: options.companies || [],
+                blind75: options.blind75 || false,
+                neetcode150: options.neetcode150 || false,
+                recentlyAsked: options.recentlyAsked || false,
+                excludePaid: options.excludePaid || false,
+                anyDifficulty: options.anyDifficulty || false,
+                numAnyDifficultyProblems: options.anyDifficultyCount || 0,
+                // Non-empty only for the "Choose" tab, where the backend skips
+                // filter-based generation and queues exactly these problems.
+                problemIds: options.problemIds || []
             };
             const roundRes = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
