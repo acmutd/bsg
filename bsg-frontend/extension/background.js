@@ -55,6 +55,50 @@ async function doCopy(text) {
     return false;
 }
 
+// Slugs the user typed code into this round. storage.session, not zustand:
+// zustand dies when the top frame navigates, which is the exact moment a
+// problem should turn yellow. Memory-only, so it can't leak into a later round.
+const TOUCHED_KEY = 'touchedSlugs';
+// The round these slugs belong to, so a replayed round-start can't wipe them.
+const TOUCHED_ROUND_KEY = 'touchedSlugsRound';
+
+// Chained: each mutation is a read-modify-write, and two concurrent reads would
+// both see the pre-write list, so one would clobber the other.
+let touchedWrites = Promise.resolve();
+
+function markProblemTouched(slug) {
+  if (!slug) return;
+
+  touchedWrites = touchedWrites
+    .then(async () => {
+      const result = await chrome.storage.session.get([TOUCHED_KEY]);
+      const touched = result[TOUCHED_KEY] || [];
+      // Skip the write so a re-report can't fire onChanged and re-render the panel.
+      if (touched.includes(slug)) return;
+
+      await chrome.storage.session.set({ [TOUCHED_KEY]: [...touched, slug] });
+    })
+    .catch((e) => console.error('Background: touched-problem write failed', e));
+}
+
+function resetTouchedProblems(roundKey) {
+  touchedWrites = touchedWrites
+    .then(async () => {
+      const result = await chrome.storage.session.get([TOUCHED_ROUND_KEY]);
+      // rtc-service replays round-start to every reconnecting socket, and the
+      // panel reconnects on each navigation, so this is asked for constantly.
+      // Clearing only on a real round change stops those replays from wiping
+      // the list on the very navigation meant to turn a problem yellow.
+      if (result[TOUCHED_ROUND_KEY] === roundKey) return;
+
+      await chrome.storage.session.set({
+        [TOUCHED_ROUND_KEY]: roundKey,
+        [TOUCHED_KEY]: [],
+      });
+    })
+    .catch((e) => console.error('Background: touched-problem reset failed', e));
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request && request.type === 'COPY_TO_CLIPBOARD') {
@@ -121,6 +165,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(() => finishLogout());
 
     return true;
+  }
+
+  // problem progress intercept logic
+  if (request.type === 'PROBLEM_PROGRESS_RESET') {
+    // Queued rather than set directly so a report still in flight from the
+    // previous round can't land after the reset and survive into the new one.
+    resetTouchedProblems(request.roundKey);
+    sendResponse({ received: true });
+    return false;
+  }
+
+  if (request.type === 'PROBLEM_TOUCHED') {
+    markProblemTouched(request.slug);
+    sendResponse({ received: true });
+    return false;
   }
 
   // submission intercept logic
