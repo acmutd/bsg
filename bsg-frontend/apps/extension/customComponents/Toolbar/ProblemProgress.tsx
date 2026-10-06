@@ -53,18 +53,28 @@ export const ProblemProgress = () => {
     }, [userId, roundDetails]);
 
     // The tab's URL lives outside React, so subscribe rather than sample once.
+    // onUpdated covers in-tab navigations, onActivated covers Ctrl+Tab /
+    // tab-click switches where the URL changes without an update event.
     const [currSlug, setCurrSlug] = useState<string | null>(null);
     useEffect(() => {
-        if (typeof chrome === 'undefined' || !chrome.tabs) return;
+        if (typeof chrome === 'undefined' || !chrome.tabs?.query) return;
 
         const sync = (url: string | undefined) => setCurrSlug(url ? parseProblemSlug(url) : null);
-        chrome.tabs.query({ active: true, currentWindow: true }, tabs => sync(tabs[0]?.url));
+        const syncActive = () => {
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => sync(tabs[0]?.url));
+        };
+        syncActive();
 
         const handleUpdated = (_id: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
             if (change.url && tab.active) sync(change.url);
         };
+        const handleActivated = () => syncActive();
         chrome.tabs.onUpdated.addListener(handleUpdated);
-        return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
+        chrome.tabs.onActivated?.addListener(handleActivated);
+        return () => {
+            chrome.tabs.onUpdated.removeListener(handleUpdated);
+            chrome.tabs.onActivated?.removeListener(handleActivated);
+        };
     }, []);
 
     // Active outranks touched, so a problem goes yellow only once the user moves
