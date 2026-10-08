@@ -3,6 +3,8 @@ import { TabName } from '@bsg/models/TabName';
 import { User } from '@bsg/models/User';
 import { GameEvent } from '@bsg/models/GameEvent';
 
+type RoomHeaderTab = Exclude<TabName, 'settings'>;
+
 interface roomStoreState {
   isInRoom: boolean;
   roomId: string | null;
@@ -13,6 +15,7 @@ interface roomStoreState {
   participants: User[];
   activeTab: TabName;
   previousTab: Exclude<TabName, 'settings'>;
+  tabOrder: RoomHeaderTab[];
   isRoundStarted: boolean;
   roundEndTime: number | null;
   roundDuration: number | null;
@@ -32,6 +35,7 @@ interface roomStoreState {
   setRoomCode: (roomCode: string | null) => void;
   setParticipants: (participants: User[]) => void;
   setActiveTab: (activeTab: TabName) => void;
+  setTabOrder: (tabOrder: RoomHeaderTab[]) => void;
   setIsRoundStarted: (isRoundStarted: boolean) => void;
   setRoundEndTime: (roundEndTime: number | null) => void;
   setRoundDuration: (roundDuration: number | null) => void;
@@ -59,6 +63,7 @@ const roomStoreInit = {
   participants: [],
   activeTab: 'chat' as TabName,
   previousTab: 'chat' as Exclude<TabName, 'settings'>,
+  tabOrder: ['roomInfo', 'chat', 'leaderboard', 'statistics'] as RoomHeaderTab[],
   isRoundStarted: false,
   roundEndTime: null,
   roundDuration: null,
@@ -86,6 +91,7 @@ export const useRoomStore = create<roomStoreState>((set) => ({
       ? (state.activeTab === 'settings' ? state.previousTab : state.activeTab)
       : state.previousTab,
   })),
+  setTabOrder: (tabOrder) => set({ tabOrder }),
   setIsRoundStarted: (isRoundStarted) => set({ isRoundStarted: isRoundStarted }),
   setRoundEndTime: (roundEndTime) => set({ roundEndTime: roundEndTime }),
   setRoundDuration: (roundDuration) => set({ roundDuration: roundDuration }),
