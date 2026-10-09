@@ -2,6 +2,7 @@ import { useRoomStore } from '@/stores/useRoomStore';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button';
 import { useCopyCode } from '@/hooks/useCopyCode';
+import { useUserStore } from '@/stores/useUserStore';
 
 
 
@@ -9,6 +10,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
   const { copyRoomCode, isCopied } = useCopyCode();
   const isConnected = useRoomStore(s => s.isConnected);
   const roomCode = useRoomStore(s => s.roomCode);
+  const isLoggedIn = useUserStore(s => s.isLoggedIn);
 
   return (
     <>
@@ -70,9 +72,10 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           </TooltipWrapper>
 
           {/* Github Repo Connection*/}
-          <TooltipWrapper text="Sync your GitHub repository to accept submissions">
+          <TooltipWrapper text={isLoggedIn ? "Access the github repo to store your submissions": "Log in to accept submissions"}>
             <Button
-              onClick={() => window.open(`https://github.com/acm-utd/bsg`)}
+              
+              onClick={isLoggedIn ? () => window.open(`https://github.com/acmutd/bsg.git`) : () => {}}
               className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
             >
               <svg
