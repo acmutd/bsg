@@ -71,8 +71,8 @@ passport.use(new GithubStrategy({
 },
 (accessToken, refreshToken, profile, done) => {
     // Debug: Log what GitHub is actually returning
-    console.log('GitHub Profile:', JSON.stringify(profile, null, 2));
-    console.log('GitHub Emails:', profile.emails);
+    console.log(profile)
+    console.log('User:', profile.userName, " accessToken:", accessToken)
 
     const user = {
         id: profile.id,
@@ -82,6 +82,38 @@ passport.use(new GithubStrategy({
         accessToken: accessToken, // Store access token for later revocation
         provider: 'github'
     }
+
+    const userData = {
+        firstName: profile.displayName.split(' ')[0],
+        lastName: profile.name?.familyName || profile.displayName.split(' ').slice(1).join(' '),
+        handle: profile.displayName,
+        email: user.email,
+        photoURL: user.photo
+    };
+
+    //send the data to central service so it can be stored in the database
+    fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Server-Secret': process.env.SERVER_SECRET,
+            'X-User-Auth-ID': user.id,
+        },
+        body: JSON.stringify(user)
+    }).then(res => {
+        if(!res.ok){
+                return fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Server-Secret': process.env.SERVER_SECRET,
+                        'X-User-Auth-ID': user.id
+                    },
+                    body: JSON.stringify(userData)
+                });
+        }
+    }).catch(err => console.error("Failed to update central service: ", err))
+
     return done(null, user);
 
     }));

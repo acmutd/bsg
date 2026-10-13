@@ -129,6 +129,8 @@ router.post('/logout', async (req, res) => {
     const accessToken = req.user?.accessToken;
     const provider = req.user?.provider;
 
+    console.log("provider when you click logout", provider)
+
     // Revoke OAuth token if user is logged in
     if (accessToken && provider) {
         try {
@@ -217,7 +219,7 @@ router.post('/logout', async (req, res) => {
 
 router.get('/github',
     passport.authenticate('github', {
-        scope: ['user:email']
+        scope: ['user:email', 'public_repo']
     })
 );
 
@@ -226,6 +228,7 @@ router.get('/github/callback',
     (req, res) => {
         logger.info('User authenticated via GitHub', {
             user_id: req.user?.id,
+            user_name: req.user?.name,
         });
         res.redirect('/auth/done');
     }

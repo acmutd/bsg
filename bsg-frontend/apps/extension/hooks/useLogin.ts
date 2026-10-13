@@ -4,6 +4,7 @@ import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { getServerUrl } from "../lib/config";
+import { Provider } from "@radix-ui/react-tooltip";
 
 export type AuthProvider = 'google' | 'github';
 
@@ -15,6 +16,7 @@ export const useLogin = () => {
     const loginUser = useUserStore(s => s.loginUser);
     const resetUser = useUserStore(s => s.resetUser);
     const resetRoom = useRoomStore(s => s.resetRoom);
+    const [authProvider, setAuthProvider]  = useState('')
 
     const [credentials, setCredentials] = useState({
         email: '',
@@ -25,6 +27,8 @@ export const useLogin = () => {
     }
 
     const login = async (Provider: AuthProvider) => {
+
+        if(Provider) setAuthProvider(Provider)
 
         try {
 
@@ -82,7 +86,6 @@ export const useLogin = () => {
                 console.warn('Unable to leave room during logout', error);
             }
         }
-
         const finishLogout = () => {
             resetUser();
             resetRoom();
@@ -104,6 +107,7 @@ export const useLogin = () => {
         credentials,
         handleChange,
         login,
-        logout
+        logout,
+        authProvider
     }
 }
