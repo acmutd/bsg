@@ -2,6 +2,8 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const loggingModule = require('../middleware/logging');
+const { revokeGithubToken } = require('../config/github');
+const { deleteStoredGithubToken } = require('../config/redis');
 
 const logger = new loggingModule.StructuredLogger('auth-server');
 
@@ -129,27 +131,16 @@ router.post('/logout', async (req, res) => {
     const accessToken = req.user?.accessToken;
     const provider = req.user?.provider;
 
-    console.log("provider when you click logout", provider)
-
     // Revoke OAuth token if user is logged in
     if (accessToken && provider) {
         try {
             if (provider === 'github') {
-                const credentials = Buffer.from(`${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`).toString('base64');
-
-                const response = await fetch(`https://api.github.com/applications/${process.env.GITHUB_CLIENT_ID}/token`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Basic ${credentials}`,
-                        'Accept': 'application/vnd.github+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        access_token: accessToken
-                    })
-                });
+                const response = await revokeGithubToken(accessToken);
 
                 if (response.ok) {
+                    // nothing left for the next login to clean up
+                    await deleteStoredGithubToken(req.user.id);
+
                     logger.info("GitHub token revoked", {
                         provider: 'github',
                         user_id: req.user?.id,

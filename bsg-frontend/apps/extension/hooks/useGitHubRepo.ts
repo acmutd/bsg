@@ -10,7 +10,9 @@ export default function GithubSubmission(){
         const CheckRepoExist = async() => {
             const response = await fetch(`https://api.github.com/`, {
                 method:'GET',
-                headers: { }
+                headers: { 
+                    
+                }
             })
 
         }

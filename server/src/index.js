@@ -19,49 +19,8 @@ const port = 3000;
 // Initialize logger
 const logger = new loggingModule.StructuredLogger('auth-server');
 
+const { connectToRedis, redisClient } = require('./config/redis');
 
-
-//redis imports
-const Redis = require('redis'); 
-
-//RedisStore is a class constructor that helps us to connect
-//express and redis server together
-const { RedisStore } = require('connect-redis')
-                                                        
-                
-//connect to the server
-const Redisclient = Redis.createClient({
-    url: `redis://:${process.env.REDIS_PASSWORD}@redis-cache:6379`
-});
-
-
-async function connectToRedis () {
-
-    try{
-        //connect to the server
-        await Redisclient.connect();
-
-        if(Redisclient.isReady){
-
-            //redis objects to store express-session data 
-            const store = new RedisStore({ client: Redisclient })
-        
-
-            return store
-        } else {
-            console.error("Redis client connected but is not ready. Failing startup.");
-            throw new Error("Redis client is not ready after connect");
-        }
-        
-    }catch(error){
-
-    //callback error message if not connected
-    console.warn("Redis Client Connection Failed")
-    throw error
-
-    }
-
-}
 
 //create a wrapper async function to deal with the connectRedis() function
 //since connectToRedis is async we need to wait until its done then initialize
@@ -71,10 +30,6 @@ async function startServer() {
 
     //the app waits for this to run and only then it works with the middleware
     const storeObj = await connectToRedis();
-
-    //Implement later in memory storage on the express.js server or dynamo DB if the redis server
-    //might crash or break
-
 
     //Important Middleware
     // TLS terminates at Caddy/Cloudflare in front of us; trust the proxy's
@@ -92,14 +47,14 @@ async function startServer() {
     // when more than one replica is running.
     // skipFailedRequests stays off: refunding 4xx would exempt failed logins
     // from the auth limiter, which is the traffic it most needs to catch.
-    const authRateLimit = createRateLimitMiddleware(Redisclient, {
+    const authRateLimit = createRateLimitMiddleware(redisClient, {
         burstSize: 120,
         windowSeconds: 60,
         keyPrefix: 'ratelimit:auth:',
         skipFailedRequests: false,
         logger
     });
-    const globalRateLimit = createRateLimitMiddleware(Redisclient, {
+    const globalRateLimit = createRateLimitMiddleware(redisClient, {
         burstSize: 600,
         windowSeconds: 60,
         keyPrefix: 'ratelimit:global:',
@@ -119,6 +74,7 @@ async function startServer() {
             secure: isProduction, // HTTPS-only in production (behind Caddy/Cloudflare)
             sameSite: 'lax'
         },
+        rolling:true,
     }));
 
     //Init Passport
@@ -149,7 +105,7 @@ async function startServer() {
     app.get('/health', async (req, res) => {
         try {
             // check Redis status
-            const redisStatus = Redisclient.isReady ? 'ok' : 'not ready';
+            const redisStatus = redisClient.isReady ? 'ok' : 'not ready';
 
             res.status(200).json({
                 status: 'ok',

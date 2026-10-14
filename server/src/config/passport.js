@@ -1,6 +1,8 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GithubStrategy = require('passport-github2').Strategy;
+const { revokeGithubToken } = require('./github');
+const { getStoredGithubToken, saveGithubToken } = require('./redis');
 
 
 passport.serializeUser((user, done) => {
@@ -69,11 +71,7 @@ passport.use(new GithubStrategy({
     clientSecret:process.env.GITHUB_CLIENT_SECRET,
     callbackURL: `${process.env.SERVER_URL}/auth/github/callback`
 },
-(accessToken, refreshToken, profile, done) => {
-    // Debug: Log what GitHub is actually returning
-    console.log(profile)
-    console.log('User:', profile.userName, " accessToken:", accessToken)
-
+async (accessToken, refreshToken, profile, done) => {
     const user = {
         id: profile.id,
         name: profile.displayName || profile.username,
@@ -113,6 +111,18 @@ passport.use(new GithubStrategy({
                 });
         }
     }).catch(err => console.error("Failed to update central service: ", err))
+
+    // revoke this user's previously stored token (if it differs from accessToken),
+    // then save accessToken as the new stored token
+    try {
+        const previousGithubToken = await getStoredGithubToken(user.id)
+        if(previousGithubToken && previousGithubToken !== accessToken) await revokeGithubToken(previousGithubToken)
+        await saveGithubToken(user.id, accessToken)
+    }
+    catch(error){
+        console.log("Failed to check redis for the previous token failed")
+    }
+
 
     return done(null, user);
 
