@@ -3,7 +3,7 @@ const passport = require('passport');
 const router = express.Router();
 const loggingModule = require('../middleware/logging');
 const { revokeGithubToken } = require('../config/github');
-const { deleteStoredGithubToken } = require('../config/redis');
+const { deleteStoredGithubToken, saveGithubRepoLink, getGithubRepoLink } = require('../config/redis');
 
 const logger = new loggingModule.StructuredLogger('auth-server');
 
@@ -210,8 +210,51 @@ router.post('/logout', async (req, res) => {
 
 router.get('/github',
     passport.authenticate('github', {
-        scope: ['user:email', 'public_repo']
+        scope: ['user:email']
     })
+);
+
+// footer button: asks for repo access and links it to the logged in user (google or github)
+router.get('/github/connect', (req, res, next) => {
+    if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).send('Log in to BSG before connecting GitHub');
+    }
+    passport.authorize('github-connect', { scope: ['public_repo'] })(req, res, next);
+});
+
+// lets the footer button show whether a submissions repo is linked; the token never leaves the server
+router.get('/github/connect/status', async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+        const link = await getGithubRepoLink(req.user.id);
+        return res.json({ connected: !!link, username: link?.username ?? null });
+    } catch (error) {
+        logger.error('Failed to read GitHub repo link', error, {
+            user_id: req.user.id,
+        });
+        return res.status(500).json({ error: 'Failed to check GitHub connection' });
+    }
+});
+
+router.get('/github/callback/connect',
+    passport.authorize('github-connect', { failureRedirect: '/' }),
+    async (req, res) => {
+        try {
+            // authorize leaves req.user alone and puts the github result in req.account
+            await saveGithubRepoLink(req.user.id, req.account);
+            logger.info('GitHub repo connected', {
+                user_id: req.user.id,
+                github_user: req.account.username,
+            });
+        } catch (error) {
+            logger.error('Failed to save GitHub repo link', error, {
+                user_id: req.user?.id,
+            });
+        }
+        res.redirect('/auth/done');
+    }
 );
 
 router.get('/github/callback', 

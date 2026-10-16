@@ -1,7 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GithubStrategy = require('passport-github2').Strategy;
-const { revokeGithubToken } = require('./github');
+const { revokeGithubToken, createSubmissionRepo } = require('./github');
 const { getStoredGithubToken, saveGithubToken } = require('./redis');
 
 
@@ -127,6 +127,23 @@ async (accessToken, refreshToken, profile, done) => {
     return done(null, user);
 
     }));
+
+// used with passport.authorize from the footer button, so it links a repo to whoever is
+// logged in (google or github) without replacing their session user
+passport.use('github-connect', new GithubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    // must be under the registered callback URL, GitHub accepts sub-paths of it
+    callbackURL: `${process.env.SERVER_URL}/auth/github/callback/connect`
+},
+async (accessToken, refreshToken, profile, done) => {
+    try {
+        await createSubmissionRepo(accessToken);
+        return done(null, { token: accessToken, username: profile.username });
+    } catch (error) {
+        return done(error);
+    }
+}));
 
 
 

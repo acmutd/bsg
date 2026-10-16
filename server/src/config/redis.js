@@ -45,10 +45,23 @@ async function deleteStoredGithubToken(userId) {
     return redisClient.del(`gh_token:${userId}`);
 }
 
+// the repo-scoped token from the footer's connect button, kept separate from the login
+// token so logging out or logging in again doesn't unlink the submissions repo
+async function getGithubRepoLink(userId) {
+    const link = await redisClient.get(`gh_repo:${userId}`);
+    return link ? JSON.parse(link) : null;
+}
+
+async function saveGithubRepoLink(userId, link) {
+    return redisClient.set(`gh_repo:${userId}`, JSON.stringify(link));
+}
+
 module.exports = {
     redisClient,
     connectToRedis,
     getStoredGithubToken,
     saveGithubToken,
-    deleteStoredGithubToken
+    deleteStoredGithubToken,
+    getGithubRepoLink,
+    saveGithubRepoLink
 };
