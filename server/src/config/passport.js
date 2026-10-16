@@ -1,6 +1,8 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GithubStrategy = require('passport-github2').Strategy;
+const { revokeGithubToken, createSubmissionRepo } = require('./github');
+const { getStoredGithubToken, saveGithubToken } = require('./redis');
 
 
 passport.serializeUser((user, done) => {
@@ -69,11 +71,7 @@ passport.use(new GithubStrategy({
     clientSecret:process.env.GITHUB_CLIENT_SECRET,
     callbackURL: `${process.env.SERVER_URL}/auth/github/callback`
 },
-(accessToken, refreshToken, profile, done) => {
-    // Debug: Log what GitHub is actually returning
-    console.log('GitHub Profile:', JSON.stringify(profile, null, 2));
-    console.log('GitHub Emails:', profile.emails);
-
+async (accessToken, refreshToken, profile, done) => {
     const user = {
         id: profile.id,
         name: profile.displayName || profile.username,
@@ -82,9 +80,70 @@ passport.use(new GithubStrategy({
         accessToken: accessToken, // Store access token for later revocation
         provider: 'github'
     }
+
+    const userData = {
+        firstName: profile.displayName.split(' ')[0],
+        lastName: profile.name?.familyName || profile.displayName.split(' ').slice(1).join(' '),
+        handle: profile.displayName,
+        email: user.email,
+        photoURL: user.photo
+    };
+
+    //send the data to central service so it can be stored in the database
+    fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Server-Secret': process.env.SERVER_SECRET,
+            'X-User-Auth-ID': user.id,
+        },
+        body: JSON.stringify(user)
+    }).then(res => {
+        if(!res.ok){
+                return fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Server-Secret': process.env.SERVER_SECRET,
+                        'X-User-Auth-ID': user.id
+                    },
+                    body: JSON.stringify(userData)
+                });
+        }
+    }).catch(err => console.error("Failed to update central service: ", err))
+
+    // revoke this user's previously stored token (if it differs from accessToken),
+    // then save accessToken as the new stored token
+    try {
+        const previousGithubToken = await getStoredGithubToken(user.id)
+        if(previousGithubToken && previousGithubToken !== accessToken) await revokeGithubToken(previousGithubToken)
+        await saveGithubToken(user.id, accessToken)
+    }
+    catch(error){
+        console.log("Failed to check redis for the previous token failed")
+    }
+
+
     return done(null, user);
 
     }));
+
+// used with passport.authorize from the footer button, so it links a repo to whoever is
+// logged in (google or github) without replacing their session user
+passport.use('github-connect', new GithubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    // must be under the registered callback URL, GitHub accepts sub-paths of it
+    callbackURL: `${process.env.SERVER_URL}/auth/github/callback/connect`
+},
+async (accessToken, refreshToken, profile, done) => {
+    try {
+        await createSubmissionRepo(accessToken);
+        return done(null, { token: accessToken, username: profile.username });
+    } catch (error) {
+        return done(error);
+    }
+}));
 
 
 
