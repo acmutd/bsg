@@ -3,6 +3,7 @@ import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button';
 import { useCopyCode } from '@/hooks/useCopyCode';
 import { useUserStore } from '@/stores/useUserStore';
+import { useGitHubConnection } from '@/hooks/useGitHubConnection';
 
 
 
@@ -11,6 +12,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
   const isConnected = useRoomStore(s => s.isConnected);
   const roomCode = useRoomStore(s => s.roomCode);
   const isLoggedIn = useUserStore(s => s.isLoggedIn);
+  const github = useGitHubConnection();
 
   return (
     <>
@@ -72,11 +74,11 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           </TooltipWrapper>
 
           {/* Github Repo Connection*/}
-          <TooltipWrapper text={isLoggedIn ? "Access the github repo to store your submissions": "Log in to accept submissions"}>
+          <TooltipWrapper text={!isLoggedIn ? "First log in to access the GitHub repo to store your submissions" : github.connected ? `Submissions saved to ${github.username}/BSG-Submissions` : "Connect GitHub to store your submissions in a repo"}>
             <Button
-              
-              onClick={isLoggedIn ? () => window.open(`https://github.com/acmutd/bsg.git`) : () => {}}
-              className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+
+              onClick={!isLoggedIn ? () => {} : github.connected ? () => window.open(`https://github.com/${github.username}/BSG-Submissions`) : github.connect}
+              className={`rounded-lg p-0 h-7 w-7 flex items-center justify-center bg-transparent hover:bg-[#484848] ${github.connected ? 'text-green-500' : 'text-foreground/60'}`}
             >
               <svg
                 className="w-4 h-4"
