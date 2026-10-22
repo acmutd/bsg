@@ -145,6 +145,21 @@ export function useRoomEvents() {
                 chrome.storage.local.set({ roundEndTime: endTime });
             }
 
+            // Touched problems are scoped to one round, so a new round starts empty.
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                // startTime, not endTime: the server sends it, so it is identical
+                // on every replay, while endTime is recomputed from Date.now().
+                // The worker needs it to tell a real new round from a replayed one.
+                // Scoped by roomId so the same startTime/problems in another room
+                // (or a repeated round with identical problems) can't collide.
+                // The deterministic legacy fallback is safe because round-end
+                // stores a unique `ended` key, so the next round always differs.
+                const roundKey = data?.startTime
+                    ? `${roomId}|${String(data.startTime)}`
+                    : `${roomId}|legacy|${problems.join('|') || 'round'}`;
+                chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey }).catch(() => {});
+            }
+
             // Clear stale nextProblem state
             setNextProblem(null);
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -220,6 +235,11 @@ export function useRoomEvents() {
                 chrome.storage.local.remove('roundEndTime');
                 chrome.storage.local.remove('problems');
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
+            }
+            // Clear touched state with a unique key so a following round with
+            // identical problems still differs and triggers a real reset.
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey: `${roomId}|ended|${Date.now()}` }).catch(() => {});
             }
             setActiveTab('leaderboard')
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -325,6 +345,9 @@ export function useRoomEvents() {
                     chrome.storage.local.remove('roundEndTime');
                     chrome.storage.local.remove("lastGameEvent");
                     chrome.storage.local.remove("problems");
+                }
+                if (typeof chrome !== 'undefined' && chrome.runtime) {
+                    chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey: `${roomId}|left|${Date.now()}` }).catch(() => {});
                 }
                 setResetRoom();
                 router.push('/start-page')
