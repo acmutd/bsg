@@ -16,7 +16,9 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL || 'https://api.binarysearchgang.com'}/auth/google/callback`
+    callbackURL: `${process.env.SERVER_URL || 'https://api.binarysearchgang.com'}/auth/google/callback`,
+    // bind the callback code to the session that started it (login CSRF)
+    state: true
 },
     (accessToken, refreshToken, profile, done) => {
         const user = {
@@ -39,7 +41,8 @@ passport.use(new GoogleStrategy({
             photoURL: user.photo
         };
 
-        fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+        const centralServiceUrl = process.env.CENTRAL_SERVICE_URL || 'http://central-service:5000';
+        fetch(`${centralServiceUrl}/api/users/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -50,7 +53,7 @@ passport.use(new GoogleStrategy({
         }).then(res => {
             if (!res.ok) {
                 // if post fails, try put to update
-                return fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+                return fetch(`${centralServiceUrl}/api/users/`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -69,38 +72,46 @@ passport.use(new GoogleStrategy({
 passport.use(new GithubStrategy({
     clientID:process.env.GITHUB_CLIENT_ID,
     clientSecret:process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL}/auth/github/callback`
+    callbackURL: `${process.env.SERVER_URL}/auth/github/callback`,
+    // bind the callback code to the session that started it (login CSRF)
+    state: true
 },
 async (accessToken, refreshToken, profile, done) => {
-    const user = {
-        id: profile.id,
-        name: profile.displayName || profile.username,
-        email: profile.emails?.[0]?.value || profile.email,
-        photo: profile.photos?.[0]?.value,
-        accessToken: accessToken, // Store access token for later revocation
-        provider: 'github'
-    }
+    // any throw before done() would leave the login request hanging forever
+    try {
+        const user = {
+            id: profile.id,
+            name: profile.displayName || profile.username,
+            email: profile.emails?.[0]?.value,
+            photo: profile.photos?.[0]?.value,
+            accessToken: accessToken, // Store access token for later revocation
+            provider: 'github'
+        }
 
-    const userData = {
-        firstName: profile.displayName.split(' ')[0],
-        lastName: profile.name?.familyName || profile.displayName.split(' ').slice(1).join(' '),
-        handle: profile.displayName,
-        email: user.email,
-        photoURL: user.photo
-    };
+        // displayName is null when the user never set a name on GitHub
+        const displayName = user.name;
+        const userData = {
+            firstName: displayName.split(' ')[0],
+            lastName: displayName.split(' ').slice(1).join(' '),
+            handle: displayName,
+            email: user.email,
+            photoURL: user.photo
+        };
 
-    //send the data to central service so it can be stored in the database
-    fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Server-Secret': process.env.SERVER_SECRET,
-            'X-User-Auth-ID': user.id,
-        },
-        body: JSON.stringify(user)
-    }).then(res => {
-        if(!res.ok){
-                return fetch(`${process.env.CENTRAL_SERVICE_URL}/api/users/`, {
+        const centralServiceUrl = process.env.CENTRAL_SERVICE_URL || 'http://central-service:5000';
+        //send the data to central service so it can be stored in the database
+        fetch(`${centralServiceUrl}/api/users/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Server-Secret': process.env.SERVER_SECRET,
+                'X-User-Auth-ID': user.id,
+            },
+            body: JSON.stringify(userData)
+        }).then(res => {
+            if (!res.ok) {
+                // if post fails, try put to update
+                return fetch(`${centralServiceUrl}/api/users/`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -109,23 +120,24 @@ async (accessToken, refreshToken, profile, done) => {
                     },
                     body: JSON.stringify(userData)
                 });
+            }
+        }).catch(err => console.error("Failed to update central service: ", err))
+
+        // revoke this user's previously stored token (if it differs from accessToken),
+        // then save accessToken as the new stored token
+        try {
+            const previousGithubToken = await getStoredGithubToken(user.id)
+            if(previousGithubToken && previousGithubToken !== accessToken) await revokeGithubToken(previousGithubToken)
+            await saveGithubToken(user.id, accessToken)
         }
-    }).catch(err => console.error("Failed to update central service: ", err))
+        catch(error){
+            console.error('Failed to sync GitHub token in redis', error);
+        }
 
-    // revoke this user's previously stored token (if it differs from accessToken),
-    // then save accessToken as the new stored token
-    try {
-        const previousGithubToken = await getStoredGithubToken(user.id)
-        if(previousGithubToken && previousGithubToken !== accessToken) await revokeGithubToken(previousGithubToken)
-        await saveGithubToken(user.id, accessToken)
+        return done(null, user);
+    } catch (error) {
+        return done(error);
     }
-    catch(error){
-        console.log("Failed to check redis for the previous token failed")
-    }
-
-
-    return done(null, user);
-
     }));
 
 // used with passport.authorize from the footer button, so it links a repo to whoever is
@@ -134,7 +146,13 @@ passport.use('github-connect', new GithubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
     // must be under the registered callback URL, GitHub accepts sub-paths of it
-    callbackURL: `${process.env.SERVER_URL}/auth/github/callback/connect`
+    callbackURL: `${process.env.SERVER_URL}/auth/github/callback/connect`,
+    // bind the callback code to the session that started it (connect CSRF:
+    // otherwise an attacker's ?code= could link their repo to a victim's session).
+    // sessionKey must differ from the login strategy: both default to
+    // oauth2:github.com, which would let the two flows clobber each other's state.
+    state: true,
+    sessionKey: 'oauth2:github.com:connect'
 },
 async (accessToken, refreshToken, profile, done) => {
     try {

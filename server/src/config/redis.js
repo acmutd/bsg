@@ -5,6 +5,12 @@ const redisClient = redis.createClient({
     url: `redis://:${process.env.REDIS_PASSWORD}@redis-cache:6379`
 });
 
+// node-redis emits 'error' on socket drops; without a listener the
+// EventEmitter rethrows and takes the whole process down
+redisClient.on('error', (err) => {
+    console.error('Redis Client Error', err);
+});
+
 
 async function connectToRedis () {
 
