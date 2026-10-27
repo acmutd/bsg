@@ -45,8 +45,22 @@ func (service *UserService) GenerateAuthToken(request *http.Request) (*auth.Toke
 	return authClient.VerifyIDToken(context.Background(), authToken)
 }
 
-// Create a user and persist their information in the DB
+// Create a user and persist their information in the DB.
+// Upserts on authID: AuthID has no unique constraint, so a plain Create would
+// insert another duplicate row on every login (the passport sync POSTs here on
+// each Google/GitHub login, and the old INSERT-only behaviour never failed).
 func (service *UserService) CreateUser(authID string, userData *UserModifiableData) (*models.User, error) {
+	existing, err := service.FindUserByAuthID(authID)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		result := service.db.Model(existing).Updates(userData)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		return existing, nil
+	}
 	newUser := models.User{
 		FirstName: userData.FirstName,
 		LastName:  userData.LastName,

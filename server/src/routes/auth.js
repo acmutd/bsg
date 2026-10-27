@@ -2,6 +2,8 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const loggingModule = require('../middleware/logging');
+const { revokeGithubToken } = require('../config/github');
+const { deleteStoredGithubToken, saveGithubRepoLink, getGithubRepoLink } = require('../config/redis');
 
 const logger = new loggingModule.StructuredLogger('auth-server');
 
@@ -25,6 +27,60 @@ router.get('/google/callback',
 
 
 router.get('/done',(req, res) => {
+    if (req.query.error) {
+        return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Failed - BSG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e2e2e2;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; }
+        p { font-size: 0.85rem; color: rgba(226,226,226,0.5); line-height: 1.5; }
+        .x {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: rgba(255,80,80,0.15);
+            border: 2px solid #e05252;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1rem;
+        }
+        .x svg { width: 24px; height: 24px; stroke: #e05252; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="x">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </div>
+        <h1>Connection failed</h1>
+        <p>We couldn't link your GitHub submissions repo. Close this tab and try again from LeetCode.</p>
+    </div>
+    <script>setTimeout(function(){ window.close(); }, 5000);</script>
+</body>
+</html>`);
+    }
     res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -133,21 +189,12 @@ router.post('/logout', async (req, res) => {
     if (accessToken && provider) {
         try {
             if (provider === 'github') {
-                const credentials = Buffer.from(`${process.env.GITHUB_CLIENT_ID}:${process.env.GITHUB_CLIENT_SECRET}`).toString('base64');
-
-                const response = await fetch(`https://api.github.com/applications/${process.env.GITHUB_CLIENT_ID}/token`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Basic ${credentials}`,
-                        'Accept': 'application/vnd.github+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        access_token: accessToken
-                    })
-                });
+                const response = await revokeGithubToken(accessToken);
 
                 if (response.ok) {
+                    // nothing left for the next login to clean up
+                    await deleteStoredGithubToken(req.user.id);
+
                     logger.info("GitHub token revoked", {
                         provider: 'github',
                         user_id: req.user?.id,
@@ -221,11 +268,71 @@ router.get('/github',
     })
 );
 
+// footer button: asks for repo access and links it to the logged in user (google or github)
+router.get('/github/connect', (req, res, next) => {
+    if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).send('Log in to BSG before connecting GitHub');
+    }
+    passport.authorize('github-connect', { scope: ['public_repo'] })(req, res, next);
+});
+
+// lets the footer button show whether a submissions repo is linked; the token never leaves the server
+router.get('/github/connect/status', async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+        const link = await getGithubRepoLink(req.user.id);
+        return res.json({ connected: !!link, username: link?.username ?? null });
+    } catch (error) {
+        logger.error('Failed to read GitHub repo link', error, {
+            user_id: req.user.id,
+        });
+        return res.status(500).json({ error: 'Failed to check GitHub connection' });
+    }
+});
+
+router.get('/github/callback/connect',
+    passport.authorize('github-connect', { failureRedirect: '/auth/done?error=github_connect' }),
+    async (req, res) => {
+        // authorize succeeds without a session, so the cookie can be gone by the
+        // time we land here (expired/cleared) - never report success in that case
+        if (!req.isAuthenticated() || !req.user || !req.account) {
+            if (req.account?.token) {
+                revokeGithubToken(req.account.token)
+                    .catch(err => logger.error('Failed to revoke orphaned connect token', err, {}));
+            }
+            logger.warn('GitHub connect finished without an authenticated session', {
+                github_user: req.account?.username,
+            });
+            return res.redirect('/auth/done?error=github_connect');
+        }
+        try {
+            // authorize leaves req.user alone and puts the github result in req.account
+            await saveGithubRepoLink(req.user.id, req.account);
+            logger.info('GitHub repo connected', {
+                user_id: req.user.id,
+                github_user: req.account.username,
+            });
+            return res.redirect('/auth/done');
+        } catch (error) {
+            logger.error('Failed to save GitHub repo link', error, {
+                user_id: req.user?.id,
+            });
+            // the link isn't stored, so the token would dangle forever
+            revokeGithubToken(req.account.token)
+                .catch(err => logger.error('Failed to revoke orphaned connect token', err, {}));
+            return res.redirect('/auth/done?error=github_connect');
+        }
+    }
+);
+
 router.get('/github/callback', 
     passport.authenticate('github', {failureRedirect: '/'}),
     (req, res) => {
         logger.info('User authenticated via GitHub', {
             user_id: req.user?.id,
+            user_name: req.user?.name,
         });
         res.redirect('/auth/done');
     }
