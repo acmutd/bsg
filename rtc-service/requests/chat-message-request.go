@@ -69,19 +69,17 @@ func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, 
 		return r.responseType(), "", r.RoomID, errors.New("user doesn't exist in the room")
 	}
 
+	// The room's filter is set by its creator, so clients can't opt out.
+	if room.ProfanityFilterEnabled() && profanity.Contains(r.Message) {
+		return r.responseType(), "", r.RoomID, errors.New("Message not sent: it contains profanity.")
+	}
+
 	// Return data as JSON so response handler can parse it easily
-	responseData := struct {
-		UserHandle        string `json:"userHandle"`
-		UserName          string `json:"userName"`
-		UserPhoto         string `json:"userPhoto"`
-		Message           string `json:"message"`
-		ContainsProfanity bool   `json:"containsProfanity"`
-	}{
-		UserHandle:        r.UserHandle,
-		UserName:          r.UserName,
-		UserPhoto:         r.UserPhoto,
-		Message:           r.Message,
-		ContainsProfanity: profanity.Contains(r.Message),
+	responseData := map[string]string{
+		"userHandle": r.UserHandle,
+		"userName":   r.UserName,
+		"userPhoto":  r.UserPhoto,
+		"message":    r.Message,
 	}
 	jsonBytes, _ := json.Marshal(responseData)
 

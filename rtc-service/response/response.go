@@ -30,12 +30,11 @@ type Response struct {
 //
 // Since system-announcements are sent to a specific room.
 type responseMessage struct {
-	RoomID            string `json:"roomID"` // Field is empty if the response is any other type.
-	Data              string `json:"data"`
-	UserHandle        string `json:"userHandle"` // Field is empty if response isn't chat_message
-	UserName          string `json:"userName"`
-	UserPhoto         string `json:"userPhoto"`
-	ContainsProfanity bool   `json:"containsProfanity"`
+	RoomID     string `json:"roomID"` // Field is empty if the response is any other type.
+	Data       string `json:"data"`
+	UserHandle string `json:"userHandle"` // Field is empty if response isn't chat_message
+	UserName   string `json:"userName"`
+	UserPhoto  string `json:"userPhoto"`
 }
 
 // NewErrorResponse creates a new error response.
@@ -60,24 +59,16 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 	userName := ""
 	userPhoto := ""
 	data := message
-	containsProfanity := false
 
 	if responseType == CHAT_MESSAGE && message != "" {
 		// Try to unmarshal JSON first
-		var chatData struct {
-			UserHandle        string `json:"userHandle"`
-			UserName          string `json:"userName"`
-			UserPhoto         string `json:"userPhoto"`
-			Message           string `json:"message"`
-			ContainsProfanity bool   `json:"containsProfanity"`
-		}
+		var chatData map[string]string
 		err := json.Unmarshal([]byte(message), &chatData)
 		if err == nil {
-			userHandle = chatData.UserHandle
-			userName = chatData.UserName
-			userPhoto = chatData.UserPhoto
-			data = chatData.Message
-			containsProfanity = chatData.ContainsProfanity
+			userHandle = chatData["userHandle"]
+			userName = chatData["userName"]
+			userPhoto = chatData["userPhoto"]
+			data = chatData["message"]
 		} else {
 			// Fallback to old format for compatibility if needed
 			parts := strings.Split(message, " - ")
@@ -89,11 +80,10 @@ func NewOkResponse(responseType ResponseType, message string, roomID string) *Re
 	}
 
 	respMessage := responseMessage{
-		Data:              data,
-		UserHandle:        userHandle,
-		UserName:          userName,
-		UserPhoto:         userPhoto,
-		ContainsProfanity: containsProfanity,
+		Data:       data,
+		UserHandle: userHandle,
+		UserName:   userName,
+		UserPhoto:  userPhoto,
 	}
 
 	if responseType == SYSTEM_ANNOUNCEMENT || responseType == CHAT_MESSAGE || responseType == ADMIN_CHANGE || responseType == ROUND_JOIN || responseType == ROUND_START || responseType == USER_JOINED || responseType == USER_LEFT {

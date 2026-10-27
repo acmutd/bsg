@@ -4,6 +4,7 @@ import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useRoomEvents, parseProblemSlug, problemUrl } from '@/hooks/useRoomEvents';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { ProblemProgress } from '@/customComponents/Toolbar/ProblemProgress';
 
 export const Toolbar = () => {
 
@@ -51,7 +52,8 @@ export const Toolbar = () => {
 
 
     return (
-        <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0">
+        <>
+        <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0 shrink-0">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
@@ -193,5 +195,8 @@ export const Toolbar = () => {
                 </TooltipWrapper>
             </div>
         </div>
+
+        <ProblemProgress />
+        </>
     )
 }

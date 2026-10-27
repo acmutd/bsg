@@ -12,6 +12,7 @@ require('./config/passport');
 //other middleware imports
 const corsMiddleware = require('./middleware/cors');
 const loggingModule = require('./middleware/logging');
+const { createRateLimitMiddleware } = require('./middleware/rate-limit');
 
 const port = 3000;
 
@@ -87,13 +88,23 @@ async function startServer() {
     // Rate limiting. The auth limiter is stricter because the panel polls
     // /auth/user while the login page is open; the global limiter is generous
     // so room/participants/leaderboard refreshes and retries aren't blocked.
-    const authRateLimit = loggingModule.createRateLimitMiddleware(logger, {
-        requestsPerMinute: 120,
-        timeWindow: 60000
+    // Counters live in Redis rather than in-process so the limits stay correct
+    // when more than one replica is running.
+    // skipFailedRequests stays off: refunding 4xx would exempt failed logins
+    // from the auth limiter, which is the traffic it most needs to catch.
+    const authRateLimit = createRateLimitMiddleware(Redisclient, {
+        burstSize: 120,
+        windowSeconds: 60,
+        keyPrefix: 'ratelimit:auth:',
+        skipFailedRequests: false,
+        logger
     });
-    const globalRateLimit = loggingModule.createRateLimitMiddleware(logger, {
-        requestsPerMinute: 600,
-        timeWindow: 60000
+    const globalRateLimit = createRateLimitMiddleware(Redisclient, {
+        burstSize: 600,
+        windowSeconds: 60,
+        keyPrefix: 'ratelimit:global:',
+        skipFailedRequests: false,
+        logger
     });
     app.use(loggingModule.createStructuredLoggingMiddleware(logger));
     app.use(corsMiddleware)

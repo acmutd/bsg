@@ -2,18 +2,20 @@ type NotificationToggleProps = {
     enabled: boolean;
     onChange: (enabled: boolean) => void;
     disabled?: boolean;
+    ariaLabel?: string;
 };
 
 export const NotificationToggle = ({
     enabled,
     onChange,
     disabled = false,
+    ariaLabel = 'Chat notifications',
 }: NotificationToggleProps) => (
     <button
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-label="Chat notifications"
+        aria-label={ariaLabel}
         disabled={disabled}
         onClick={() => onChange(!enabled)}
         className={`
