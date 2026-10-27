@@ -72,7 +72,7 @@ passport.use(new GoogleStrategy({
 passport.use(new GithubStrategy({
     clientID:process.env.GITHUB_CLIENT_ID,
     clientSecret:process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: `${process.env.SERVER_URL}/auth/github/callback`,
+    callbackURL: `${process.env.SERVER_URL || 'https://api.binarysearchgang.com'}/auth/github/callback`,
     // bind the callback code to the session that started it (login CSRF)
     state: true
 },
