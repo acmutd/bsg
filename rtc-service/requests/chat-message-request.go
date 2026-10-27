@@ -71,7 +71,7 @@ func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, 
 
 	// The room's filter is set by its creator, so clients can't opt out.
 	if room.ProfanityFilterEnabled() && profanity.Contains(r.Message) {
-		return r.responseType(), "", r.RoomID, errors.New("Message not sent: it contains profanity.")
+		return r.responseType(), "", r.RoomID, errors.New("Message not sent: profanity filter enabled.")
 	}
 
 	// Return data as JSON so response handler can parse it easily

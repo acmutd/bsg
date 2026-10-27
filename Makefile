@@ -56,3 +56,9 @@ test-worker:
 
 run:
 	docker compose --env-file ./.env up --build --force-recreate
+
+run-frontend:
+	@cd bsg-frontend && npm run build-extension
+	@cd ./bsg-frontend/apps/extension/out
+	@ echo "Extension build at:"
+	@ echo $(shell pwd)
