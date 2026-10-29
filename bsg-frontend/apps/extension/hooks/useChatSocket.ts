@@ -196,12 +196,6 @@ export const useChatSocket = () => {
                     } else if (responseType === 'round-join') {
 
                         const data = JSON.parse(message?.data || '{}');
-                        setMessages(prev => [...prev, {
-                            userHandle: 'System',
-                            data: `${data.userName || data.userID} joined the round`,
-                            roomID: message.roomID,
-                            isSystem: true
-                        }]);
                         setLastGameEvent(
                             {
                                 type: 'join-round',
