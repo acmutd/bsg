@@ -1,0 +1,32 @@
+name: BSG Deploy and Restart Container
+
+on:
+  workflow_run:
+    workflows: ["BSG Unit Tests"]
+    types: [completed]
+    branches: [main]
+
+concurrency: deploy
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Updating the EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.USER_NAME }}
+          key: ${{ secrets.BSG_SSH_KEY }}
+          script: |
+            cd ~/bsg
+            docker compose down
+            git pull origin main
+            docker compose --env-file ./.env up -d --build --force-recreate
+
+
+
