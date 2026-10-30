@@ -75,7 +75,7 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* Sign in button */}
+                    {/* Sign in with google button */}
                     <Button
                         className="flex items-center justify-center gap-3 bg-bsg-surface hover:bg-bsg-hover border border-bsg-glass text-foreground w-full rounded-lg h-11 font-medium transition-colors"
                         onClick={async () => {
