@@ -117,10 +117,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'CHECK_AUTH') {
     // fetch user data from localhost server
-    fetch(`${CONFIG.SERVER_URL}/auth/user`, {
-      credentials: 'include',
-      method: 'GET'
-    })
+    configReady
+      .then(() => fetch(`${CONFIG.SERVER_URL}/auth/user`, {
+        credentials: 'include',
+        method: 'GET'
+      }))
       .then(response => {
         if (response.ok) {
           return response.json();
@@ -157,10 +158,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     };
 
-    fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    })
+    configReady
+      .then(() => fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      }))
       .then(() => finishLogout())
       .catch(() => finishLogout());
 
@@ -219,21 +221,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
 
           console.log(`Background: Processing Accepted submission ${submissionId} for ${pendingData.problemSlug}`);
-          fetch(`${CONFIG.SERVER_URL}/submission`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              slug: pendingData.problemSlug,
-              status: 'Accepted',
-              code: pendingData.typed_code,
-              language: pendingData.lang,
-              runtime: request.data.elapsed_time,
-              memory: request.data.memory_percentile
-            }),
-            credentials: 'include'
-          })
+          configReady
+            .then(() => fetch(`${CONFIG.SERVER_URL}/submission`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                slug: pendingData.problemSlug,
+                status: 'Accepted',
+                code: pendingData.typed_code,
+                language: pendingData.lang,
+                runtime: request.data.elapsed_time,
+                memory: request.data.memory_percentile
+              }),
+              credentials: 'include'
+            }))
             .then(res => {
               console.log("Background: Submission server response status:", res.status);
               return res.text().then(text => ({ status: res.status, text }));
@@ -262,6 +265,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
+
+// A stopped service worker restarts on the incoming message and handles it before
+// the storage read below finishes, so CONFIG still holds the production URL.
+// Anything that calls CONFIG.SERVER_URL waits on this first.
+let resolveConfig;
+const configReady = new Promise((resolve) => { resolveConfig = resolve; });
 
 chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
   if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;

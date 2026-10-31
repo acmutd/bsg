@@ -82,7 +82,6 @@ export const useLogin = () => {
                 console.warn('Unable to leave room during logout', error);
             }
         }
-
         const finishLogout = () => {
             resetUser();
             resetRoom();

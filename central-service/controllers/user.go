@@ -78,6 +78,9 @@ func (controller *UserController) UpdateUserDataEndpoint(c echo.Context) error {
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update user data. Please try again later")
 	}
+	if updatedUser == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "User not found")
+	}
 	return c.JSON(http.StatusCreated, map[string]models.User{
 		"data": *updatedUser,
 	})
@@ -92,6 +95,9 @@ func (controller *UserController) FindUserByAuthIDEndpoint(c echo.Context) error
 			"user_auth_id": userAuthID,
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to find user data. Please try again later")
+	}
+	if searchedUser == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 	return c.JSON(http.StatusCreated, map[string]models.User{
 		"data": *searchedUser,
