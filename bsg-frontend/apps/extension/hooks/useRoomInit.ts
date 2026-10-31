@@ -11,6 +11,7 @@ export const useRoomInit = () => {
     const initRoom = useRoomStore(s => s.initRoom);
     const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
+    const setHasRoundEnded = useRoomStore(s => s.setHasRoundEnded);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
@@ -99,6 +100,9 @@ export const useRoomInit = () => {
                 room.adminId,
                 userId === room.adminId,
             );
+            const lastRound = room.rounds?.[room.rounds.length - 1];
+            const lastRoundStatus = lastRound?.Status || lastRound?.status;
+            setHasRoundEnded(lastRoundStatus === 'ended');
 
             await setRoomParticipants(room.id);
 
@@ -259,6 +263,7 @@ export const useRoomInit = () => {
                         if (room.rounds && room.rounds.length > 0) {
                             const lastRound = room.rounds[room.rounds.length - 1];
                             const status = lastRound.Status || lastRound.status;
+                            setHasRoundEnded(status === 'ended');
                             // remember the round's configured duration (editable while "created")
                             const lastRoundDuration = lastRound.duration || lastRound.Duration;
                             if (typeof lastRoundDuration === 'number') {
@@ -277,6 +282,9 @@ export const useRoomInit = () => {
                                         chrome.storage.local.set({ roundEndTime: endTime });
                                     }
                                 }
+                            } else {
+                                setIsRoundStarted(false);
+                                setRoundEndTime(null);
                             }
                         }
 

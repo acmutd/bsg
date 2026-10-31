@@ -80,7 +80,7 @@ services:
     build: ./server
     # image: bsg-server
     ports:
-      - "3000:3000"
+      - ${PORT_SERVER:-3000}:3000
     depends_on:
       - redis-cache
       - central-service

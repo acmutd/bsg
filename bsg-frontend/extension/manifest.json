@@ -12,6 +12,7 @@
     "https://*.googleapis.com/*",
     "https://accounts.google.com/*",
     "https://api.binarysearchgang.com/*",
+    "http://localhost/*",
     "http://localhost:3000/*",
     "ws://localhost:5001/*",
     "http://localhost:5001/*"
@@ -20,7 +21,7 @@
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:5001 ws://localhost:5001 wss://api.binarysearchgang.com https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com https://api.binarysearchgang.com; object-src 'self';"
+    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' http://localhost:* ws://localhost:* wss://api.binarysearchgang.com https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com https://api.binarysearchgang.com; object-src 'self';"
   },
   "web_accessible_resources": [
     {
