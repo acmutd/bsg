@@ -12,6 +12,7 @@ import {useRoomInit} from "@/hooks/useRoomInit";
 import {FilterProblemsTab} from "@/customComponents/CreateRoom/filter-problems-tab";
 import {ChooseProblemsTab} from "@/customComponents/CreateRoom/choose-problems-tab";
 import {NotificationToggle} from "@/customComponents/NotificationToggle";
+import {pushRoute} from "@/utils/navigation";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -37,7 +38,7 @@ export default function CreateRoomPage() {
                 <div className="flex items-start justify-between gap-3 mb-4">
                     <h2 className="text-lg text-foreground font-semibold">Create a Room</h2>
                     <button
-                        onClick={() => router.push('/room-choice-page')}
+                        onClick={() => pushRoute(router, '/room-choice-page').catch(error => console.error('Failed to return to room choice', error))}
                         aria-label="Cancel"
                         title="Cancel"
                         className="shrink-0 text-foreground/60 hover:text-foreground rounded focus:outline-none p-1 transition-transform duration-200 hover:scale-125"

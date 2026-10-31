@@ -8,12 +8,11 @@ let _rtcUrl = process.env.NEXT_PUBLIC_RTC_SERVICE_URL || PRODUCTION_RTC_URL;
 async function detectLocalServerUrl(): Promise<string | null> {
   for (const serverUrl of LOCAL_SERVER_URLS) {
     try {
-      const response = await fetch(`${serverUrl}/auth/user`, {
+      const response = await fetch(`${serverUrl}/health`, {
         method: 'GET',
-        credentials: 'include',
         signal: AbortSignal.timeout(2000)
       });
-      if (response.status !== 404) return serverUrl;
+      if (response.ok) return serverUrl;
     } catch {
       continue;
     }

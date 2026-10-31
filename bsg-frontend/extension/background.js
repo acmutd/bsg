@@ -284,12 +284,11 @@ chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcS
     let localServerUrl = null;
     for (const serverUrl of localServerUrls) {
       try {
-        const response = await fetch(`${serverUrl}/auth/user`, {
+        const response = await fetch(`${serverUrl}/health`, {
           method: 'GET',
-          credentials: 'include',
           signal: AbortSignal.timeout(2000)
         });
-        if (response.status !== 404) {
+        if (response.ok) {
           localServerUrl = serverUrl;
           break;
         }
@@ -309,7 +308,13 @@ chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcS
     } else {
       console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
     }
-  })();
+  })()
+    .catch((error) => {
+      console.error('Background: config initialization failed', error);
+    })
+    .finally(() => {
+      resolveConfig();
+    });
 });
 
 // listen for storage changes

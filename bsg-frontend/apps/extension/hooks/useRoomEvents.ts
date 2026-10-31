@@ -4,6 +4,7 @@ import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
+import { isNavigationCancellation, pushRoute } from '@/utils/navigation';
 
 
 export const parseProblemSlug = (url: string): string | null => {
@@ -12,7 +13,6 @@ export const parseProblemSlug = (url: string): string | null => {
 }
 
 export const problemUrl = (slug: string): string => `https://leetcode.com/problems/${slug}/`;
-
 
 export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | null => {
     if (problems.length === 0) return null;
@@ -38,13 +38,19 @@ export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | 
 const navigateActiveTab = async (decide: (tabUrl: string) => string | null) => {
     if (typeof chrome === 'undefined' || !chrome.tabs) return;
 
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id || !tab.url) return;
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id || !tab.url) return;
 
-    const targetSlug = decide(tab.url);
-    if (!targetSlug || parseProblemSlug(tab.url) === targetSlug) return;
+        const targetSlug = decide(tab.url);
+        if (!targetSlug || parseProblemSlug(tab.url) === targetSlug) return;
 
-    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+        await chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+    } catch (error) {
+        if (!isNavigationCancellation(error)) {
+            console.error('Failed to navigate the active LeetCode tab', error);
+        }
+    }
 }
 
 export function useRoomEvents() {
@@ -355,7 +361,7 @@ export function useRoomEvents() {
                     chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey: `${roomId}|left|${Date.now()}` }).catch(() => {});
                 }
                 setResetRoom();
-                router.push('/start-page')
+                await pushRoute(router, '/start-page');
             } else{
                 console.error(message)
             }
