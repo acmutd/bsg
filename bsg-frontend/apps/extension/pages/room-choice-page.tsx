@@ -5,6 +5,7 @@ import {Button} from '@bsg/ui/button'
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faDoorOpen, faPlus} from '@fortawesome/free-solid-svg-icons'
 import {useJoinRoom} from "@/hooks/useJoinRoom";
+import {pushRoute} from "@/utils/navigation";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
@@ -44,7 +45,7 @@ export default function RoomChoice({onJoin}: RoomChoiceProps) {
                     <Button
                         onClick={() => {
                             setFormError(null)
-                            router.push('/create-room-page')
+                            pushRoute(router, '/create-room-page').catch(error => console.error('Failed to open room creation', error))
                         }}
                         className="w-full px-4 py-2 gap-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                     >

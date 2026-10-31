@@ -13,6 +13,7 @@ export const Toolbar = () => {
 
     const isAdmin = useRoomStore(s => s.isAdmin);
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
+    const hasRoundEnded = useRoomStore(s => s.hasRoundEnded);
     const activeTab = useRoomStore(s => s.activeTab); // gets active tab
     const previousTab = useRoomStore(s => s.previousTab); // gets previous tab
     const setActiveTab = useRoomStore(s => s.setActiveTab);
@@ -87,7 +88,7 @@ export const Toolbar = () => {
                     </Button>
                 </TooltipWrapper>
 
-                {isAdmin && (
+                {isAdmin && !hasRoundEnded && (
                     isRoundStarted ?
                         <TooltipWrapper text="End Round">
                             <Button

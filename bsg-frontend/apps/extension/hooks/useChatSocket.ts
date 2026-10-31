@@ -45,11 +45,13 @@ export const useChatSocket = () => {
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const emojiMenuRef = useRef<HTMLDivElement | null>(null);
     const suppressChatSoundsRef = useRef(false); //sound allowed 
+    const pendingMessageRef = useRef<string | null>(null);
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState<string>('');
     const [showJump, setShowJump] = useState<boolean>(false);
     const [atLimit, setAtLimit] = useState<boolean>(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [emojiSearch, setEmojiSearch] = useState<string>('');
 
     const userId = useUserStore(s => s.userId);
@@ -99,14 +101,21 @@ export const useChatSocket = () => {
                     const { message, responseType } = response;
 
                     if (responseType === 'chat-message') {
+                        const messageText = message.message || message.data;
                         setMessages(prev => [...prev, {
                             userHandle: message.userHandle,
                             userName: message.userName,
                             userPhoto: message.userPhoto,
-                            data: message.message || message.data,
+                            data: messageText,
                             roomID: message.roomID,
                             isSystem: false
                         }]);
+
+                        if (message.userHandle === userId && messageText === pendingMessageRef.current) {
+                            pendingMessageRef.current = null;
+                            setInputText('');
+                            if (inputRef.current) inputRef.current.style.height = 'auto';
+                        }
 
                         // checks user handle to know if the message is sent by the user or received from others
                         if (!suppressChatSoundsRef.current) {
@@ -223,6 +232,10 @@ export const useChatSocket = () => {
                     }
                 } else if (response.status === 'error') {
                     console.error('RTC Error:', response.message);
+                    if (response.responseType === 'chat-message') {
+                        pendingMessageRef.current = null;
+                        setToastMessage(response.message?.data || 'Unable to send message.');
+                    }
                 }
             } catch (e) {
                 console.error('Failed to parse WS message', e);
@@ -285,6 +298,8 @@ export const useChatSocket = () => {
         const text = inputText.trim();
         if (!text) return;
 
+        setToastMessage(null);
+
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && userId) {
             const payload = {
                 name: userId,
@@ -298,9 +313,7 @@ export const useChatSocket = () => {
                 })
             };
             socketRef.current.send(JSON.stringify(payload));
-
-            setInputText('');
-            textArea.style.height = 'auto';
+            pendingMessageRef.current = text;
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
         }
     };
@@ -422,6 +435,8 @@ export const useChatSocket = () => {
         chat.scrollTop = chat.scrollHeight;
     };
 
+    const dismissToast = useCallback(() => setToastMessage(null), []);
+
     const clearMessages = useCallback(() => {
         setMessages([]);
     }, []);
@@ -437,6 +452,8 @@ export const useChatSocket = () => {
         showJump,
         jumpToBottom,
         atLimit,
+        toastMessage,
+        dismissToast,
         MAX_CHARS,
         clearMessages,
         insertEmoji,
