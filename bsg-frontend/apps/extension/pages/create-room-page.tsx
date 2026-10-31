@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useState} from 'react'
 import {Poppins} from 'next/font/google'
 import {useRouter} from 'next/router'
 import {
@@ -11,12 +11,17 @@ import {X} from 'lucide-react'
 import {useRoomInit} from "@/hooks/useRoomInit";
 import {FilterProblemsTab} from "@/customComponents/CreateRoom/filter-problems-tab";
 import {ChooseProblemsTab} from "@/customComponents/CreateRoom/choose-problems-tab";
+import {NotificationToggle} from "@/customComponents/NotificationToggle";
 
 const poppins = Poppins({weight: '400', subsets: ['latin']})
 
 export default function CreateRoomPage() {
     const router = useRouter()
     const {createRoom} = useRoomInit()
+    // Room-wide setting chosen by the creator; members can't change it.
+    const [profanityFilter, setProfanityFilter] = useState(false)
+    const createRoomWithSettings: typeof createRoom = (roomCode, options) =>
+        createRoom(roomCode, {...options, profanityFilter})
 
     return (
         <div className={`${poppins.className} relative min-h-full flex px-4 py-4`}>
@@ -41,6 +46,21 @@ export default function CreateRoomPage() {
                     </button>
                 </div>
 
+                {/* Profanity filter */}
+                <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium">Profanity filter</span>
+                        <span className="text-xs text-foreground/50">
+                            Block chat messages that contain profanity
+                        </span>
+                    </div>
+                    <NotificationToggle
+                        enabled={profanityFilter}
+                        onChange={setProfanityFilter}
+                        ariaLabel="Profanity filter"
+                    />
+                </div>
+
                 <Tabs defaultValue="filter" className="w-full">
                     <TabsList className="grid h-8 w-full grid-cols-2 rounded-lg bg-bsg-dark mb-2">
                         <TabsTrigger
@@ -58,11 +78,11 @@ export default function CreateRoomPage() {
                     </TabsList>
 
                     <TabsContent value="filter">
-                        <FilterProblemsTab createRoom={createRoom}/>
+                        <FilterProblemsTab createRoom={createRoomWithSettings}/>
                     </TabsContent>
 
                     <TabsContent value="choose">
-                        <ChooseProblemsTab createRoom={createRoom}/>
+                        <ChooseProblemsTab createRoom={createRoomWithSettings}/>
                     </TabsContent>
                 </Tabs>
             </div>

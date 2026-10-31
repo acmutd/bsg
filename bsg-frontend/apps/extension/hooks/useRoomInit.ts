@@ -8,9 +8,24 @@ export const useRoomInit = () => {
 
     const router = useRouter();
 
+    const navigateToRoomPage = async () => {
+        try {
+            await router.push('/room-page');
+        } catch (error) {
+            const isNavigationCancellation =
+                error === 'Navigation rejected.' ||
+                (typeof error === 'object' &&
+                    error !== null &&
+                    ('cancelled' in error && error.cancelled === true ||
+                        'message' in error && error.message === 'Navigation rejected.'));
+            if (!isNavigationCancellation) throw error;
+        }
+    };
+
     const initRoom = useRoomStore(s => s.initRoom);
     const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
+    const setHasRoundEnded = useRoomStore(s => s.setHasRoundEnded);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
@@ -99,12 +114,15 @@ export const useRoomInit = () => {
                 room.adminId,
                 userId === room.adminId,
             );
+            const lastRound = room.rounds?.[room.rounds.length - 1];
+            const lastRoundStatus = lastRound?.Status || lastRound?.status;
+            setHasRoundEnded(lastRoundStatus === 'ended');
 
             await setRoomParticipants(room.id);
 
             setRoomNotice(null);
 
-            router.push('/room-page');
+            await navigateToRoomPage();
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: room.id });
@@ -125,7 +143,7 @@ export const useRoomInit = () => {
             // 1. Create Room
             const res = await fetch(`${getServerUrl()}/rooms`, {
                 method: 'POST',
-                body: JSON.stringify({ roomName: roomCode, ttl: 360 }),
+                body: JSON.stringify({ roomName: roomCode, ttl: 360, profanityFilter: options.profanityFilter ?? false }),
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
@@ -200,7 +218,7 @@ export const useRoomInit = () => {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            router.push('/room-page');
+            await navigateToRoomPage();
             return { success: true };
 
         } catch (e) {
@@ -252,13 +270,14 @@ export const useRoomInit = () => {
                         }else{
                         }
 
-                        await router.push('/room-page');
+                        await navigateToRoomPage();
 
 
                         // Check for active round
                         if (room.rounds && room.rounds.length > 0) {
                             const lastRound = room.rounds[room.rounds.length - 1];
                             const status = lastRound.Status || lastRound.status;
+                            setHasRoundEnded(status === 'ended');
                             // remember the round's configured duration (editable while "created")
                             const lastRoundDuration = lastRound.duration || lastRound.Duration;
                             if (typeof lastRoundDuration === 'number') {
@@ -277,6 +296,9 @@ export const useRoomInit = () => {
                                         chrome.storage.local.set({ roundEndTime: endTime });
                                     }
                                 }
+                            } else {
+                                setIsRoundStarted(false);
+                                setRoundEndTime(null);
                             }
                         }
 

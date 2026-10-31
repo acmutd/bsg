@@ -5,25 +5,23 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": [
-    "tabs",
-    "storage",
-    "notifications"
-  ],
+  "permissions": ["tabs", "storage", "notifications"],
   "host_permissions": [
     "https://leetcode.com/*",
     "https://*.leetcode.com/*",
     "https://*.googleapis.com/*",
     "https://accounts.google.com/*",
     "https://api.binarysearchgang.com/*",
+    "http://localhost/*",
     "http://localhost:3000/*",
+    "ws://localhost:5001/*",
     "http://localhost:5001/*"
   ],
   "action": {
     "default_popup": "defaultPopup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' http://localhost:3000 ws://localhost:3000 http://localhost:5001 ws://localhost:5001 wss://api.binarysearchgang.com https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com https://api.binarysearchgang.com; object-src 'self';"
+    "extension_pages": "script-src 'self'; script-src-elem 'self' https://apis.google.com https://accounts.google.com https://www.gstatic.com; connect-src 'self' http://localhost:* ws://localhost:* wss://api.binarysearchgang.com https://*.googleapis.com https://*.firebaseapp.com https://accounts.google.com https://api.binarysearchgang.com; object-src 'self';"
   },
   "web_accessible_resources": [
     {
@@ -33,9 +31,7 @@
         "login-page.html",
         "injected.js"
       ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "matches": ["<all_urls>"]
     }
   ],
   "content_scripts": [
@@ -44,9 +40,7 @@
         "*://leetcode.com/problems/*",
         "*://*.leetcode.com/problems/*"
       ],
-      "js": [
-        "contentScript.js"
-      ],
+      "js": ["contentScript.js"],
       "run_at": "document_idle"
     }
   ]

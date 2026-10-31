@@ -55,4 +55,11 @@ test-worker:
 	@cd worker-service && go test ./... -v
 
 run:
-	docker compose --env-file ./.env up --build --force-recreate
+	docker compose --env-file ./.env up -d --build --force-recreate
+
+run-frontend:
+	@cd bsg-frontend && npm run build-extension
+	@cd ./bsg-frontend/apps/extension/out
+	@ echo "Extension build at:"
+	@ echo "$(shell pwd)/bsg-frontend/apps/extension/out"
+

@@ -1,8 +1,25 @@
 const PRODUCTION_SERVER_URL = 'https://api.binarysearchgang.com';
 const PRODUCTION_RTC_URL = 'wss://api.binarysearchgang.com/ws';
+const LOCAL_SERVER_URLS = ['http://localhost:3600', 'http://localhost:3000'];
 
 let _serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || PRODUCTION_SERVER_URL;
 let _rtcUrl = process.env.NEXT_PUBLIC_RTC_SERVICE_URL || PRODUCTION_RTC_URL;
+
+async function detectLocalServerUrl(): Promise<string | null> {
+  for (const serverUrl of LOCAL_SERVER_URLS) {
+    try {
+      const response = await fetch(`${serverUrl}/auth/user`, {
+        method: 'GET',
+        credentials: 'include',
+        signal: AbortSignal.timeout(2000)
+      });
+      if (response.status !== 404) return serverUrl;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 let _resolve!: () => void;
 export const configReady: Promise<void> = new Promise<void>((resolve) => {
@@ -10,9 +27,16 @@ export const configReady: Promise<void> = new Promise<void>((resolve) => {
 });
 
 if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-  chrome.storage.local.get(['configServerUrl', 'configRtcServiceUrl'], (result) => {
+  chrome.storage.local.get(['configServerUrl', 'configRtcServiceUrl'], async (result) => {
     if (result.configServerUrl) _serverUrl = result.configServerUrl;
     if (result.configRtcServiceUrl) _rtcUrl = result.configRtcServiceUrl;
+
+    const localServerUrl = await detectLocalServerUrl();
+    if (localServerUrl) {
+      _serverUrl = localServerUrl;
+      _rtcUrl = 'ws://localhost:5001/ws';
+      chrome.storage.local.set({ configServerUrl: _serverUrl, configRtcServiceUrl: _rtcUrl });
+    }
     _resolve();
   });
 
