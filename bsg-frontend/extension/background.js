@@ -278,25 +278,38 @@ chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcS
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
 
-  // Auto-detect local dev: if no explicit override, probe localhost:3000
-  if (!result.configServerUrl) {
-    fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) })
-      .then(() => {
-        CONFIG.SERVER_URL = 'http://localhost:3000';
-        CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
-        chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
-      })
-      .catch(() => {})
-      .finally(resolveConfig);
-  } else {
-    resolveConfig();
-  }
+  // Prefer a running local Compose server over any previously saved URL.
+  const localServerUrls = ['http://localhost:3600', 'http://localhost:3000'];
+  (async () => {
+    let localServerUrl = null;
+    for (const serverUrl of localServerUrls) {
+      try {
+        const response = await fetch(`${serverUrl}/auth/user`, {
+          method: 'GET',
+          credentials: 'include',
+          signal: AbortSignal.timeout(2000)
+        });
+        if (response.status !== 404) {
+          localServerUrl = serverUrl;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
 
-  if (activeRoomId && userProfile) {
-    connectWebSocket();
-  } else {
-    console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
-  }
+    if (localServerUrl) {
+      CONFIG.SERVER_URL = localServerUrl;
+      CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
+      chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
+    }
+
+    if (activeRoomId && userProfile) {
+      connectWebSocket();
+    } else {
+      console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
+    }
+  })();
 });
 
 // listen for storage changes

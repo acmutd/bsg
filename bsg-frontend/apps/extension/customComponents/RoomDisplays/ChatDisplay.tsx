@@ -2,6 +2,7 @@ import { Button } from '@bsg/ui/button'
 import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useUserStore } from '@/stores/useUserStore';
 import { useChatSocket } from '@/hooks/useChatSocket'
+import { Toast } from '@/customComponents/Toast';
 import { useState, useEffect } from 'react';
 
 export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
@@ -16,6 +17,8 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         jumpToBottom,
         inputText,
         atLimit,
+        toastMessage,
+        dismissToast,
         MAX_CHARS,
         insertEmoji,
         categoryRefs,
@@ -73,6 +76,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
     return (
         <div className={`h-full flex flex-col ${(isActive) ? '' : 'hidden'}`}>
+            <Toast message={toastMessage} onDismiss={dismissToast} />
             <div
                 ref={chatRef}
                 className="flex-1 flex flex-col relative overflow-y-auto"
@@ -146,7 +150,7 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                 <div className="sticky bottom-0 w-full flex flex-col">
 
                     {/*  */}
-                    <div className="relative flex justify-center p-4 bg-gradient-to-t from-[rgb(var(--bsg-bg))] to-transparent">
+                    <div className="relative flex flex-col items-center gap-1 px-4 pt-4 pb-1 bg-gradient-to-t from-[rgb(var(--bsg-bg))] to-transparent">
                         {/* Jump to bottom (shows when scroll > 200px from bottom) */}
                         {showJump &&
                             <TooltipWrapper text="Jump to bottom">
@@ -221,6 +225,10 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                     </TooltipWrapper>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="text-xs text-foreground/60 text-center -py-2">
+                            Please note all chat messages are monitored.
                         </div>
                     </div>
                 </div>

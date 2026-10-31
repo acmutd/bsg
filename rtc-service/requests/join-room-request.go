@@ -17,7 +17,13 @@ type JoinRoomRequest struct {
 	// When true, registers the user in the room without broadcasting an
 	// announcement (used by central-service and the background script).
 	SuppressAnnouncement bool `json:"suppressAnnouncement"`
+	// Room-level profanity filter. Only honored from central-service, so room
+	// members cannot turn it off by sending their own join-room.
+	ProfanityFilter *bool `json:"profanityFilter,omitempty"`
 }
+
+// Name of the service allowed to configure room settings.
+const centralServiceName = "central-service"
 
 func init() {
 	register("join-room", &JoinRoomRequest{})
@@ -72,6 +78,10 @@ func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, str
 		chatmanager.RTCChatManager.CreateRoom(room)
 	}
 
+	if r.ProfanityFilter != nil && m.ServiceName == centralServiceName {
+		room.SetProfanityFilter(*r.ProfanityFilter)
+	}
+
 	// A user already in the room is reconnecting (a reload, or a second tab).
 	// Their socket still needs registering and a history replay, but announcing
 	// again would append a duplicate "joined the room" to every client.
@@ -99,5 +109,5 @@ func (r *JoinRoomRequest) Handle(m *Message) (response.ResponseType, string, str
 	if name == "" {
 		name = "A user"
 	}
-	return r.responseType(), name+" joined the room", r.RoomID, nil
+	return r.responseType(), name + " joined the room", r.RoomID, nil
 }

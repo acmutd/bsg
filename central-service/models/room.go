@@ -7,11 +7,13 @@ import (
 )
 
 type Room struct {
-	ID        uuid.UUID `gorm:"primaryKey" json:"id"`
-	ShortCode string    `gorm:"uniqueIndex;not null" json:"shortCode"`
-	Admin     string    `gorm:"not null" json:"adminId"`
-	Name      string    `json:"roomName"`
-	TTL       int       `json:"ttl"`       // TTL in minutes; 0 means no expiry
+	ID        uuid.UUID  `gorm:"primaryKey" json:"id"`
+	ShortCode string     `gorm:"uniqueIndex;not null" json:"shortCode"`
+	Admin     string     `gorm:"not null" json:"adminId"`
+	Name      string     `json:"roomName"`
+	TTL       int        `json:"ttl"`       // TTL in minutes; 0 means no expiry
 	ExpiresAt *time.Time `json:"expiresAt"` // Nil means no expiry
-	Rounds    []Round   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"rounds"`
+	// Set by the room creator; rtc-service rejects profane chat messages when true.
+	ProfanityFilter bool    `json:"profanityFilter"`
+	Rounds          []Round `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"rounds"`
 }

@@ -46,6 +46,8 @@ func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundSe
 type RoomDTO struct {
 	Name string `json:"roomName"`
 	TTL  int    `json:"ttl"` // TTL in minutes; 0 means no expiry
+	// When true, rtc-service rejects chat messages containing profanity.
+	ProfanityFilter bool `json:"profanityFilter"`
 }
 
 // Creates a room and persist
@@ -78,6 +80,8 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		TTL:       room.TTL,
 		ExpiresAt: expiresAt,
 		Rounds:    []models.Round{},
+
+		ProfanityFilter: room.ProfanityFilter,
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
@@ -230,6 +234,8 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			UserHandle: userID,
 			RoomID:     roomID,
 			UserName:   displayName,
+			// Resent on every join so rtc-service stays in sync, even after a restart.
+			ProfanityFilter: &room.ProfanityFilter,
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
