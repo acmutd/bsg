@@ -1,0 +1,22 @@
+name: BSG Deploy and Restart Container
+
+on:
+  workflow_dispatch:
+
+concurrency: deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Updating the EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.USER_NAME }}
+          key: ${{ secrets.BSG_SSH_KEY }}
+          script: |
+            cd ~/bsg
+            docker compose down
+            git pull origin main
+            docker compose --env-file ./.env up -d --build --force-recreate
