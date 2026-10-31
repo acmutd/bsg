@@ -3,24 +3,11 @@ import { getServerUrl } from '../lib/config'
 import { useUserStore } from '@/stores/useUserStore';
 import { useRouter } from 'next/router';
 import { User } from '@bsg/models/User';
+import { pushRoute } from '@/utils/navigation';
 
 export const useRoomInit = () => {
 
     const router = useRouter();
-
-    const navigateToRoomPage = async () => {
-        try {
-            await router.push('/room-page');
-        } catch (error) {
-            const isNavigationCancellation =
-                error === 'Navigation rejected.' ||
-                (typeof error === 'object' &&
-                    error !== null &&
-                    ('cancelled' in error && error.cancelled === true ||
-                        'message' in error && error.message === 'Navigation rejected.'));
-            if (!isNavigationCancellation) throw error;
-        }
-    };
 
     const initRoom = useRoomStore(s => s.initRoom);
     const setParticipants = useRoomStore(s => s.setParticipants);
@@ -122,7 +109,7 @@ export const useRoomInit = () => {
 
             setRoomNotice(null);
 
-            await navigateToRoomPage();
+            await pushRoute(router, '/room-page');
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: room.id });
@@ -218,7 +205,7 @@ export const useRoomInit = () => {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            await navigateToRoomPage();
+            await pushRoute(router, '/room-page');
             return { success: true };
 
         } catch (e) {
@@ -270,7 +257,7 @@ export const useRoomInit = () => {
                         }else{
                         }
 
-                        await navigateToRoomPage();
+                        await pushRoute(router, '/room-page');
 
 
                         // Check for active round
