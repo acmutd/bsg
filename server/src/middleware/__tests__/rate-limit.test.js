@@ -140,13 +140,22 @@ describe('Per-Endpoint Rate Limit Middleware', () => {
     app.post('/auth/login', (req, res) => res.send('OK'));
     app.get('/other', (req, res) => res.send('OK'));
 
-    // Login endpoint has stricter limit
-    await request(app).post('/auth/login').expect(200);
-    await request(app).post('/auth/login').expect(429);
+    // Freeze the clock mid-second so every request lands in the same window;
+    // otherwise two requests straddling a second boundary get fresh counters.
+    const realNow = Date.now;
+    const frozenNow = Math.floor(realNow() / 1000) * 1000 + 500;
+    Date.now = () => frozenNow;
+    try {
+      // Login endpoint has stricter limit
+      await request(app).post('/auth/login').expect(200);
+      await request(app).post('/auth/login').expect(429);
 
-    // Other endpoint has normal limit
-    await request(app).get('/other').expect(200);
-    await request(app).get('/other').expect(200);
+      // Other endpoint has normal limit
+      await request(app).get('/other').expect(200);
+      await request(app).get('/other').expect(200);
+    } finally {
+      Date.now = realNow;
+    }
   });
 });
 
