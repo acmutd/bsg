@@ -8,6 +8,20 @@ export const useRoomInit = () => {
 
     const router = useRouter();
 
+    const navigateToRoomPage = async () => {
+        try {
+            await router.push('/room-page');
+        } catch (error) {
+            const isNavigationCancellation =
+                error === 'Navigation rejected.' ||
+                (typeof error === 'object' &&
+                    error !== null &&
+                    ('cancelled' in error && error.cancelled === true ||
+                        'message' in error && error.message === 'Navigation rejected.'));
+            if (!isNavigationCancellation) throw error;
+        }
+    };
+
     const initRoom = useRoomStore(s => s.initRoom);
     const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
@@ -108,7 +122,7 @@ export const useRoomInit = () => {
 
             setRoomNotice(null);
 
-            router.push('/room-page');
+            await navigateToRoomPage();
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: room.id });
@@ -204,7 +218,7 @@ export const useRoomInit = () => {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            router.push('/room-page');
+            await navigateToRoomPage();
             return { success: true };
 
         } catch (e) {
@@ -256,7 +270,7 @@ export const useRoomInit = () => {
                         }else{
                         }
 
-                        await router.push('/room-page');
+                        await navigateToRoomPage();
 
 
                         // Check for active round
