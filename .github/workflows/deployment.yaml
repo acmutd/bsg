@@ -16,7 +16,7 @@ jobs:
           username: ${{ secrets.USER_NAME }}
           key: ${{ secrets.BSG_SSH_KEY }}
           script: |
+            set -e
             cd ~/bsg
-            docker compose down
             git pull origin main
             docker compose --env-file ./.env up -d --build --force-recreate
