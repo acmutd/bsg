@@ -55,6 +55,50 @@ async function doCopy(text) {
     return false;
 }
 
+// Slugs the user typed code into this round. storage.session, not zustand:
+// zustand dies when the top frame navigates, which is the exact moment a
+// problem should turn yellow. Memory-only, so it can't leak into a later round.
+const TOUCHED_KEY = 'touchedSlugs';
+// The round these slugs belong to, so a replayed round-start can't wipe them.
+const TOUCHED_ROUND_KEY = 'touchedSlugsRound';
+
+// Chained: each mutation is a read-modify-write, and two concurrent reads would
+// both see the pre-write list, so one would clobber the other.
+let touchedWrites = Promise.resolve();
+
+function markProblemTouched(slug) {
+  if (!slug) return;
+
+  touchedWrites = touchedWrites
+    .then(async () => {
+      const result = await chrome.storage.session.get([TOUCHED_KEY]);
+      const touched = result[TOUCHED_KEY] || [];
+      // Skip the write so a re-report can't fire onChanged and re-render the panel.
+      if (touched.includes(slug)) return;
+
+      await chrome.storage.session.set({ [TOUCHED_KEY]: [...touched, slug] });
+    })
+    .catch((e) => console.error('Background: touched-problem write failed', e));
+}
+
+function resetTouchedProblems(roundKey) {
+  touchedWrites = touchedWrites
+    .then(async () => {
+      const result = await chrome.storage.session.get([TOUCHED_ROUND_KEY]);
+      // rtc-service replays round-start to every reconnecting socket, and the
+      // panel reconnects on each navigation, so this is asked for constantly.
+      // Clearing only on a real round change stops those replays from wiping
+      // the list on the very navigation meant to turn a problem yellow.
+      if (result[TOUCHED_ROUND_KEY] === roundKey) return;
+
+      await chrome.storage.session.set({
+        [TOUCHED_ROUND_KEY]: roundKey,
+        [TOUCHED_KEY]: [],
+      });
+    })
+    .catch((e) => console.error('Background: touched-problem reset failed', e));
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request && request.type === 'COPY_TO_CLIPBOARD') {
@@ -73,10 +117,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === 'CHECK_AUTH') {
     // fetch user data from localhost server
-    fetch(`${CONFIG.SERVER_URL}/auth/user`, {
-      credentials: 'include',
-      method: 'GET'
-    })
+    configReady
+      .then(() => fetch(`${CONFIG.SERVER_URL}/auth/user`, {
+        credentials: 'include',
+        method: 'GET'
+      }))
       .then(response => {
         if (response.ok) {
           return response.json();
@@ -113,14 +158,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     };
 
-    fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    })
+    configReady
+      .then(() => fetch(`${CONFIG.SERVER_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      }))
       .then(() => finishLogout())
       .catch(() => finishLogout());
 
     return true;
+  }
+
+  // problem progress intercept logic
+  if (request.type === 'PROBLEM_PROGRESS_RESET') {
+    // Queued rather than set directly so a report still in flight from the
+    // previous round can't land after the reset and survive into the new one.
+    resetTouchedProblems(request.roundKey);
+    sendResponse({ received: true });
+    return false;
+  }
+
+  if (request.type === 'PROBLEM_TOUCHED') {
+    markProblemTouched(request.slug);
+    sendResponse({ received: true });
+    return false;
   }
 
   // submission intercept logic
@@ -160,21 +221,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
 
           console.log(`Background: Processing Accepted submission ${submissionId} for ${pendingData.problemSlug}`);
-          fetch(`${CONFIG.SERVER_URL}/submission`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              slug: pendingData.problemSlug,
-              status: 'Accepted',
-              code: pendingData.typed_code,
-              language: pendingData.lang,
-              runtime: request.data.elapsed_time,
-              memory: request.data.memory_percentile
-            }),
-            credentials: 'include'
-          })
+          configReady
+            .then(() => fetch(`${CONFIG.SERVER_URL}/submission`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                slug: pendingData.problemSlug,
+                status: 'Accepted',
+                code: pendingData.typed_code,
+                language: pendingData.lang,
+                runtime: request.data.elapsed_time,
+                memory: request.data.memory_percentile
+              }),
+              credentials: 'include'
+            }))
             .then(res => {
               console.log("Background: Submission server response status:", res.status);
               return res.text().then(text => ({ status: res.status, text }));
@@ -198,34 +260,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 // redirect logic
-const RTC_SERVICE_URL = CONFIG.RTC_SERVICE_URL;
+// NOTE: always read CONFIG.RTC_SERVICE_URL live (never snapshot it into a
+// const) so local-dev auto-detect / storage overrides actually take effect.
 let socket = null;
 let activeRoomId = null;
 let userProfile = null;
 
-chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
+// A stopped service worker restarts on the incoming message and handles it before
+// the storage read below finishes, so CONFIG still holds the production URL.
+// Anything that calls CONFIG.SERVER_URL waits on this first.
+let resolveConfig;
+const configReady = new Promise((resolve) => { resolveConfig = resolve; });
+
+chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl']).then((result) => {
   if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
   if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
 
-  // Auto-detect local dev: if no explicit override, probe localhost:3000
-  if (!result.configServerUrl) {
-    fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) })
-      .then(() => {
-        CONFIG.SERVER_URL = 'http://localhost:3000';
-        CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
-        chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
-      })
-      .catch(() => {});
-  }
-
   if (activeRoomId && userProfile) {
-    connectWebSocket();
+      connectWebSocket();
   } else {
-    console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
+      console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
   }
-});
+  }).catch((error) => {
+      console.error('Background: config initialization failed', error);
+    })
+    .finally(() => {
+      resolveConfig();
+    });
 
 // listen for storage changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -250,7 +313,7 @@ function connectWebSocket() {
     return;
   }
 
-  socket = new WebSocket(RTC_SERVICE_URL);
+  socket = new WebSocket(CONFIG.RTC_SERVICE_URL);
 
   socket.onopen = () => {
     if (activeRoomId && userProfile) {

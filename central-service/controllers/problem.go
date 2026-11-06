@@ -57,12 +57,26 @@ func (controller *ProblemController) FindProblemsEndpoint(c echo.Context) error 
 		tags = strings.Split(tagsParam, ",")
 	}
 
-	problems, err := controller.problemService.FindProblems(count, offset, tags)
+	companiesParam := c.QueryParam("companies")
+	var companies []string
+	if companiesParam != "" {
+		companies = strings.Split(companiesParam, ",")
+	}
+
+	blind75 := c.QueryParam("blind75") == "true"
+	neetCode150 := c.QueryParam("neetcode150") == "true"
+	recentlyAsked := c.QueryParam("recentlyAsked") == "true"
+
+	problems, err := controller.problemService.FindProblems(count, offset, tags, companies, blind75, neetCode150, recentlyAsked)
 	if err != nil {
 		controller.logger.Error("Failed to search for problems", err, map[string]interface{}{
-			"count":  count,
-			"offset": offset,
-			"tags":   tags,
+			"count":         count,
+			"offset":        offset,
+			"tags":          tags,
+			"companies":     companies,
+			"blind75":       blind75,
+			"neetcode150":   neetCode150,
+			"recentlyAsked": recentlyAsked,
 		})
 		return echo.NewHTTPError(http.StatusInternalServerError)
 	}
@@ -93,6 +107,62 @@ func (controller *ProblemController) FindProblemBySlugEndpoint(c echo.Context) e
 	})
 }
 
+func (controller *ProblemController) CountAvailableProblemsEndpoint(c echo.Context) error {
+	tagsParam := c.QueryParam("tags")
+	var tags []string
+	if tagsParam != "" {
+		tags = strings.Split(tagsParam, ",")
+	}
+
+	companiesParam := c.QueryParam("companies")
+	var companies []string
+	if companiesParam != "" {
+		companies = strings.Split(companiesParam, ",")
+	}
+
+	blind75 := c.QueryParam("blind75") == "true"
+	neetCode150 := c.QueryParam("neetcode150") == "true"
+	recentlyAsked := c.QueryParam("recentlyAsked") == "true"
+
+	difficultiesParam := c.QueryParam("difficulties")
+	var difficulties []string
+	if difficultiesParam != "" {
+		difficulties = strings.Split(difficultiesParam, ",")
+	}
+
+	excludePaid := c.QueryParam("excludePaid") == "true"
+
+	count, err := controller.problemService.CountAvailableProblems(tags, companies, blind75, neetCode150, recentlyAsked, difficulties, excludePaid)
+	if err != nil {
+		controller.logger.Error("Failed to count available problems", err, map[string]interface{}{
+			"tags":          tags,
+			"companies":     companies,
+			"blind75":       blind75,
+			"neetcode150":   neetCode150,
+			"recentlyAsked": recentlyAsked,
+			"difficulties":  difficulties,
+			"excludePaid":   excludePaid,
+		})
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string]int64{
+		"data": count,
+	})
+}
+
+// Returns every selectable problem in a trimmed shape, for the create-room
+// "Choose" tab picker to search over client-side.
+func (controller *ProblemController) FindProblemsForSelectionEndpoint(c echo.Context) error {
+	entries, err := controller.problemService.FindProblemsForSelection()
+	if err != nil {
+		controller.logger.Error("Failed to fetch problem list", err, nil)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+	return c.JSON(http.StatusOK, map[string][]services.ProblemListEntry{
+		"data": entries,
+	})
+}
+
 func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context) error {
 	stats, err := controller.problemService.FindProblemTagStats()
 	if err != nil {
@@ -105,8 +175,23 @@ func (controller *ProblemController) FindProblemTagStatsEndpoint(c echo.Context)
 	})
 }
 
+func (controller *ProblemController) FindProblemCompanyStatsEndpoint(c echo.Context) error {
+	stats, err := controller.problemService.FindProblemCompanyStats()
+	if err != nil {
+		controller.logger.Error("Failed to fetch problem company stats", err, nil)
+		return echo.NewHTTPError(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, map[string][]models.ProblemCompanyStat{
+		"data": stats,
+	})
+}
+
 func (controller *ProblemController) InitializeRoutes(g *echo.Group) {
 	g.GET("/tags", controller.FindProblemTagStatsEndpoint)
+	g.GET("/companies", controller.FindProblemCompanyStatsEndpoint)
+	g.GET("/count", controller.CountAvailableProblemsEndpoint)
+	g.GET("/list", controller.FindProblemsForSelectionEndpoint)
 	g.GET("/lookup", controller.FindProblemBySlugEndpoint)
 	g.GET("/:id", controller.FindProblemByProblemIDEndpoint)
 	g.GET("", controller.FindProblemsEndpoint)

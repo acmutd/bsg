@@ -86,6 +86,14 @@ func main() {
 		logger.Fatal("Error migrating Statistics schema", err, nil)
 	}
 
+	if err := db.AutoMigrate(&models.ProblemCompanyTag{}); err != nil {
+		logger.Fatal("Error migrating ProblemCompanyTag schema", err, nil)
+	}
+
+	if err := db.AutoMigrate(&models.ProblemCompanyStat{}); err != nil {
+		logger.Fatal("Error migrating ProblemCompanyStat schema", err, nil)
+	}
+
 	ingressQueue := services.NewSubmissionIngressQueueService(rdb)
 
 	logger.Info("Redis queue initialized", nil)
@@ -104,6 +112,27 @@ func main() {
 					})
 				}
 			}
+		}
+	}
+	if err := seedingService.SeedCompanyProblems("../seed-service/company_problems.csv"); err != nil {
+		if err := seedingService.SeedCompanyProblems("seed-service/company_problems.csv"); err != nil {
+			logger.Warn("Failed to seed company problems", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}
+	if err := seedingService.SeedProblemList("../seed-service/blind_75.csv", "is_blind75", "Blind 75"); err != nil {
+		if err := seedingService.SeedProblemList("seed-service/blind_75.csv", "is_blind75", "Blind 75"); err != nil {
+			logger.Warn("Failed to seed Blind 75 list", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}
+	if err := seedingService.SeedProblemList("../seed-service/neetcode_150.csv", "is_neetcode150", "NeetCode 150"); err != nil {
+		if err := seedingService.SeedProblemList("seed-service/neetcode_150.csv", "is_neetcode150", "NeetCode 150"); err != nil {
+			logger.Warn("Failed to seed NeetCode 150 list", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}
 

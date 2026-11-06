@@ -20,15 +20,68 @@ func TestCreateNewUser(t *testing.T) {
 		DriverName: "postgres",
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
-	rows := sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(1, "hello", "world", "helloworld", "helloworld@gmail.com", "abc12345")
 	userService := InitializeUserService(db)
-	userService.CreateUser("abc12345", &UserModifiableData{
+	// upsert: look up by authID first, no row found, then insert
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}))
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("1"))
+	mock.ExpectCommit()
+	created, err := userService.CreateUser("abc12345", &UserModifiableData{
 		FirstName: "hello",
 		LastName:  "world",
 		Handle:    "helloworld",
 		Email:     "helloworld@gmail.com",
 	})
-	mock.ExpectQuery("SELECT * from \"users\"").WillReturnRows(rows)
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+	if created == nil {
+		t.Fatal("expected a created user")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("%s\n", err)
+	}
+}
+
+func TestCreateNewUserUpdatesExisting(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDb.Close()
+	dialector := postgres.New(postgres.Config{
+		Conn:       mockDb,
+		DriverName: "postgres",
+	})
+	db, _ := gorm.Open(dialector, &gorm.Config{})
+	userService := InitializeUserService(db)
+	// a user with this authID already exists: update it instead of inserting a duplicate row
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(
+			1, "old", "user", "oldhandle", "old@gmail.com", "abc12345"))
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET "first_name"=$1,"last_name"=$2,"handle"=$3,"email"=$4 WHERE "id" = $5`)).
+		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", 1).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	updated, err := userService.CreateUser("abc12345", &UserModifiableData{
+		FirstName: "hello",
+		LastName:  "world",
+		Handle:    "helloworld",
+		Email:     "helloworld@gmail.com",
+	})
+	if err != nil {
+		t.Fatalf("%s\n", err)
+	}
+	if updated == nil || updated.ID != 1 {
+		t.Fatalf("expected the existing user (id 1) to be updated, got %+v", updated)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("%s\n", err)
+	}
 }
 
 func TestUpdateUserData(t *testing.T) {
@@ -44,6 +97,8 @@ func TestUpdateUserData(t *testing.T) {
 	db, _ := gorm.Open(dialector, &gorm.Config{})
 	rows := sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}).AddRow(1, "hello", "world", "hellothere", "helloworld@gmail.com", "abc12345")
 	userService := InitializeUserService(db)
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
 		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
@@ -81,6 +136,9 @@ func TestFindUserByAuthID(t *testing.T) {
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
 	userService := InitializeUserService(db)
+	// CreateUser's upsert lookup runs first and finds nothing
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
 		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").
@@ -120,6 +178,9 @@ func TestFindUserByUserID(t *testing.T) {
 	})
 	db, _ := gorm.Open(dialector, &gorm.Config{})
 	userService := InitializeUserService(db)
+	// CreateUser's upsert lookup runs first and finds nothing
+	mock.ExpectQuery("SELECT (.+) FROM \"users\" WHERE \"users\".\"auth_id\" =(.+)").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "first_name", "last_name", "handle", "email", "auth_id"}))
 	mock.ExpectBegin()
 	mock.ExpectQuery("INSERT INTO \"users\" (.+) VALUES (.+)").
 		WithArgs("hello", "world", "helloworld", "helloworld@gmail.com", "abc12345", "").

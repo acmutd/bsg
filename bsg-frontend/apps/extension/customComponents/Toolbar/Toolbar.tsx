@@ -4,6 +4,7 @@ import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useRoomEvents, parseProblemSlug, problemUrl } from '@/hooks/useRoomEvents';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { ProblemProgress } from '@/customComponents/Toolbar/ProblemProgress';
 
 export const Toolbar = () => {
 
@@ -12,6 +13,9 @@ export const Toolbar = () => {
 
     const isAdmin = useRoomStore(s => s.isAdmin);
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
+    const hasRoundEnded = useRoomStore(s => s.hasRoundEnded);
+    const activeTab = useRoomStore(s => s.activeTab); // gets active tab
+    const previousTab = useRoomStore(s => s.previousTab); // gets previous tab
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
     const problems = useRoomStore(s => s.problems);
@@ -49,7 +53,8 @@ export const Toolbar = () => {
 
 
     return (
-        <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0">
+        <>
+        <div className="flex h-8 px-2 border-b border-bsg-glass items-center justify-between min-w-0 shrink-0">
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
@@ -83,7 +88,7 @@ export const Toolbar = () => {
                     </Button>
                 </TooltipWrapper>
 
-                {isAdmin && (
+                {isAdmin && !hasRoundEnded && (
                     isRoundStarted ?
                         <TooltipWrapper text="End Round">
                             <Button
@@ -148,8 +153,14 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Settings">
                     <Button
-                        onClick={() => setActiveTab('settings')}
-                        className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                        onClick={() => {    // toggle settings tab
+                            if (activeTab === 'settings') {
+                                setActiveTab(previousTab);
+                            } else {
+                                setActiveTab('settings');
+                            }
+                        }}
+                        className={`rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 hover:bg-bsg-hover ${activeTab === 'settings' ? 'bg-bsg-glass' : 'bg-transparent'}`}
                     >
                         <svg
                             className="w-4 h-4 overflow-visible"
@@ -185,5 +196,8 @@ export const Toolbar = () => {
                 </TooltipWrapper>
             </div>
         </div>
+
+        <ProblemProgress />
+        </>
     )
 }

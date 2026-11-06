@@ -258,7 +258,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
         <div className="flex items-center justify-center py-5">
           <div className="relative" style={{ width: 80, height: 80 }}>
             {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 80, height: 80 }}>
                 <PieChart>
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={24} outerRadius={38} paddingAngle={3} dataKey="value" stroke="none" />
                   <Tooltip content={<PieTooltip />} />
@@ -331,7 +331,7 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
         <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden">
           <div className="p-4 overflow-x-auto">
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 320, height: 256 }}>
                 <BarChart accessibilityLayer data={scoreChartData}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="username" tickLine={false} />
@@ -351,4 +351,3 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     </div>
   );
 };
-

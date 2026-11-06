@@ -3,12 +3,11 @@ import { useRoomInit } from "@/hooks/useRoomInit";
 
 export default function StartPage() {
 
-    const { createRoom, joinRoom } = useRoomInit();
+    const { joinRoom } = useRoomInit();
 
     return (
         <RoomChoice
             onJoin={joinRoom}
-            onCreate={createRoom}
         />
     )
 }

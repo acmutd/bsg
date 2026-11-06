@@ -1,5 +1,5 @@
 # i attempted to optimize this but if it causes issues just revert to a more basic dockerfile.
-# currently we get a warning from server about how connect.session() i snot designed for a prod envioronment
+# currently we get a warning from server about how connect.session() is not designed for a prod envioronment
 # because it leaks memory and doesn't scale past a single process, so that will likely have to be changed. 
 # but from my limited testing it works fine for now.
 

@@ -46,6 +46,8 @@ func InitializeRoomService(db *gorm.DB, rdb *redis.Client, roundService *RoundSe
 type RoomDTO struct {
 	Name string `json:"roomName"`
 	TTL  int    `json:"ttl"` // TTL in minutes; 0 means no expiry
+	// When true, rtc-service rejects chat messages containing profanity.
+	ProfanityFilter bool `json:"profanityFilter"`
 }
 
 // Creates a room and persist
@@ -78,6 +80,8 @@ func (service *RoomService) CreateRoom(room *RoomDTO, adminID string) (*models.R
 		TTL:       room.TTL,
 		ExpiresAt: expiresAt,
 		Rounds:    []models.Round{},
+
+		ProfanityFilter: room.ProfanityFilter,
 	}
 	result := service.db.Create(&newRoom)
 	if result.Error != nil {
@@ -230,6 +234,8 @@ func (service *RoomService) JoinRoom(roomID string, userID string) (*models.Room
 			UserHandle: userID,
 			RoomID:     roomID,
 			UserName:   displayName,
+			// Resent on every join so rtc-service stays in sync, even after a restart.
+			ProfanityFilter: &room.ProfanityFilter,
 		}
 		if _, err = service.rtcClient.SendMessage("join-room", joinRoom); err != nil {
 			log.Printf("Error sending join-room message: %v", err)
@@ -497,6 +503,17 @@ func (service *RoomService) CreateRound(params *RoundCreationParameters, roomID 
 	}
 	round, fallbackUsed, err := service.roundService.CreateRound(params, &room.ID)
 	if err != nil {
+		// If this was the room's first round, it's otherwise empty and useless without
+		// one (the create-room flow creates the room, then immediately tries to create
+		// its first round) - clean it up rather than leaving an orphaned, round-less
+		// room behind. A room that already has other rounds is left alone, since a
+		// later round attempt failing shouldn't destroy its existing history.
+		if len(room.Rounds) == 0 {
+			service.cancelRoomExpiry(roomID)
+			if delErr := service.deleteRoom(*room); delErr != nil {
+				log.Printf("Error cleaning up room %s after failed round creation: %v\n", roomID, delErr)
+			}
+		}
 		return nil, false, err
 	}
 	if err := service.db.Model(&room).Association("Rounds").Append(round); err != nil {

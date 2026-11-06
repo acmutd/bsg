@@ -27,6 +27,10 @@ type Room struct {
 	// History of messages in the room for persistence.
 	Messages []response.Response
 
+	// When true, chat messages containing profanity are rejected.
+	// Set by central-service from the room creator's choice.
+	ProfanityFilter bool
+
 	// Used to avoid concurrent writes to the users list and message history.
 	sync.RWMutex
 }
@@ -79,6 +83,20 @@ func (r *Room) RemoveAllUsers() {
 	r.Users = make(UserList)
 
 	logging.Info("All users removed from room: ", r.RoomID)
+}
+
+func (r *Room) SetProfanityFilter(enabled bool) {
+	r.Lock()
+	defer r.Unlock()
+
+	r.ProfanityFilter = enabled
+}
+
+func (r *Room) ProfanityFilterEnabled() bool {
+	r.RLock()
+	defer r.RUnlock()
+
+	return r.ProfanityFilter
 }
 
 func (r *Room) IsEmpty() bool {

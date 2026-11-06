@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const loggingModule = require('../middleware/logging');
+const { commitSolution } = require('../config/github');
+const { getGithubRepoLink } = require('../config/redis');
 
 const logger = new loggingModule.StructuredLogger('submission-server');
 
@@ -89,6 +91,13 @@ router.post('/', async (req, res) => {
             return res.status(500).json({ error: 'Failed to submit score' });
         }
 
+        // push the solution to the user's BSG-Submissions repo; not awaited so GitHub can't block scoring
+        pushToGithub(authID, slug, language, code)
+            .catch(err => logger.error('Failed to push solution to GitHub', err, {
+                user_id: authID,
+                problem_slug: slug,
+            }));
+
         const difficulty = problemData.data?.difficulty;
         const statsRes = await fetch(`${centralServiceUrl}/api/statistics/${roomID}/update`, {
             method: 'POST',
@@ -124,5 +133,47 @@ router.post('/', async (req, res) => {
         return res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+const map = {"python3": ".py",
+             "cpp" : ".cpp",
+             "python": ".py",
+             "java": ".java",
+             "c": ".c",
+             "csharp": ".cs",
+             "javascript": ".js",
+             "typescript": ".ts",
+             "php": ".php",
+             "swift": ".swift",
+             "kotlin": ".kt",
+             "dart": ".dart",
+             "golang": ".go",
+             "ruby": ".rb",
+             "scala": ".scala",
+             "rust": ".rs",
+             "racket": ".rkt",
+             "erlang": ".erl",
+             "elixir": ".ex",
+             "mysql": ".sql",
+             "mssql": ".sql",
+             "oraclesql": ".sql",
+             "postgresql": ".sql",
+             "pythondata": ".py",
+             "bash": ".sh"}
+// language is LeetCode's lang value, e.g. "python3", "cpp", "java", "golang"
+function solutionPath(slug, language) {
+
+    const lang = map[language] || '.txt'
+    const path = `submission/${slug}/solution${lang}`
+    
+    return path
+}
+
+async function pushToGithub(authID, slug, language, code) {
+    // only users who connected a repo from the footer button have a link
+    const link = await getGithubRepoLink(authID);
+    if (!link) return;
+
+    await commitSolution(link.token, link.username, solutionPath(slug, language), code, `Solved ${slug}`);
+}
 
 module.exports = router;

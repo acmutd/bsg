@@ -4,6 +4,7 @@ import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from "./useRoomInit";
 import { configReady } from "../lib/config";
+import { pushRoute } from "@/utils/navigation";
 
 // Restores the session exactly once, before the panel renders. Effects always
 // run after React has already painted, so the only way to keep login-page from
@@ -38,15 +39,24 @@ export const useSessionInit = (enabled: boolean) => {
                 // only populated once chrome.storage.local has been read
                 await configReady;
 
+                const { user: cachedUser } = await chrome.storage.local.get('user');
+                if (!cachedUser?.id) {
+                    await pushRoute(router, '/login-page');
+                    return;
+                }
+
                 const response = await chrome.runtime.sendMessage({type: 'CHECK_AUTH'});
-                if(!response?.success) return;
+                if(!response?.success) {
+                    await pushRoute(router, '/login-page');
+                    return;
+                }
 
                 const user: User = response.user;
                 loginUser(user.id, user.name, user.email, user.photo)
 
                 //checkActiveRoom pushes room-page itself, so we only handle the no-room case
                 const enteredRoom = await checkActiveRoom();
-                if(!enteredRoom) await router.push('/start-page')
+                if(!enteredRoom) await pushRoute(router, '/start-page')
 
             } catch(error){
                 console.error(error)

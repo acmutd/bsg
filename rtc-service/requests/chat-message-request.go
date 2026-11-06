@@ -3,8 +3,9 @@ package requests
 import (
 	"encoding/json"
 	"errors"
-	
+
 	"github.com/acmutd/bsg/rtc-service/chatmanager"
+	"github.com/acmutd/bsg/rtc-service/profanity"
 	"github.com/acmutd/bsg/rtc-service/response"
 	"github.com/go-playground/validator/v10"
 )
@@ -66,6 +67,11 @@ func (r *ChatMessageRequest) Handle(m *Message) (response.ResponseType, string, 
 	user := room.GetUser(r.UserHandle)
 	if user == nil {
 		return r.responseType(), "", r.RoomID, errors.New("user doesn't exist in the room")
+	}
+
+	// The room's filter is set by its creator, so clients can't opt out.
+	if room.ProfanityFilterEnabled() && profanity.Contains(r.Message) {
+		return r.responseType(), "", r.RoomID, errors.New("Message not sent: profanity filter enabled.")
 	}
 
 	// Return data as JSON so response handler can parse it easily

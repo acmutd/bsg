@@ -1,6 +1,62 @@
 (function () {
   if (!/\/problems\//.test(location.pathname)) return;
 
+  // Marks a problem as "touched" once the user writes code in it.
+  // Slugs already reported, so we message the worker once instead of per keystroke.
+  // A Set, not a boolean: this script survives LeetCode's client-side routing
+  // between problems, so one flag would stop reporting after the first problem.
+  const reportedTouches = new Set();
+
+  // Keys that move the caret or hold a chord but never change the buffer.
+  const INERT_KEYS = new Set([
+    'Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'Home', 'End', 'PageUp', 'PageDown', 'Insert',
+    'ContextMenu', 'NumLock', 'ScrollLock', 'Pause',
+  ]);
+
+  function isEditingKey(e) {
+    if (INERT_KEYS.has(e.key) || /^F\d{1,2}$/.test(e.key)) return false;
+    // Ctrl/Cmd chords are commands (save, find, run) - only these four edit.
+    if (e.ctrlKey || e.metaKey) return ['v', 'x', 'z', 'y'].includes(e.key.toLowerCase());
+    return true;
+  }
+
+  function reportTouch() {
+    // Read at event time; a slug captured at load goes stale on client-side routing.
+    const match = location.pathname.match(/\/problems\/([^/?#]+)/);
+    const slug = match ? match[1] : null;
+    if (!slug || reportedTouches.has(slug)) return;
+
+    reportedTouches.add(slug);
+    chrome.runtime.sendMessage({ type: 'PROBLEM_TOUCHED', slug: slug }).catch(() => {});
+  }
+
+  function handleEditorInput(e) {
+    const target = e.target;
+    if (!target || typeof target.closest !== 'function') return;
+    // Monaco focuses a hidden textarea, so match the ancestor. '.monaco-editor'
+    // is Monaco's own class, not LeetCode markup, so it survives their redesigns.
+    if (!target.closest('.monaco-editor')) return;
+    if (e.type === 'keydown' && !isEditingKey(e)) return;
+
+    reportTouch();
+  }
+
+  // Capture phase so Monaco's own handlers can't stop these from reaching us.
+  document.addEventListener('keydown', handleEditorInput, true);
+  document.addEventListener('paste', handleEditorInput, true);
+
+  function DetectBrowser() {
+    const data = navigator.userAgentData
+    
+    // if ever we need to know which platform e.g.(macOS) for specific reason we can access here
+    const platform = data.platform 
+
+    const currentBrowser = data.brands[2]
+
+    return currentBrowser.brand
+  }
   function waitForQDContent() {
     return new Promise(function (resolve) {
       const existing = document.querySelector('#qd-content');
@@ -17,6 +73,13 @@
   }
 
   waitForQDContent().then(async function (qd) {
+    //Check which browser we are working with 
+    const browser = DetectBrowser();
+
+    if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+      chrome.storage.local.set({ browser: browser })
+    }
+
     const wrapper = qd.parentElement;
     if (!wrapper) {
       console.warn('where parent');

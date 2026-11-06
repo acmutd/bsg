@@ -3,6 +3,7 @@ import { getServerUrl } from '../lib/config'
 import { useUserStore } from '@/stores/useUserStore';
 import { useRouter } from 'next/router';
 import { User } from '@bsg/models/User';
+import { pushRoute } from '@/utils/navigation';
 
 export const useRoomInit = () => {
 
@@ -11,6 +12,7 @@ export const useRoomInit = () => {
     const initRoom = useRoomStore(s => s.initRoom);
     const setParticipants = useRoomStore(s => s.setParticipants);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
+    const setHasRoundEnded = useRoomStore(s => s.setHasRoundEnded);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
@@ -99,12 +101,15 @@ export const useRoomInit = () => {
                 room.adminId,
                 userId === room.adminId,
             );
+            const lastRound = room.rounds?.[room.rounds.length - 1];
+            const lastRoundStatus = lastRound?.Status || lastRound?.status;
+            setHasRoundEnded(lastRoundStatus === 'ended');
 
             await setRoomParticipants(room.id);
 
             setRoomNotice(null);
 
-            router.push('/room-page');
+            await pushRoute(router, '/room-page');
 
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ activeRoomId: room.id });
@@ -125,7 +130,7 @@ export const useRoomInit = () => {
             // 1. Create Room
             const res = await fetch(`${getServerUrl()}/rooms`, {
                 method: 'POST',
-                body: JSON.stringify({ roomName: roomCode, ttl: 360 }),
+                body: JSON.stringify({ roomName: roomCode, ttl: 360, profanityFilter: options.profanityFilter ?? false }),
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
@@ -143,7 +148,17 @@ export const useRoomInit = () => {
                 numEasyProblems: options.easy || 0,
                 numMediumProblems: options.medium || 0,
                 numHardProblems: options.hard || 0,
-                tags: options.tags || []
+                tags: options.tags || [],
+                companies: options.companies || [],
+                blind75: options.blind75 || false,
+                neetcode150: options.neetcode150 || false,
+                recentlyAsked: options.recentlyAsked || false,
+                excludePaid: options.excludePaid || false,
+                anyDifficulty: options.anyDifficulty || false,
+                numAnyDifficultyProblems: options.anyDifficultyCount || 0,
+                // Non-empty only for the "Choose" tab, where the backend skips
+                // filter-based generation and queues exactly these problems.
+                problemIds: options.problemIds || []
             };
             const roundRes = await fetch(`${getServerUrl()}/rooms/${roomId}/rounds/create`, {
                 method: 'POST',
@@ -190,7 +205,7 @@ export const useRoomInit = () => {
                 if (chrome.action) chrome.action.setBadgeText({ text: "" });
             }
 
-            router.push('/room-page');
+            await pushRoute(router, '/room-page');
             return { success: true };
 
         } catch (e) {
@@ -242,13 +257,14 @@ export const useRoomInit = () => {
                         }else{
                         }
 
-                        await router.push('/room-page');
+                        await pushRoute(router, '/room-page');
 
 
                         // Check for active round
                         if (room.rounds && room.rounds.length > 0) {
                             const lastRound = room.rounds[room.rounds.length - 1];
                             const status = lastRound.Status || lastRound.status;
+                            setHasRoundEnded(status === 'ended');
                             // remember the round's configured duration (editable while "created")
                             const lastRoundDuration = lastRound.duration || lastRound.Duration;
                             if (typeof lastRoundDuration === 'number') {
@@ -267,6 +283,9 @@ export const useRoomInit = () => {
                                         chrome.storage.local.set({ roundEndTime: endTime });
                                     }
                                 }
+                            } else {
+                                setIsRoundStarted(false);
+                                setRoundEndTime(null);
                             }
                         }
 

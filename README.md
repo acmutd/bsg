@@ -28,6 +28,7 @@ cp .env.template .env
 ```
 
 Fill out the environment variables in the `.env` file with any value of choosing. 
+If Docker cannot bind the server's default host port 3000, set `PORT_SERVER=3001` (or another available port) in `.env`.
 
 Execute the following command to run the project: 
 ```bash
@@ -60,3 +61,5 @@ All you have to do is run regardless of local or production
 ```
 cd bsg-frontend/ && npm run build-extension
 ```
+
+For local testing, reload the built unpacked extension from `bsg-frontend/apps/extension/out`. It detects the Compose API on `localhost:3600` or `localhost:3000`; `NODE_ENV` configures the server container and does not select the extension's API URL.
