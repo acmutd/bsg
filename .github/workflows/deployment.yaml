@@ -13,7 +13,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.USER_NAME }}
+          username: ec2-user
           key: ${{ secrets.BSG_SSH_KEY }}
           script: |
             set -e
