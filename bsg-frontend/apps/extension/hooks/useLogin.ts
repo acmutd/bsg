@@ -4,6 +4,7 @@ import { User } from "@bsg/models/User";
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomStore } from "@/stores/useRoomStore";
 import { getServerUrl } from "../lib/config";
+import { pushRoute } from "@/utils/navigation";
 
 export type AuthProvider = 'google' | 'github';
 
@@ -48,9 +49,12 @@ export const useLogin = () => {
                         userObject.email,
                         userObject.photo
                     );
+                    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                        await chrome.storage.local.set({ user: userObject });
+                    }
 
                     popup?.close()
-                    router.push('/start-page');
+                    await pushRoute(router, '/start-page');
 
                     return userObject;
 
@@ -82,20 +86,20 @@ export const useLogin = () => {
                 console.warn('Unable to leave room during logout', error);
             }
         }
-        const finishLogout = () => {
+        const finishLogout = async () => {
             resetUser();
             resetRoom();
-            router.push('/login-page');
+            await pushRoute(router, '/login-page');
         };
 
         if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id !== 'undefined') {
             chrome.runtime.sendMessage({type: 'LOGOUT'}, (response) => {
                 if (response && response.success) {
-                    finishLogout();
+                    finishLogout().catch(error => console.error('Failed to navigate after logout', error));
                 }
             })
         } else {
-            finishLogout();
+            finishLogout().catch(error => console.error('Failed to navigate after logout', error));
         }
     }
 

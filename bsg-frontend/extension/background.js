@@ -272,32 +272,23 @@ let userProfile = null;
 let resolveConfig;
 const configReady = new Promise((resolve) => { resolveConfig = resolve; });
 
-chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
+chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl']).then((result) => {
   if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
   if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
 
-  // Auto-detect local dev: if no explicit override, probe localhost:3000
-  if (!result.configServerUrl) {
-    fetch('http://localhost:3000/auth/user', { method: 'GET', credentials: 'include', signal: AbortSignal.timeout(2000) })
-      .then(() => {
-        CONFIG.SERVER_URL = 'http://localhost:3000';
-        CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
-        chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
-      })
-      .catch(() => {})
-      .finally(resolveConfig);
-  } else {
-    resolveConfig();
-  }
-
   if (activeRoomId && userProfile) {
-    connectWebSocket();
+      connectWebSocket();
   } else {
-    console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
+      console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
   }
-});
+  }).catch((error) => {
+      console.error('Background: config initialization failed', error);
+    })
+    .finally(() => {
+      resolveConfig();
+    });
 
 // listen for storage changes
 chrome.storage.onChanged.addListener((changes, namespace) => {

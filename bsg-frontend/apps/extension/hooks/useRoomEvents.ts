@@ -4,6 +4,7 @@ import { getServerUrl } from '../lib/config'
 import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
+import { isNavigationCancellation, pushRoute } from '@/utils/navigation';
 
 
 export const parseProblemSlug = (url: string): string | null => {
@@ -12,7 +13,6 @@ export const parseProblemSlug = (url: string): string | null => {
 }
 
 export const problemUrl = (slug: string): string => `https://leetcode.com/problems/${slug}/`;
-
 
 export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | null => {
     if (problems.length === 0) return null;
@@ -38,13 +38,19 @@ export const resolveResumeSlug = (tabUrl: string, problems: string[]): string | 
 const navigateActiveTab = async (decide: (tabUrl: string) => string | null) => {
     if (typeof chrome === 'undefined' || !chrome.tabs) return;
 
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id || !tab.url) return;
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id || !tab.url) return;
 
-    const targetSlug = decide(tab.url);
-    if (!targetSlug || parseProblemSlug(tab.url) === targetSlug) return;
+        const targetSlug = decide(tab.url);
+        if (!targetSlug || parseProblemSlug(tab.url) === targetSlug) return;
 
-    chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+        await chrome.tabs.update(tab.id, { url: problemUrl(targetSlug) });
+    } catch (error) {
+        if (!isNavigationCancellation(error)) {
+            console.error('Failed to navigate the active LeetCode tab', error);
+        }
+    }
 }
 
 export function useRoomEvents() {
@@ -61,6 +67,7 @@ export function useRoomEvents() {
     const lastParticipantJoinTime = useRoomStore(s => s.lastParticipantJoinTime);
     const setRoundEndTime = useRoomStore(s => s.setRoundEndTime);
     const setIsRoundStarted = useRoomStore(s => s.setIsRoundStarted);
+    const setHasRoundEnded = useRoomStore(s => s.setHasRoundEnded);
     const setResetRoom = useRoomStore(s => s.resetRoom);
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
@@ -139,6 +146,7 @@ export function useRoomEvents() {
 
             setRoundEndTime(endTime);
             setIsRoundStarted(true);
+            setHasRoundEnded(false);
 
             // Store for background script TTL check
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -227,6 +235,7 @@ export function useRoomEvents() {
             console.log("We got inside of the round-end game type ")
             setRoundEndTime(null);
             setIsRoundStarted(false);
+            setHasRoundEnded(true);
 
             // Clear nextProblem, problems, and TTL state on round end
             setNextProblem(null);
@@ -241,7 +250,7 @@ export function useRoomEvents() {
             if (typeof chrome !== 'undefined' && chrome.runtime) {
                 chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey: `${roomId}|ended|${Date.now()}` }).catch(() => {});
             }
-            setActiveTab('leaderboard')
+            setActiveTab('chat')
             if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                 chrome.storage.local.set({ lastGameEvent: lastGameEvent.type})
             }
@@ -309,10 +318,12 @@ export function useRoomEvents() {
                 console.error('Failed to end round:', res.status, data);
                 alert(`Failed to end round: ${data.error || res.status}`);
             } else {
-                // Wait for round-end WS event to reset state.
-                // As a fallback, reset locally after a short delay.
+                setIsRoundStarted(false);
+                setHasRoundEnded(true);
+
+                // The API confirms the round ended; clear remaining client state
+                // after the round-end event has had time to arrive.
                 setTimeout(() => {
-                    setIsRoundStarted(false);
                     setRoundEndTime(null);
                     
                     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
@@ -350,7 +361,7 @@ export function useRoomEvents() {
                     chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey: `${roomId}|left|${Date.now()}` }).catch(() => {});
                 }
                 setResetRoom();
-                router.push('/start-page')
+                await pushRoute(router, '/start-page');
             } else{
                 console.error(message)
             }

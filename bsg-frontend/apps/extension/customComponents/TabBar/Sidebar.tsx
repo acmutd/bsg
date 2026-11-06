@@ -1,3 +1,4 @@
+// TODO: REWORK: Restore the leaderboard tab after its redesign.
 import React, { useState } from 'react';
 import { Button } from '@bsg/ui/button';
 import { messageScript } from '@/utils/messageScript';
@@ -155,13 +156,13 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 </div>
                             </Button>
 
-                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-bsg-separator hidden ${(hoveredTab === 'chat' || hoveredTab === 'leaderboard') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => selectTabAndUnfold('leaderboard')}
-                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
+                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px] !hidden"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'leaderboard') ? '' : 'opacity-60'}`}>
                                     <div className={`[writing-mode:vertical-lr] rotate-180 ${(activeTab === 'leaderboard') ? 'font-medium' : 'font-normal'}`}>Leaderboard</div>
@@ -184,7 +185,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 </div>
                             </Button>
 
-                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'leaderboard' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
+                            <div className={`min-h-[1px] w-3 bg-bsg-separator ${(hoveredTab === 'chat' || hoveredTab === 'statistics') ? 'invisible' : ''}`} />
 
                             <Button
                                 onMouseEnter={() => setHoveredTab('statistics')}
