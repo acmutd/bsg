@@ -272,50 +272,23 @@ let userProfile = null;
 let resolveConfig;
 const configReady = new Promise((resolve) => { resolveConfig = resolve; });
 
-chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl'], (result) => {
+chrome.storage.local.get(['activeRoomId', 'user', 'configServerUrl', 'configRtcServiceUrl']).then((result) => {
   if (result.configServerUrl) CONFIG.SERVER_URL = result.configServerUrl;
   if (result.configRtcServiceUrl) CONFIG.RTC_SERVICE_URL = result.configRtcServiceUrl;
   if (result.activeRoomId) activeRoomId = result.activeRoomId;
   if (result.user) userProfile = result.user;
 
-  // Prefer a running local Compose server over any previously saved URL.
-  const localServerUrls = ['http://localhost:3600', 'http://localhost:3000'];
-  (async () => {
-    let localServerUrl = null;
-    for (const serverUrl of localServerUrls) {
-      try {
-        const response = await fetch(`${serverUrl}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(2000)
-        });
-        if (response.ok) {
-          localServerUrl = serverUrl;
-          break;
-        }
-      } catch {
-        continue;
-      }
-    }
-
-    if (localServerUrl) {
-      CONFIG.SERVER_URL = localServerUrl;
-      CONFIG.RTC_SERVICE_URL = 'ws://localhost:5001/ws';
-      chrome.storage.local.set({ configServerUrl: CONFIG.SERVER_URL, configRtcServiceUrl: CONFIG.RTC_SERVICE_URL });
-    }
-
-    if (activeRoomId && userProfile) {
+  if (activeRoomId && userProfile) {
       connectWebSocket();
-    } else {
+  } else {
       console.debug("Background: Not connecting to WS. Missing data:", { activeRoomId, hasProfile: !!userProfile });
-    }
-  })()
-    .catch((error) => {
+  }
+  }).catch((error) => {
       console.error('Background: config initialization failed', error);
     })
     .finally(() => {
       resolveConfig();
     });
-});
 
 // listen for storage changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
