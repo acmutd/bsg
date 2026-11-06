@@ -467,6 +467,34 @@
       }
 
       if (message.type === "FOLD") {
+        if (panelMaximized) {
+          // Restore the size from before maximizing. Set the target width while
+          // still position:fixed, then drop the fixed layout atomically so the
+          // panel re-enters the flex flow already at its restored size (no
+          // oversized stutter frame).
+          panelFolded = false;
+          panelMaximized = false;
+          panelWidthFraction = preMaximizeFraction;
+          handle.style.display = 'flex';
+          panel.style.transition = 'none';
+          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
+          const targetHeight = Math.max(0, Math.min(qd.getBoundingClientRect().height, window.innerHeight));
+          Object.assign(panel.style, {
+            width: `${target}px`,
+            height: `${targetHeight}px`,
+            position: '',
+            top: '',
+            left: '',
+            zIndex: '',
+            borderRadius: '8px',
+          });
+          chrome.storage.local.set({ isPanelMaximized: false });
+          // Re-enable the drag transition after the restore has painted.
+          requestAnimationFrame(() => {
+            panel.style.transition = 'width 0.05s ease-out';
+          });
+        }
+        
         setPanelWidth(MIN_PANEL_WIDTH, true);
       }
 
