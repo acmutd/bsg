@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useRoomEvents, parseProblemSlug, problemUrl } from '@/hooks/useRoomEvents';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { ProblemProgress } from '@/customComponents/Toolbar/ProblemProgress';
+import { useStatistics } from '@/hooks/useStatistics';
 
 export const Toolbar = () => {
 
@@ -18,32 +19,43 @@ export const Toolbar = () => {
     const previousTab = useRoomStore(s => s.previousTab); // gets previous tab
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
-    const problems = useRoomStore(s => s.problems);
-    // -2 = problems not loaded yet, -1 = tab isn't on one of this round's problems
-    const [currIndex, setCurrIndex] = useState(-2);
+    const storeProblems = useRoomStore(s => s.problems);
+    const { roundDetails } = useStatistics();
+
+    // Server first: round-start navigates the tab, which reloads the panel and
+    // wipes zustand, so the store's `problems` can be empty for most of a round.
+    const problems = useMemo(() => {
+        const fromServer = (roundDetails?.problems ?? []).map(p => p.slug).filter(Boolean);
+        return fromServer.length > 0 ? fromServer : storeProblems;
+    }, [roundDetails, storeProblems]);
 
 //TODO: Move timer to iframe
 
-    // The tab's URL lives outside React, so no dependency array can react to it -
-    // sampling once on mount only looked right because navigating the top frame
-    // remounted the whole panel. Subscribe instead: LeetCode also routes between
-    // problems client-side, where the panel survives and never gets that remount.
+    // The tab's URL lives outside React, so subscribe rather than sample once.
+    const [currSlug, setCurrSlug] = useState<string | null>(null);
     useEffect(() => {
-        if (problems.length === 0) return;
+        if (typeof chrome === 'undefined' || !chrome.tabs?.query) return;
 
-        const sync = (url: string | undefined) => {
-            const slug = url ? parseProblemSlug(url) : null;
-            setCurrIndex(slug ? problems.indexOf(slug) : -1);
+        const sync = (url: string | undefined) => setCurrSlug(url ? parseProblemSlug(url) : null);
+        const syncActive = () => {
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => sync(tabs[0]?.url));
         };
+        syncActive();
 
-        chrome.tabs.query({active: true, currentWindow: true}, tabs => sync(tabs[0]?.url));
-
-        const handleUpdated = (_tabId: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
-            if (change.url && tab.active) sync(change.url);
+        const handleUpdated = (_id: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+            if (change.url && tab.active) sync(change.url); // in-tab navigation, incl. LeetCode's client-side routing
         };
+        const handleActivated = () => syncActive(); // Ctrl+Tab / tab-click switches fire no update event
         chrome.tabs.onUpdated.addListener(handleUpdated);
-        return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
-    }, [problems])
+        chrome.tabs.onActivated?.addListener(handleActivated);
+        return () => {
+            chrome.tabs.onUpdated.removeListener(handleUpdated);
+            chrome.tabs.onActivated?.removeListener(handleActivated);
+        };
+    }, []);
+
+    const currIndex = currSlug ? problems.indexOf(currSlug) : -1; // -1 = tab isn't on one of this round's problems
+    const canNavigate = isRoundStarted && problems.length > 0; // both must be true: round started AND its problems are loaded
 
     const stepProblem = (delta: number) => {
         //off-round, so there is nothing to step from - put them on the first problem
@@ -59,7 +71,7 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Previous Problem">
                     <Button
                         onClick={() => stepProblem(-1)}
-                        disabled={currIndex === -2 || currIndex === 0}
+                        disabled={!canNavigate || currIndex === 0} // needs canNavigate AND a problem before this one
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -75,7 +87,7 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Next Problem">
                     <Button
                         onClick={() => stepProblem(1)}
-                        disabled={currIndex === -2 || currIndex === problems.length - 1}
+                        disabled={!canNavigate || currIndex === problems.length - 1} // needs canNavigate AND a problem after this one
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -197,7 +209,7 @@ export const Toolbar = () => {
             </div>
         </div>
 
-        <ProblemProgress />
+        <ProblemProgress problems={problems} currSlug={currSlug} roundDetails={roundDetails} canNavigate={canNavigate} />
         </>
     )
 }
