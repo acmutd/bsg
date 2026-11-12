@@ -14,9 +14,17 @@ import { useIsActive } from '@/hooks/useIsActive';
 import { useEffect, useRef, useState } from 'react';
 import { configReady } from '../lib/config';
 import { useSessionInit } from '@/hooks/useSessionInit';
-import Logo from '@bsg/components/Logo';
 
 const poppins = Poppins({ weight: '400', subsets: ['latin'] });
+
+function LoadingDots() {
+  const [count, setCount] = useState(1);
+  useEffect(() => {
+    const id = setInterval(() => setCount((c) => (c % 3) + 1), 400); // . -> .. -> ... -> . every 400ms
+    return () => clearInterval(id);
+  }, []);
+  return <span className="absolute left-full">{'.'.repeat(count)}</span>; // hangs past the text so it never affects centering
+}
 
 function useThemeSync() {
   useEffect(() => {
@@ -143,11 +151,40 @@ export default function App({ Component, pageProps }: AppProps) {
   // on every reload before useSessionInit redirects to start-page/room-page.
   if (!sessionReady) {
     return (
-      <div className={`${poppins.className} flex h-screen items-center justify-center`}>
+      <div className={`${poppins.className} h-screen`}>
         {(isRestoreSlow && !isFolded) && (
-          <div className="flex flex-col items-center text-foreground/40 animate-pulse">
-            <Logo />
-            <p className="text-sm">Restoring session…</p>
+          <div className="flex flex-col h-screen">
+            {/* Header banner: same container and logo as HeaderBar, without the toolbar buttons */}
+            <div className="bg-bsg-surface h-9 flex relative items-center shrink-0">
+              <div className="flex absolute left-2 gap-1 font-medium text-sm items-center text-foreground">
+                <svg className="w-5 h-5" viewBox="0 0 81 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M29.5 13.5L36.8326 20.5015L29.5 27.5M39.7661 27.5H51.5M41 47V61.5M26 61.5H56M65 13H77.5C77.3785 30.2972 72.1025 34.6283 57.5 37M15.5 13H3C3.12147 30.2972 8.3975 34.6283 23 37M15 3H65.5C65.5 3 65.1434 46.6785 40.5 46.5C15.9364 46.3221 15 3 15 3Z"
+                    stroke="#62AF2E" // same green as the HeaderBar icon
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                BSG
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center pb-20">
+              <div className="flex items-center gap-2 p-4">
+                <svg className="w-10 h-10 text-primary" viewBox="0 0 81 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M29.5 13.5L36.8326 20.5015L29.5 27.5M39.7661 27.5H51.5M41 47V61.5M26 61.5H56M65 13H77.5C77.3785 30.2972 72.1025 34.6283 57.5 37M15.5 13H3C3.12147 30.2972 8.3975 34.6283 23 37M15 3H65.5C65.5 3 65.1434 46.6785 40.5 46.5C15.9364 46.3221 15 3 15 3Z"
+                    stroke="currentColor" // takes the theme green from text-primary
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <p className="text-4xl font-medium text-foreground">BSG</p> {/* white in dark mode, dark gray in light mode */}
+              </div>
+              <p className="relative text-base text-foreground/60">Restoring session<LoadingDots /></p> {/* relative anchors the dots to the end of the text */}
+            </div>
           </div>
         )}
       </div>
