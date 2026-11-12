@@ -5,6 +5,31 @@ import { useChatSocket } from '@/hooks/useChatSocket'
 import { Toast } from '@/customComponents/Toast';
 import { useState, useEffect } from 'react';
 
+// Each kind of system message gets its own color: a rounded box with a solid
+// border and a translucent fill of the same color. Class names are written out
+// in full so Tailwind's JIT picks them up.
+const SYSTEM_MESSAGE_STYLES = {
+    joined: 'border-green-500 bg-green-500/10',
+    left: 'border-red-500 bg-red-500/10',
+    roundStart: 'border-blue-500 bg-blue-500/10',
+    roundEnd: 'border-purple-500 bg-purple-500/10',
+    solved: 'border-amber-500 bg-amber-500/10',
+    admin: 'border-cyan-500 bg-cyan-500/10',
+    other: 'border-gray-500 bg-gray-500/10',
+};
+
+// rtc-service sends every system line as plain text, so classify by its wording.
+const getSystemMessageStyle = (text: string): string => {
+    const t = (text || '').toLowerCase();
+    if (t.includes('joined the')) return SYSTEM_MESSAGE_STYLES.joined;
+    if (t.includes('left the')) return SYSTEM_MESSAGE_STYLES.left;
+    if (t.includes('round has started')) return SYSTEM_MESSAGE_STYLES.roundStart;
+    if (t.includes('round has ended')) return SYSTEM_MESSAGE_STYLES.roundEnd;
+    if (t.includes(' solved ')) return SYSTEM_MESSAGE_STYLES.solved;
+    if (t.includes('admin')) return SYSTEM_MESSAGE_STYLES.admin;
+    return SYSTEM_MESSAGE_STYLES.other;
+};
+
 export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
     const {
@@ -91,9 +116,11 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 // System Message
                                 <div
                                     key={i}
-                                    className="flex justify-center p-2 text-foreground/60 text-sm text-center max-w-full break-words"
+                                    className="flex justify-center max-w-full"
                                 >
-                                    {group[0].data}
+                                    <div className={`px-3 py-1.5 rounded-lg border border-solid text-foreground/80 text-sm text-center break-words max-w-full ${getSystemMessageStyle(group[0].data)}`}>
+                                        {group[0].data}
+                                    </div>
                                 </div>
 
                                 :
