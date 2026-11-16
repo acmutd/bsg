@@ -29,7 +29,10 @@ export const Toolbar = () => {
     // remounted the whole panel. Subscribe instead: LeetCode also routes between
     // problems client-side, where the panel survives and never gets that remount.
     useEffect(() => {
-        if (problems.length === 0) return;
+        if (problems.length === 0) {
+            setCurrIndex(-2);
+            return;
+        }
 
         const sync = (url: string | undefined) => {
             const slug = url ? parseProblemSlug(url) : null;
@@ -46,8 +49,10 @@ export const Toolbar = () => {
     }, [problems])
 
     const stepProblem = (delta: number) => {
+        if (currIndex === -2 || problems.length === 0) return;
         //off-round, so there is nothing to step from - put them on the first problem
         const newIndex = (currIndex === -1) ? 0 : currIndex + delta;
+        if (newIndex < 0 || newIndex >= problems.length) return;
         window.open(problemUrl(problems[newIndex]), '_top');
     }
 
@@ -58,6 +63,7 @@ export const Toolbar = () => {
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
+                        aria-label="Previous Problem"
                         onClick={() => stepProblem(-1)}
                         disabled={currIndex === -2 || currIndex === 0}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
@@ -74,6 +80,7 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Next Problem">
                     <Button
+                        aria-label="Next Problem"
                         onClick={() => stepProblem(1)}
                         disabled={currIndex === -2 || currIndex === problems.length - 1}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
@@ -92,6 +99,7 @@ export const Toolbar = () => {
                     isRoundStarted ?
                         <TooltipWrapper text="End Round">
                             <Button
+                                aria-label="End Round"
                                 onClick={handleEndRound}
                                 className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                             >
@@ -111,6 +119,7 @@ export const Toolbar = () => {
                         :
                         <TooltipWrapper text="Start Round">
                             <Button
+                                aria-label="Start Round"
                                 onClick={handleStartRound}
                                 className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                             >

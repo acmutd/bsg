@@ -197,6 +197,12 @@ export const useChatSocket = () => {
                             });
                         }
                     } else if (responseType === 'round-end') {
+                        setMessages(prev => [...prev, {
+                            userHandle: 'System',
+                            data: message?.data || 'Round has ended!',
+                            roomID: message.roomID,
+                            isSystem: true
+                        }]);
                         setLastGameEvent({
                             type: 'round-end',
                             data: message.data,

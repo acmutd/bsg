@@ -1,4 +1,3 @@
-// TODO: REWORK: Restore the leaderboard tab after its redesign.
 import React, { useState } from 'react';
 import { Button } from '@bsg/ui/button';
 import { messageScript } from '@/utils/messageScript';
@@ -162,7 +161,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => selectTabAndUnfold('leaderboard')}
-                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px] !hidden"
+                                className="flex h-auto py-2 px-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex flex-col gap-1 text-sm ${(activeTab === 'leaderboard') ? '' : 'opacity-60'}`}>
                                     <div className={`[writing-mode:vertical-lr] rotate-180 ${(activeTab === 'leaderboard') ? 'font-medium' : 'font-normal'}`}>Leaderboard</div>

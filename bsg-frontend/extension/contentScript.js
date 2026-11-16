@@ -48,14 +48,12 @@
   document.addEventListener('paste', handleEditorInput, true);
 
   function DetectBrowser() {
-    const data = navigator.userAgentData
-    
-    // if ever we need to know which platform e.g.(macOS) for specific reason we can access here
-    const platform = data.platform 
-
-    const currentBrowser = data.brands[2]
-
-    return currentBrowser.brand
+    // Client hints can be absent and brand order/count is deliberately variable.
+    // Browser detection must not prevent the entire panel from mounting.
+    const brands = navigator.userAgentData?.brands || [];
+    return brands.find(({ brand }) => !/Chromium|Not.*Brand/i.test(brand))?.brand
+      || brands.find(({ brand }) => brand === 'Chromium')?.brand
+      || 'Unknown';
   }
   function waitForQDContent() {
     return new Promise(function (resolve) {
@@ -591,7 +589,7 @@
         if (panelActive) return;
         panelActive = true;
 
-        const activeTabset = tabsetLayout.querySelector('.flexlayout__tabset-active');
+        const activeTabset = tabsetLayout?.querySelector('.flexlayout__tabset-active');
 
         if (!activeTabset) {
           console.log("active tabset not found");
@@ -644,7 +642,7 @@
     if (!tabsetLayout) console.log("tabset layout not found");
 
     // Remove scrollbar overflowing from tabs (purely visual)
-    const initialTabs = tabsetLayout.querySelectorAll('.flexlayout__tab');
+    const initialTabs = tabsetLayout?.querySelectorAll('.flexlayout__tab') || [];
     initialTabs.forEach(tab => tab.style.clipPath = 'inset(0 round 8px)');
 
     const removeActive = () => {
@@ -671,7 +669,7 @@
         // Find matching tabset with corresponding data-layout-path
         const tabPath = tab.dataset.layoutPath;
         const tabsetPath = tabPath?.split('/').slice(0, -1).join('/');
-        tabset = tabsetLayout.querySelector(`.flexlayout__tabset[data-layout-path="${tabsetPath}"]`);
+        tabset = tabsetLayout?.querySelector(`.flexlayout__tabset[data-layout-path="${tabsetPath}"]`);
       } else {
         tabset = target?.closest('.flexlayout__tabset');
       }
@@ -704,7 +702,7 @@
     // TODO: Oberserve when flexlayout__tabset-active is assigned to a new panel
 
     // Only observe added and removed nodes from LeetCode tabset layout
-    newTabObserver.observe(tabsetLayout, {
+    if (tabsetLayout) newTabObserver.observe(tabsetLayout, {
       childList: true,
       attributes: false,
       characterData: false

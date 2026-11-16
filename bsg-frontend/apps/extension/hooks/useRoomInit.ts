@@ -104,6 +104,8 @@ export const useRoomInit = () => {
             const lastRound = room.rounds?.[room.rounds.length - 1];
             const lastRoundStatus = lastRound?.Status || lastRound?.status;
             setHasRoundEnded(lastRoundStatus === 'ended');
+            const duration = lastRound?.duration ?? lastRound?.Duration;
+            if (typeof duration === 'number') setRoundDuration(duration);
 
             await setRoomParticipants(room.id);
 
@@ -270,22 +272,33 @@ export const useRoomInit = () => {
                             if (typeof lastRoundDuration === 'number') {
                                 setRoundDuration(lastRoundDuration);
                             }
-                            // ROUND_STARTED = "started" (need to verify constant value, assuming string)
                             if (status === "started") {
-                                setIsRoundStarted(true);
                                 const startTimeStr = lastRound.LastUpdatedTime || lastRound.lastUpdatedTime;
                                 const startTime = new Date(startTimeStr).getTime();
                                 const duration = lastRound.duration || lastRound.Duration;
                                 const endTime = startTime + (duration * 60 * 1000);
                                 if (endTime > Date.now()) {
+                                    setIsRoundStarted(true);
                                     setRoundEndTime(endTime);
                                     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                                         chrome.storage.local.set({ roundEndTime: endTime });
+                                    }
+                                } else {
+                                    setIsRoundStarted(false);
+                                    setHasRoundEnded(true);
+                                    setRoundEndTime(null);
+                                    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                                        chrome.storage.local.set({ lastGameEvent: 'round-end' });
+                                        chrome.storage.local.remove(['roundEndTime', 'nextProblem']);
                                     }
                                 }
                             } else {
                                 setIsRoundStarted(false);
                                 setRoundEndTime(null);
+                                if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                                    chrome.storage.local.remove(['roundEndTime', 'nextProblem']);
+                                    if (status === 'ended') chrome.storage.local.set({ lastGameEvent: 'round-end' });
+                                }
                             }
                         }
 

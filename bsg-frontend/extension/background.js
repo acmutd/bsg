@@ -116,7 +116,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'CHECK_AUTH') {
-    // fetch user data from localhost server
+    // Fetch user data from the configured API server.
     configReady
       .then(() => fetch(`${CONFIG.SERVER_URL}/auth/user`, {
         credentials: 'include',

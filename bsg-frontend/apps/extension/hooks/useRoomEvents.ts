@@ -5,6 +5,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
 import { isNavigationCancellation, pushRoute } from '@/utils/navigation';
+import { roundDeadline } from '@/utils/roundTiming';
 
 
 export const parseProblemSlug = (url: string): string | null => {
@@ -73,6 +74,7 @@ export function useRoomEvents() {
     const { setRoomParticipants } = useRoomInit();
 
     const LastGameRef = useRef<string>('')
+    const startPending = useRef(false);
 
     // Refresh participants when someone joins or leaves (debounced to avoid
     // bursty refreshes when several events arrive at once).
@@ -123,28 +125,13 @@ export function useRoomEvents() {
         // Shared by round-start and join-round: both put a client into a running
         // round, the only difference being whether it was there when it began.
         const applyRoundData = (data: any) => {
-            let problems: string[] = [];
-            let endTime: number;
-
-            if (data && typeof data === 'object' && data.startTime) {
-                // new format: { startTime (unix seconds), duration (minutes), problems }
-                problems = data.problems || [];
-                if (data.serverNow) {
-                    const remainingUntilStart = (data.startTime - data.serverNow) * 1000;
-                    endTime = Date.now() + remainingUntilStart + (data.duration * 60 * 1000);
-                } else {
-                    endTime = (data.startTime * 1000) + (data.duration * 60 * 1000);
-                }
-            } else {
-                // legacy fallback: comma-separated slugs
-                // const slugs = typeof data === 'string' ? data.split(',') : [];
-                // problems = slugs;
-                // const duration = currentRoom?.options?.duration || 30;
-                // endTime = Date.now() + duration * 60 * 1000;
-                endTime = Date.now() + 30 * 60 * 1000;
-            }
+            const endTime = roundDeadline(data);
+            // Announcements and old/expired control events must never start a timer.
+            if (endTime === null || endTime <= Date.now() || useRoomStore.getState().hasRoundEnded) return;
+            const problems: string[] = Array.isArray(data.problems) ? data.problems : [];
 
             setRoundEndTime(endTime);
+            useRoomStore.getState().setProblems(problems);
             setIsRoundStarted(true);
             setHasRoundEnded(false);
 
@@ -155,16 +142,9 @@ export function useRoomEvents() {
 
             // Touched problems are scoped to one round, so a new round starts empty.
             if (typeof chrome !== 'undefined' && chrome.runtime) {
-                // startTime, not endTime: the server sends it, so it is identical
-                // on every replay, while endTime is recomputed from Date.now().
-                // The worker needs it to tell a real new round from a replayed one.
-                // Scoped by roomId so the same startTime/problems in another room
-                // (or a repeated round with identical problems) can't collide.
-                // The deterministic legacy fallback is safe because round-end
-                // stores a unique `ended` key, so the next round always differs.
-                const roundKey = data?.startTime
-                    ? `${roomId}|${String(data.startTime)}`
-                    : `${roomId}|legacy|${problems.join('|') || 'round'}`;
+                // HTTP and websocket delivery describe the same round. Scope its
+                // stable start time by room so duplicate delivery preserves progress.
+                const roundKey = `${roomId}|${String(data.startTime)}`;
                 chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey }).catch(() => {});
             }
 
@@ -290,19 +270,35 @@ export function useRoomEvents() {
     }, []);
 
     const handleStartRound = async () => {
-        if (!roomId) return;
+        if (!roomId || startPending.current || useRoomStore.getState().isRoundStarted || useRoomStore.getState().hasRoundEnded) return;
+        startPending.current = true;
         try {
             const res = await fetch(`${getServerUrl()}/rooms/${roomId}/start`, {
                 method: 'POST',
                 credentials: 'include'
             });
             if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || `Failed to start round: ${res.status}`);
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error || data?.message || `Failed to start round (${res.status})`);
+            }
+            // A reconnecting panel can miss the websocket broadcast. Apply the
+            // successful HTTP response too, using the same round event handler.
+            const data = await res.json();
+            const roundData = {
+                startTime: data.startTime,
+                duration: useRoomStore.getState().roundDuration,
+                problems: (data.problems || []).map((problem: { slug: string }) => problem.slug),
+            };
+            if (roundDeadline(roundData) !== null) {
+                useRoomStore.getState().setLastGameEvent({
+                    type: 'round-start', data: roundData, timestamp: Date.now(),
+                });
             }
         } catch (e: any) {
             console.error("Failed to start round", e);
             alert(`Failed to start round: ${e.message}`);
+        } finally {
+            startPending.current = false;
         }
     }
 
@@ -320,18 +316,12 @@ export function useRoomEvents() {
             } else {
                 setIsRoundStarted(false);
                 setHasRoundEnded(true);
-
-                // The API confirms the round ended; clear remaining client state
-                // after the round-end event has had time to arrive.
-                setTimeout(() => {
-                    setRoundEndTime(null);
-                    
-                    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                        chrome.storage.local.remove('roundEndTime');
-                        chrome.storage.local.remove("lastGameEvent");
-                        chrome.storage.local.remove("problems");
-                    }
-                }, 2000);
+                setRoundEndTime(null);
+                setNextProblem(null);
+                if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                    chrome.storage.local.set({ lastGameEvent: 'round-end' });
+                    chrome.storage.local.remove(['roundEndTime', 'nextProblem', 'problems']);
+                }
             }
         } catch (e: any) {
             console.error('Failed to end round (network error):', e);

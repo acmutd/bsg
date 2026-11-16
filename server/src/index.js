@@ -72,7 +72,9 @@ async function startServer() {
             maxAge: 3600000, // 1 hour
             httpOnly: true,
             secure: isProduction, // HTTPS-only in production (behind Caddy/Cloudflare)
-            sameSite: 'lax'
+            // Extension pages are cross-site to the API, so their credentialed
+            // requests need a cross-site cookie. Production is HTTPS-only.
+            sameSite: isProduction ? 'none' : 'lax'
         },
         rolling:true,
     }));

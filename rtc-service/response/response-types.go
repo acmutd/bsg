@@ -20,6 +20,7 @@ var (
 
 	// round start broadcast
 	ROUND_START ResponseType = "round-start"
+	ROUND_END   ResponseType = "round-end"
 
 	// round join broadcast
 	ROUND_JOIN ResponseType = "round-join"

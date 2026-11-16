@@ -94,7 +94,7 @@ export function useLeaderboard() {
     // ── Initial fetch whenever the room changes ──────────────────────────────
     useEffect(() => {
         fetchLeaderboard();
-    }, [fetchLeaderboard]);
+    }, [fetchLeaderboard, isRoundStarted]);
 
     // ── Polling: active while a round is running ─────────────────────────────
     useEffect(() => {

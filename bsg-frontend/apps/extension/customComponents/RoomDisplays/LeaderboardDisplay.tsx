@@ -226,8 +226,8 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
 
             {/* Header */}
             <div className="text-center py-4 px-4 flex-shrink-0">
-                <h1 className="text-2xl font-bold text-white tracking-tight">Leaderboard</h1>
-                <p className="text-[#aaaaaa] text-sm mt-1">Current Room Rankings</p>
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">Leaderboard</h1>
+                <p className="text-foreground/60 text-sm mt-1">Current Room Rankings</p>
                 <div className="mx-auto mt-2 w-16 h-0.5 rounded-full bg-gradient-to-r from-transparent via-[#72ab1c] to-transparent" />
             </div>
 
@@ -259,7 +259,7 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
                         </div>
                     </div>
                     <p className="text-[#72ab1c] font-bold text-lg tracking-tight">No Rankings Yet!</p>
-                    <p className="text-[#aaaaaa] text-sm mt-1">Scores appear once a round starts</p>
+                    <p className="text-foreground/60 text-sm mt-1">Scores appear once a round starts</p>
                     <div className="mt-3 w-16 h-0.5 rounded-full bg-gradient-to-r from-transparent via-[#72ab1c] to-transparent" />
                 </div>
             )}
@@ -300,19 +300,19 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
                                                     <PlayerAvatar participant={player} size="sm" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="font-semibold text-white text-sm truncate">
+                                                    <p className="font-semibold text-foreground text-sm truncate">
                                                         {player.username}
                                                     </p>
-                                                    <p className="text-[#aaaaaa] text-xs mt-0.5">
+                                                    <p className="text-foreground/60 text-xs mt-0.5">
                                                         Rank {index + 4}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right flex-shrink-0">
-                                                <p className="text-lg font-bold text-white font-mono">
+                                                <p className="text-lg font-bold text-foreground font-mono">
                                                     {player.score.toLocaleString()}
                                                 </p>
-                                                <p className="text-xs text-[#aaaaaa]">pts</p>
+                                                <p className="text-xs text-foreground/60">pts</p>
                                             </div>
                                         </div>
                                     </div>
