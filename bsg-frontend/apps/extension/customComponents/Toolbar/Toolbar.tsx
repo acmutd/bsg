@@ -34,7 +34,10 @@ export const Toolbar = () => {
     // The tab's URL lives outside React, so subscribe rather than sample once.
     const [currSlug, setCurrSlug] = useState<string | null>(null);
     useEffect(() => {
-        if (typeof chrome === 'undefined' || !chrome.tabs?.query) return;
+        if (typeof chrome === 'undefined' || !chrome.tabs?.query) {
+            setCurrIndex(-2);
+            return;
+        }
 
         const sync = (url: string | undefined) => setCurrSlug(url ? parseProblemSlug(url) : null);
         const syncActive = () => {
@@ -83,6 +86,7 @@ export const Toolbar = () => {
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
+                        aria-label="Previous Problem"
                         onClick={() => stepProblem(-1)}
                         disabled={!canNavigate || currIndex === 0} // needs canNavigate AND a problem before this one
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
@@ -99,6 +103,7 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Next Problem">
                     <Button
+                        aria-label="Next Problem"
                         onClick={() => stepProblem(1)}
                         disabled={!canNavigate || currIndex === problems.length - 1} // needs canNavigate AND a problem after this one
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
