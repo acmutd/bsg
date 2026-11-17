@@ -20,6 +20,7 @@ interface roomStoreState {
   lastGameEvent: GameEvent | null;
   roomNotice: string | null;
   problems: string[];
+  previousRoundProblems: string[]
   lastParticipantJoinTime: number | null;
   unreadCount: number; // for chat notification count
 
@@ -40,6 +41,7 @@ interface roomStoreState {
   setLastGameEvent: (lastGameEvent: GameEvent | null) => void;
   setRoomNotice: (roomNotice: string | null) => void;
   setProblems: (problems: string[]) => void;
+  setPreviousRoundProblems: (previousRoundProblems: string[]) => void;
   setLastParticipantJoinTime: (time: number | null) => void;
 
   initRoom: (
@@ -68,6 +70,7 @@ const roomStoreInit = {
   lastGameEvent: null,
   roomNotice: null,
   problems: [],
+  previousRoundProblems: [],
   lastParticipantJoinTime: null,
   unreadCount: 0, // set to 0 initially
 };
@@ -97,6 +100,7 @@ export const useRoomStore = create<roomStoreState>((set) => ({
   // for chat notification count
   setRoomNotice: (roomNotice) => set({ roomNotice: roomNotice }),
   setProblems: (problems) => set({ problems: problems }),
+  setPreviousRoundProblems: (previousRoundProblems) => set({previousRoundProblems: previousRoundProblems}),
   setLastParticipantJoinTime: (time) => set({ lastParticipantJoinTime: time }),
   incrementUnread: () => set((state) => {
     return { unreadCount: state.unreadCount + 1 };

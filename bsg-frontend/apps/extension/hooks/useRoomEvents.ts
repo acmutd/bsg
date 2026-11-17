@@ -72,6 +72,7 @@ export function useRoomEvents() {
     const setResetRoom = useRoomStore(s => s.resetRoom);
     const setActiveTab = useRoomStore(s => s.setActiveTab)
     const { setRoomParticipants } = useRoomInit();
+    const setPreviousRoundProblems = useRoomStore(s => s.setPreviousRoundProblems);
 
     const LastGameRef = useRef<string>('')
     const startPending = useRef(false);
@@ -272,6 +273,9 @@ export function useRoomEvents() {
     const handleStartRound = async () => {
         if (!roomId || startPending.current || useRoomStore.getState().isRoundStarted || useRoomStore.getState().hasRoundEnded) return;
         startPending.current = true;
+        if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+            chrome.storage.local.remove("previousProblemArray")
+        }
         try {
             const res = await fetch(`${getServerUrl()}/rooms/${roomId}/start`, {
                 method: 'POST',
@@ -314,6 +318,13 @@ export function useRoomEvents() {
                 console.error('Failed to end round:', res.status, data);
                 alert(`Failed to end round: ${data.error || res.status}`);
             } else {
+                if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+                    // read the store, not storage: this client's own round-end event may have already removed "problems"
+                    const ProblemArray = useRoomStore.getState().problems;
+                    chrome.storage.local.set({previousProblemArray: ProblemArray})
+                    setPreviousRoundProblems(ProblemArray);
+                }
+
                 setIsRoundStarted(false);
                 setHasRoundEnded(true);
                 setRoundEndTime(null);
@@ -346,6 +357,7 @@ export function useRoomEvents() {
                     chrome.storage.local.remove('roundEndTime');
                     chrome.storage.local.remove("lastGameEvent");
                     chrome.storage.local.remove("problems");
+                    chrome.storage.local.remove("previousProblemArray");
                 }
                 if (typeof chrome !== 'undefined' && chrome.runtime) {
                     chrome.runtime.sendMessage({ type: 'PROBLEM_PROGRESS_RESET', roundKey: `${roomId}|left|${Date.now()}` }).catch(() => {});

@@ -21,6 +21,9 @@ export const Toolbar = () => {
     const problems = useRoomStore(s => s.problems);
     // -2 = problems not loaded yet, -1 = tab isn't on one of this round's problems
     const [currIndex, setCurrIndex] = useState(-2);
+    const previousRoundProblems = useRoomStore(s => s.previousRoundProblems);
+    const isInRoom = useRoomStore(s => s.isInRoom);
+    const [prevProbIndex, setPrevProbIndex] = useState(-2);
 
 //TODO: Move timer to iframe
 
@@ -29,14 +32,16 @@ export const Toolbar = () => {
     // remounted the whole panel. Subscribe instead: LeetCode also routes between
     // problems client-side, where the panel survives and never gets that remount.
     useEffect(() => {
-        if (problems.length === 0) {
+        if (problems.length === 0 && previousRoundProblems.length === 0) {
             setCurrIndex(-2);
+            setPrevProbIndex(-2);
             return;
         }
 
         const sync = (url: string | undefined) => {
             const slug = url ? parseProblemSlug(url) : null;
             setCurrIndex(slug ? problems.indexOf(slug) : -1);
+            setPrevProbIndex(slug ? previousRoundProblems.indexOf(slug) : -1);
         };
 
         chrome.tabs.query({active: true, currentWindow: true}, tabs => sync(tabs[0]?.url));
@@ -46,7 +51,7 @@ export const Toolbar = () => {
         };
         chrome.tabs.onUpdated.addListener(handleUpdated);
         return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
-    }, [problems])
+    }, [problems, previousRoundProblems])
 
     const stepProblem = (delta: number) => {
         if (currIndex === -2 || problems.length === 0) return;
@@ -56,6 +61,17 @@ export const Toolbar = () => {
         window.open(problemUrl(problems[newIndex]), '_top');
     }
 
+    //created this function to store the problems that were in the previous round as long the
+    //particpants are in the same room and another round has not started they should have the freedom
+    //to go back and forth with the problems
+    const roundEndStepProblem = (delta: number) => {
+        if(prevProbIndex === -2 || prevProbIndex === -1) return;
+        const newIndex = prevProbIndex + delta;
+        if (newIndex < 0 || newIndex >= previousRoundProblems.length) return;
+        window.open(problemUrl(previousRoundProblems[newIndex]), '_top');
+    }
+
+    const isReviewingPreviousRound = isInRoom && hasRoundEnded;
 
     return (
         <>
@@ -64,8 +80,10 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Previous Problem">
                     <Button
                         aria-label="Previous Problem"
-                        onClick={() => stepProblem(-1)}
-                        disabled={currIndex === -2 || currIndex === 0}
+                        onClick={() => isReviewingPreviousRound ? roundEndStepProblem(-1) : stepProblem(-1)}
+                        disabled={isReviewingPreviousRound
+                            ? prevProbIndex <= 0
+                            : currIndex === -2 || currIndex === 0}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -81,8 +99,10 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Next Problem">
                     <Button
                         aria-label="Next Problem"
-                        onClick={() => stepProblem(1)}
-                        disabled={currIndex === -2 || currIndex === problems.length - 1}
+                        onClick={() => isReviewingPreviousRound ? roundEndStepProblem(1) : stepProblem(1)}
+                        disabled={isReviewingPreviousRound
+                            ? prevProbIndex < 0 || prevProbIndex === previousRoundProblems.length - 1
+                            : currIndex === -2 || currIndex === problems.length - 1}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg

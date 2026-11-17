@@ -17,6 +17,7 @@ export const useRoomInit = () => {
     const setRoundDuration = useRoomStore(s => s.setRoundDuration);
     const setRoomNotice = useRoomStore(s => s.setRoomNotice);
     const setProblems = useRoomStore(s => s.setProblems)
+    const setPreviousRoundProblems = useRoomStore(s => s.setPreviousRoundProblems)
     const userId = useUserStore(s => s.userId);
     const username = useUserStore(s => s.username);
     const email = useUserStore(s => s.email);
@@ -252,8 +253,9 @@ export const useRoomInit = () => {
                             chrome.storage.local.set({ activeRoomId: room.id }, () => {
                                 console.log("CheckActiveRoom: Saved activeRoomId");
                             });
-                            chrome.storage.local.get(['problems'], (result) => {
+                            chrome.storage.local.get(['problems', 'previousProblemArray'], (result) => {
                                 setProblems(result.problems || []);
+                                setPreviousRoundProblems(result.previousProblemArray || []);
                             });
                             
                         }else{
