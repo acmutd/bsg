@@ -19,46 +19,39 @@ export const Toolbar = () => {
     const previousTab = useRoomStore(s => s.previousTab); // gets previous tab
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
-    const storeProblems = useRoomStore(s => s.problems);
-    const { roundDetails } = useStatistics();
-
-    // Server first: round-start navigates the tab, which reloads the panel and
-    // wipes zustand, so the store's `problems` can be empty for most of a round.
-    const problems = useMemo(() => {
-        const fromServer = (roundDetails?.problems ?? []).map(p => p.slug).filter(Boolean);
-        return fromServer.length > 0 ? fromServer : storeProblems;
-    }, [roundDetails, storeProblems]);
+    const problems = useRoomStore(s => s.problems);
+    // -2 = problems not loaded yet, -1 = tab isn't on one of this round's problems
+    const [currIndex, setCurrIndex] = useState(-2);
+    const previousRoundProblems = useRoomStore(s => s.previousRoundProblems);
+    const isInRoom = useRoomStore(s => s.isInRoom);
+    const [prevProbIndex, setPrevProbIndex] = useState(-2);
 
 //TODO: Move timer to iframe
 
     // The tab's URL lives outside React, so subscribe rather than sample once.
     const [currSlug, setCurrSlug] = useState<string | null>(null);
     useEffect(() => {
-        if (typeof chrome === 'undefined' || !chrome.tabs?.query) {
+        if (problems.length === 0 && previousRoundProblems.length === 0) {
             setCurrIndex(-2);
+            setPrevProbIndex(-2);
             return;
         }
 
-        const sync = (url: string | undefined) => setCurrSlug(url ? parseProblemSlug(url) : null);
-        const syncActive = () => {
-            chrome.tabs.query({ active: true, currentWindow: true }, tabs => sync(tabs[0]?.url));
+        const sync = (url: string | undefined) => {
+            const slug = url ? parseProblemSlug(url) : null;
+            setCurrIndex(slug ? problems.indexOf(slug) : -1);
+            setPrevProbIndex(slug ? previousRoundProblems.indexOf(slug) : -1);
         };
-        syncActive();
+
+        chrome.tabs.query({active: true, currentWindow: true}, tabs => sync(tabs[0]?.url));
 
         const handleUpdated = (_id: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
             if (change.url && tab.active) sync(change.url); // in-tab navigation, incl. LeetCode's client-side routing
         };
         const handleActivated = () => syncActive(); // Ctrl+Tab / tab-click switches fire no update event
         chrome.tabs.onUpdated.addListener(handleUpdated);
-        chrome.tabs.onActivated?.addListener(handleActivated);
-        return () => {
-            chrome.tabs.onUpdated.removeListener(handleUpdated);
-            chrome.tabs.onActivated?.removeListener(handleActivated);
-        };
-    }, []);
-
-    const currIndex = currSlug ? problems.indexOf(currSlug) : -1; // -1 = tab isn't on one of this round's problems
-    const canNavigate = (isRoundStarted || hasRoundEnded) && problems.length > 0; // round is running or finished (not just created) AND its problems are loaded
+        return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
+    }, [problems, previousRoundProblems])
 
     const stepProblem = (delta: number) => {
         if (currIndex === -2 || problems.length === 0) return;
@@ -87,8 +80,10 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Previous Problem">
                     <Button
                         aria-label="Previous Problem"
-                        onClick={() => stepProblem(-1)}
-                        disabled={!canNavigate || currIndex === 0} // needs canNavigate AND a problem before this one
+                        onClick={() => isReviewingPreviousRound ? roundEndStepProblem(-1) : stepProblem(-1)}
+                        disabled={isReviewingPreviousRound
+                            ? prevProbIndex <= 0
+                            : currIndex === -2 || currIndex === 0}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -104,8 +99,10 @@ export const Toolbar = () => {
                 <TooltipWrapper text="Next Problem">
                     <Button
                         aria-label="Next Problem"
-                        onClick={() => stepProblem(1)}
-                        disabled={!canNavigate || currIndex === problems.length - 1} // needs canNavigate AND a problem after this one
+                        onClick={() => isReviewingPreviousRound ? roundEndStepProblem(1) : stepProblem(1)}
+                        disabled={isReviewingPreviousRound
+                            ? prevProbIndex < 0 || prevProbIndex === previousRoundProblems.length - 1
+                            : currIndex === -2 || currIndex === problems.length - 1}
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg

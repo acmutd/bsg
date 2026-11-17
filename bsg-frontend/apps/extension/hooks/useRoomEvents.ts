@@ -274,6 +274,9 @@ export function useRoomEvents() {
     const handleStartRound = async () => {
         if (!roomId || startPending.current || useRoomStore.getState().isRoundStarted || useRoomStore.getState().hasRoundEnded) return;
         startPending.current = true;
+        if(typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local){
+            chrome.storage.local.remove("previousProblemArray")
+        }
         try {
             const res = await fetch(`${getServerUrl()}/rooms/${roomId}/start`, {
                 method: 'POST',
