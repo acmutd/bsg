@@ -4,6 +4,8 @@ import { HoverCard, HoverCardTrigger } from '@bsg/ui/hover-card';
 import { HoverCardContent } from '@bsg/components/HoverCardContent';
 import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { useParticipantProfiles } from '@/hooks/useParticipantProfiles';
+import { ParticipantProfileCard } from '@/customComponents/RoomDisplays/ParticipantProfileCard';
 
 export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -17,6 +19,7 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
     };
 
     const users: User[] = useRoomStore(s => s.participants);
+    const getProfile = useParticipantProfiles(); // getProfile(user.id) -> { rank, solvedCount, problems, score } for the hover card
 
     const isConnected = true;
 
@@ -61,8 +64,8 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
                         </Button>
                     </HoverCardTrigger>
 
-                    <HoverCardContent>
-
+                    <HoverCardContent className="w-auto min-w-64"> {/* original 256px width, grows only if the row needs more room */}
+                        <ParticipantProfileCard profile={getProfile(user.id)} />
                     </HoverCardContent>
                 </HoverCard>
             ))}
