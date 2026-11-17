@@ -22,7 +22,7 @@ interface ProblemProgressProps {
     problems: string[];
     currSlug: string | null;
     roundDetails: RoundDetails | null;
-    canNavigate: boolean; // round has started; Toolbar owns this so the bar and the arrows share one rule
+    canNavigate: boolean; // round has started or ended; Toolbar owns this so the bar and the arrows share one rule
 }
 
 /** One segment per problem in the round. */
@@ -64,7 +64,7 @@ export const ProblemProgress = ({ problems, currSlug, roundDetails, canNavigate 
             {problems.map((slug, i) => {
                 const { fill, stroke } = SEGMENT_STYLE[segmentState(slug)];
                 const isCurrent = slug === currSlug;
-                const isClickable = canNavigate && !isCurrent; // both must be true: round started AND not the problem already open
+                const isClickable = canNavigate && !isCurrent; // both must be true: round started or ended AND not the problem already open
 
                 return (
                     <button
