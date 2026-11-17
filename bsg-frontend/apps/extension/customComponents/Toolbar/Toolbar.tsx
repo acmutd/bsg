@@ -55,7 +55,7 @@ export const Toolbar = () => {
     }, []);
 
     const currIndex = currSlug ? problems.indexOf(currSlug) : -1; // -1 = tab isn't on one of this round's problems
-    const canNavigate = isRoundStarted && problems.length > 0; // both must be true: round started AND its problems are loaded
+    const canNavigate = (isRoundStarted || hasRoundEnded) && problems.length > 0; // round is running or finished (not just created) AND its problems are loaded
 
     const stepProblem = (delta: number) => {
         //off-round, so there is nothing to step from - put them on the first problem
