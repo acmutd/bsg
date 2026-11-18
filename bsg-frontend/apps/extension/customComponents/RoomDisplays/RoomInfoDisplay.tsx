@@ -5,7 +5,9 @@ import { HoverCardContent } from '@bsg/components/HoverCardContent';
 import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore';
 import { useParticipantProfiles } from '@/hooks/useParticipantProfiles';
-import { ParticipantProfileCard } from '@/customComponents/RoomDisplays/ParticipantProfileCard';
+
+const GREEN = '#62AF2E'; // same green as the toolbar progress bar
+const GREY = 'rgb(var(--foreground) / 0.25)';
 
 export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -23,13 +25,18 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
 
     const isConnected = true;
 
+    const divider = <div className="min-w-[1px] h-3 bg-bsg-separator" />; // thin line between the hover card's items, same as the tab bar's separator
+
     return (
         <div className={`px-2 pb-2 ${(isActive) ? '' : 'hidden'}`}>
             <div className='p-2 font-medium'>
                 Participants
             </div>
 
-            {users.map((user) => (
+            {users.map((user) => {
+                const { rank, solvedCount, problems, score } = getProfile(user.id); // this participant's data for the hover card
+
+                return (
                 <HoverCard>
                     <HoverCardTrigger>
                         <Button
@@ -65,10 +72,41 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
                     </HoverCardTrigger>
 
                     <HoverCardContent className="w-auto min-w-64"> {/* original 256px width, grows only if the row needs more room */}
-                        <ParticipantProfileCard profile={getProfile(user.id)} />
+                        <div className="flex items-center justify-center gap-2.5 text-sm font-medium text-foreground whitespace-nowrap">
+                            <div>{rank === null ? '—' : `# ${rank}`}</div> {/* rank in the room; dash until they are on the leaderboard */}
+
+                            {divider}
+
+                            <div>{solvedCount} / {problems.length} solved</div> {/* problems completed out of the round's total */}
+
+                            {divider}
+
+                            {problems.length > 0 && (
+                                <>
+                                    <div className="flex items-center gap-1">
+                                        {problems.map((problem, i) => (
+                                            <div
+                                                key={`${problem.slug}-${i}`}
+                                                title={problem.slug}
+                                                className="h-2 w-2 rounded-full border-[0.5px]"
+                                                style={{
+                                                    backgroundColor: problem.solved ? GREEN : 'transparent', // filled = solved, outline = not solved
+                                                    borderColor: problem.solved ? GREEN : GREY,
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {divider} {/* only drawn when there are circles, so two lines never sit side by side */}
+                                </>
+                            )}
+
+                            <div>{score} points</div> {/* points earned in the round */}
+                        </div>
                     </HoverCardContent>
                 </HoverCard>
-            ))}
+                );
+            })}
         </div>
     );
 };
