@@ -6,7 +6,6 @@ import { useRoomInit } from './useRoomInit';
 import { useRouter } from 'next/router';
 import { isNavigationCancellation, pushRoute } from '@/utils/navigation';
 import { roundDeadline } from '@/utils/roundTiming';
-import { roundDeadline } from '@/utils/roundTiming';
 
 
 export const parseProblemSlug = (url: string): string | null => {
@@ -283,21 +282,6 @@ export function useRoomEvents() {
                 credentials: 'include'
             });
             if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error || data?.message || `Failed to start round (${res.status})`);
-            }
-            // A reconnecting panel can miss the websocket broadcast. Apply the
-            // successful HTTP response too, using the same round event handler.
-            const data = await res.json();
-            const roundData = {
-                startTime: data.startTime,
-                duration: useRoomStore.getState().roundDuration,
-                problems: (data.problems || []).map((problem: { slug: string }) => problem.slug),
-            };
-            if (roundDeadline(roundData) !== null) {
-                useRoomStore.getState().setLastGameEvent({
-                    type: 'round-start', data: roundData, timestamp: Date.now(),
-                });
                 const data = await res.json().catch(() => null);
                 throw new Error(data?.error || data?.message || `Failed to start round (${res.status})`);
             }

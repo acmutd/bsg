@@ -19,59 +19,50 @@ export const Toolbar = () => {
     const previousTab = useRoomStore(s => s.previousTab); // gets previous tab
     const setActiveTab = useRoomStore(s => s.setActiveTab);
     const { handleStartRound, handleEndRound, handleLeaveRoom } = useRoomEvents();
-    const problems = useRoomStore(s => s.problems);
-    // -2 = problems not loaded yet, -1 = tab isn't on one of this round's problems
-    const [currIndex, setCurrIndex] = useState(-2);
-    const previousRoundProblems = useRoomStore(s => s.previousRoundProblems);
-    const isInRoom = useRoomStore(s => s.isInRoom);
-    const [prevProbIndex, setPrevProbIndex] = useState(-2);
+    const storeProblems = useRoomStore(s => s.problems);
+    const { roundDetails } = useStatistics();
+
+    // Server first: round-start navigates the tab, which reloads the panel and
+    // wipes zustand, so the store's `problems` can be empty for most of a round.
+    const problems = useMemo(() => {
+        const fromServer = (roundDetails?.problems ?? []).map(p => p.slug).filter(Boolean);
+        return fromServer.length > 0 ? fromServer : storeProblems;
+    }, [roundDetails, storeProblems]);
 
 //TODO: Move timer to iframe
 
     // The tab's URL lives outside React, so subscribe rather than sample once.
     const [currSlug, setCurrSlug] = useState<string | null>(null);
     useEffect(() => {
-        if (problems.length === 0 && previousRoundProblems.length === 0) {
-            setCurrIndex(-2);
-            setPrevProbIndex(-2);
-            return;
-        }
+        if (typeof chrome === 'undefined' || !chrome.tabs?.query) return;
 
-        const sync = (url: string | undefined) => {
-            const slug = url ? parseProblemSlug(url) : null;
-            setCurrIndex(slug ? problems.indexOf(slug) : -1);
-            setPrevProbIndex(slug ? previousRoundProblems.indexOf(slug) : -1);
+        const sync = (url: string | undefined) => setCurrSlug(url ? parseProblemSlug(url) : null);
+        const syncActive = () => {
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => sync(tabs[0]?.url));
         };
-
-        chrome.tabs.query({active: true, currentWindow: true}, tabs => sync(tabs[0]?.url));
+        syncActive();
 
         const handleUpdated = (_id: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
             if (change.url && tab.active) sync(change.url); // in-tab navigation, incl. LeetCode's client-side routing
         };
         const handleActivated = () => syncActive(); // Ctrl+Tab / tab-click switches fire no update event
         chrome.tabs.onUpdated.addListener(handleUpdated);
-        return () => chrome.tabs.onUpdated.removeListener(handleUpdated);
-    }, [problems, previousRoundProblems])
+        chrome.tabs.onActivated?.addListener(handleActivated);
+        return () => {
+            chrome.tabs.onUpdated.removeListener(handleUpdated);
+            chrome.tabs.onActivated?.removeListener(handleActivated);
+        };
+    }, []);
+
+    const currIndex = currSlug ? problems.indexOf(currSlug) : -1; // -1 = tab isn't on one of this round's problems
+    const canNavigate = (isRoundStarted || hasRoundEnded) && problems.length > 0; // round is running or finished (not just created) AND its problems are loaded
 
     const stepProblem = (delta: number) => {
-        if (currIndex === -2 || problems.length === 0) return;
         //off-round, so there is nothing to step from - put them on the first problem
         const newIndex = (currIndex === -1) ? 0 : currIndex + delta;
-        if (newIndex < 0 || newIndex >= problems.length) return;
         window.open(problemUrl(problems[newIndex]), '_top');
     }
 
-    //created this function to store the problems that were in the previous round as long the
-    //particpants are in the same room and another round has not started they should have the freedom
-    //to go back and forth with the problems
-    const roundEndStepProblem = (delta: number) => {
-        if(prevProbIndex === -2 || prevProbIndex === -1) return;
-        const newIndex = prevProbIndex + delta;
-        if (newIndex < 0 || newIndex >= previousRoundProblems.length) return;
-        window.open(problemUrl(previousRoundProblems[newIndex]), '_top');
-    }
-
-    const isReviewingPreviousRound = isInRoom && hasRoundEnded;
 
     return (
         <>
@@ -79,11 +70,8 @@ export const Toolbar = () => {
             <div className="flex gap-1">
                 <TooltipWrapper text="Previous Problem">
                     <Button
-                        aria-label="Previous Problem"
-                        onClick={() => isReviewingPreviousRound ? roundEndStepProblem(-1) : stepProblem(-1)}
-                        disabled={isReviewingPreviousRound
-                            ? prevProbIndex <= 0
-                            : currIndex === -2 || currIndex === 0}
+                        onClick={() => stepProblem(-1)}
+                        disabled={!canNavigate || currIndex === 0} // needs canNavigate AND a problem before this one
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -98,11 +86,8 @@ export const Toolbar = () => {
 
                 <TooltipWrapper text="Next Problem">
                     <Button
-                        aria-label="Next Problem"
-                        onClick={() => isReviewingPreviousRound ? roundEndStepProblem(1) : stepProblem(1)}
-                        disabled={isReviewingPreviousRound
-                            ? prevProbIndex < 0 || prevProbIndex === previousRoundProblems.length - 1
-                            : currIndex === -2 || currIndex === problems.length - 1}
+                        onClick={() => stepProblem(1)}
+                        disabled={!canNavigate || currIndex === problems.length - 1} // needs canNavigate AND a problem after this one
                         className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                     >
                         <svg
@@ -119,7 +104,6 @@ export const Toolbar = () => {
                     isRoundStarted ?
                         <TooltipWrapper text="End Round">
                             <Button
-                                aria-label="End Round"
                                 onClick={handleEndRound}
                                 className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                             >
@@ -139,7 +123,6 @@ export const Toolbar = () => {
                         :
                         <TooltipWrapper text="Start Round">
                             <Button
-                                aria-label="Start Round"
                                 onClick={handleStartRound}
                                 className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
                             >
