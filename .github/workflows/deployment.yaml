@@ -8,7 +8,25 @@ concurrency: deploy
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SG_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Let only this runner's IP reach port 22, just for this job
+      - name: Open SSH to this runner
+        id: runner_ip
+        run: |
+          IP=$(curl -fsS https://checkip.amazonaws.com)
+          aws ec2 authorize-security-group-ingress \
+            --group-id "$SG_ID" --protocol tcp --port 22 --cidr "$IP/32"
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+
       - name: Updating the EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -20,3 +38,12 @@ jobs:
             cd ~/bsg
             git pull origin main
             docker compose --env-file ./.env up -d --build --force-recreate
+
+      # Runs even if the deploy failed or was cancelled, so the rule never lingers
+      - name: Close SSH to this runner
+        if: always() && steps.runner_ip.outputs.ip != ''
+        env:
+          RUNNER_IP: ${{ steps.runner_ip.outputs.ip }}
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "$SG_ID" --protocol tcp --port 22 --cidr "$RUNNER_IP/32"
