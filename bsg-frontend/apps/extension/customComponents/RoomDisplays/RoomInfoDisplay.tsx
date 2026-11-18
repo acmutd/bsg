@@ -4,7 +4,8 @@ import { HoverCard, HoverCardTrigger } from '@bsg/ui/hover-card';
 import { HoverCardContent } from '@bsg/components/HoverCardContent';
 import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore';
-import { useParticipantProfiles } from '@/hooks/useParticipantProfiles';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { useStatistics } from '@/hooks/useStatistics';
 
 const GREEN = '#62AF2E'; // same green as the toolbar progress bar
 const GREY = 'rgb(var(--foreground) / 0.25)';
@@ -21,7 +22,8 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
     };
 
     const users: User[] = useRoomStore(s => s.participants);
-    const getProfile = useParticipantProfiles(); // getProfile(user.id) -> { rank, solvedCount, problems, score } for the hover card
+    const { participants: leaderboard } = useLeaderboard(); // GET /rooms/:id/leaderboard -> rank + score, already sorted by rank
+    const { roundDetails } = useStatistics(); // GET /rooms/:id/round-details -> the round's problems + who solved what
 
     const isConnected = true;
 
@@ -34,7 +36,12 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
             </div>
 
             {users.map((user) => {
-                const { rank, solvedCount, problems, score } = getProfile(user.id); // this participant's data for the hover card
+                const standingIndex = leaderboard.findIndex(entry => entry.id === user.id); // -1 = not on the leaderboard yet
+                const rank = standingIndex === -1 ? null : standingIndex + 1; // position in the room
+                const score = standingIndex === -1 ? 0 : leaderboard[standingIndex].score; // points earned in the round
+                const solvedIds = new Set((roundDetails?.solvedProblems?.[user.id] ?? []).map(s => s.problemId)); // solvedProblems is keyed by user auth id
+                const problems = (roundDetails?.problems ?? []).map(problem => ({ slug: problem.slug, solved: solvedIds.has(problem.id) })); // one per problem, in round order
+                const solvedCount = problems.filter(p => p.solved).length; // how many of the round's problems this user completed
 
                 return (
                 <HoverCard>
