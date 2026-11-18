@@ -38,6 +38,25 @@ jobs:
             cd ~/bsg
             git pull origin main
             docker compose --env-file ./.env up -d --build --force-recreate
+            cd ~/bsg/bsg-frontend
+            npm ci
+            npm run build-extension -w apps/extension
+
+      - name: Copy extension build from EC2
+        env:
+          SSH_KEY: ${{ secrets.BSG_SSH_KEY }}
+        run: |
+          install -m 600 /dev/null /tmp/ec2_key
+          printf "%s\n" "$SSH_KEY" > /tmp/ec2_key
+          scp -i /tmp/ec2_key -o StrictHostKeyChecking=no -r \
+            "${{ secrets.USER_NAME }}@${{ secrets.REMOTE_HOST }}:~/bsg/bsg-frontend/apps/extension/out" ./out
+          rm -f /tmp/ec2_key
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bsg-extension
+          path: ./out
 
       # Runs even if the deploy failed or was cancelled, so the rule never lingers
       - name: Close SSH to this runner
