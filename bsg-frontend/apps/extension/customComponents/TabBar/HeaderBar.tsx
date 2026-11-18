@@ -1,4 +1,3 @@
-// TODO: REWORK: Restore the leaderboard tab after its redesign.
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from '@bsg/ui/button';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
@@ -147,7 +146,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                                 onMouseEnter={() => setHoveredTab('leaderboard')}
                                 onMouseLeave={() => setHoveredTab(null)}
                                 onClick={() => setActiveTab('leaderboard')}
-                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px] !hidden"
+                                className="flex h-auto px-2 py-1 bg-transparent hover:bg-bsg-hover-subtle rounded-[5px]"
                             >
                                 <div className={`flex gap-1 text-sm ${(activeTab === 'leaderboard') ? '' : 'opacity-60'}`}>
                                     <div className="w-5 h-5 flex items-center justify-center text-[rgb(255,183,0)]">

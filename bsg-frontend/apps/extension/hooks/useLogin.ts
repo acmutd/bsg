@@ -26,23 +26,29 @@ export const useLogin = () => {
     }
 
     const login = async (Provider: AuthProvider) => {
-
+        let popup: Window | null = null;
         try {
+            popup = window.open(`${getServerUrl()}/auth/${Provider}`);
+            if (!popup) {
+                throw new Error('The authentication popup was blocked');
+            }
 
-            //Open the OAuth Window
-            const popup = window.open(`${getServerUrl()}/auth/${Provider}`)
+            const deadline = Date.now() + 60_000;
+            let popupClosedAt: number | null = null;
+            let lastRequestError: unknown;
+            while (Date.now() < deadline) {
+                let response: Response | null = null;
+                try {
+                    response = await fetch(`${getServerUrl()}/auth/user`, {
+                        method: "GET",
+                        credentials: "include"
+                    });
+                } catch (error) {
+                    lastRequestError = error;
+                }
 
-            //Keep polling to see if auth is done or not
-            const checkAuth = async () => {
-
-                //wait for response from the server
-                const response = await fetch(`${getServerUrl()}/auth/user`, {
-                    method: "GET",
-                    credentials: "include"
-                });
-
-                if (response.ok) {
-                    const userObject: User = await response.json()
+                if (response?.ok) {
+                    const userObject: User = await response.json();
                     loginUser(
                         userObject.id,
                         userObject.name,
@@ -53,23 +59,25 @@ export const useLogin = () => {
                         await chrome.storage.local.set({ user: userObject });
                     }
 
-                    popup?.close()
                     await pushRoute(router, '/start-page');
-
-                    return userObject;
-
-                } else if (popup && !popup.closed) {
-                    //Not Authenticated yet
-                    setTimeout(checkAuth, 1000);
+                    return;
                 }
+
+                if (popup.closed) {
+                    popupClosedAt ??= Date.now();
+                    if (Date.now() - popupClosedAt >= 5000) {
+                        console.warn('Authentication popup closed before an authenticated session was available');
+                        return;
+                    }
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
-
-            setTimeout(checkAuth, 5000);
-
+            console.warn('Timed out waiting for authentication', lastRequestError);
         } catch (err) {
-            window.open("_blank")
-            console.warn("Authentication failed")
-
+            console.warn("Authentication failed", err);
+        } finally {
+            popup?.close();
         }
     }
 

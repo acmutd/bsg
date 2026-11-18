@@ -123,7 +123,7 @@ func (s *Service) ReadMessages() {
 					}
 
 					// Broadcast and Persistence Logic
-					if !silentAnnouncement && (respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED || respType == response.ADMIN_CHANGE || respType == response.ROUND_JOIN || respType == response.USER_JOINED || respType == response.USER_LEFT) {
+					if !silentAnnouncement && (respType == response.CHAT_MESSAGE || respType == response.SYSTEM_ANNOUNCEMENT || respType == response.ROUND_START || respType == response.ROUND_END || respType == response.NEXT_PROBLEM || respType == response.ROOM_EXPIRED || respType == response.ADMIN_CHANGE || respType == response.ROUND_JOIN || respType == response.USER_JOINED || respType == response.USER_LEFT) {
 						room := chatmanager.RTCChatManager.GetRoom(roomID)
 						if room != nil {
 							// 2. Save the current message to history. Rejoins are silent, so
@@ -131,7 +131,7 @@ func (s *Service) ReadMessages() {
 							// per reconnect. Control events are skipped: they are never
 							// replayed, so storing them would only consume history slots
 							// and evict real messages.
-							if respType != response.ROUND_START && respType != response.NEXT_PROBLEM {
+							if respType != response.ROUND_START && respType != response.ROUND_END && respType != response.NEXT_PROBLEM {
 								room.AddMessage(respObj)
 							}
 

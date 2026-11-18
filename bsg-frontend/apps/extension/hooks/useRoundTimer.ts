@@ -18,7 +18,11 @@ export function useRoundTimer() {
 
             if (diff <= 0) {
                 setTimeRemaining("00:00");
-                // onEndRound(); // timer expired — end the round
+                useRoomStore.setState({ roundEndTime: null, isRoundStarted: false, hasRoundEnded: true });
+                if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+                    chrome.storage.local.set({ lastGameEvent: 'round-end' });
+                    chrome.storage.local.remove(['roundEndTime', 'nextProblem']);
+                }
             } else {
                 const hours = Math.floor(diff / 3600000);
                 const minutes = Math.floor((diff % 3600000) / 60000);
