@@ -4,6 +4,11 @@ import { HoverCard, HoverCardTrigger } from '@bsg/ui/hover-card';
 import { HoverCardContent } from '@bsg/components/HoverCardContent';
 import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { useStatistics } from '@/hooks/useStatistics';
+
+const GREEN = '#62AF2E'; // same green as the toolbar progress bar
+const GREY = 'rgb(var(--foreground) / 0.25)';
 
 export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -17,8 +22,12 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
     };
 
     const users: User[] = useRoomStore(s => s.participants);
+    const { participants: leaderboard } = useLeaderboard(); // GET /rooms/:id/leaderboard -> rank + score, already sorted by rank
+    const { roundDetails } = useStatistics(); // GET /rooms/:id/round-details -> the round's problems + who solved what
 
     const isConnected = true;
+
+    const divider = <div className="min-w-[1px] h-3 bg-bsg-separator" />; // thin line between the hover card's items, same as the tab bar's separator
 
     return (
         <div className={`px-2 pb-2 ${(isActive) ? '' : 'hidden'}`}>
@@ -26,7 +35,15 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
                 Participants
             </div>
 
-            {users.map((user) => (
+            {users.map((user) => {
+                const standingIndex = leaderboard.findIndex(entry => entry.id === user.id); // -1 = not on the leaderboard yet
+                const rank = standingIndex === -1 ? null : standingIndex + 1; // position in the room
+                const score = standingIndex === -1 ? 0 : leaderboard[standingIndex].score; // points earned in the round
+                const solvedIds = new Set((roundDetails?.solvedProblems?.[user.id] ?? []).map(s => s.problemId)); // solvedProblems is keyed by user auth id
+                const problems = (roundDetails?.problems ?? []).map(problem => ({ slug: problem.slug, solved: solvedIds.has(problem.id) })); // one per problem, in round order
+                const solvedCount = problems.filter(p => p.solved).length; // how many of the round's problems this user completed
+
+                return (
                 <HoverCard>
                     <HoverCardTrigger>
                         <Button
@@ -61,11 +78,42 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
                         </Button>
                     </HoverCardTrigger>
 
-                    <HoverCardContent>
+                    <HoverCardContent className="w-auto min-w-64"> {/* original 256px width, grows only if the row needs more room */}
+                        <div className="flex items-center justify-center gap-2.5 text-sm font-medium text-foreground whitespace-nowrap">
+                            <div>{rank === null ? '—' : `# ${rank}`}</div> {/* rank in the room; dash until they are on the leaderboard */}
 
+                            {divider}
+
+                            <div>{solvedCount} / {problems.length} solved</div> {/* problems completed out of the round's total */}
+
+                            {divider}
+
+                            {problems.length > 0 && (
+                                <>
+                                    <div className="flex items-center gap-1">
+                                        {problems.map((problem, i) => (
+                                            <div
+                                                key={`${problem.slug}-${i}`}
+                                                title={problem.slug}
+                                                className="h-2 w-2 rounded-full border-[0.5px]"
+                                                style={{
+                                                    backgroundColor: problem.solved ? GREEN : 'transparent', // filled = solved, outline = not solved
+                                                    borderColor: problem.solved ? GREEN : GREY,
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {divider} {/* only drawn when there are circles, so two lines never sit side by side */}
+                                </>
+                            )}
+
+                            <div>{score} points</div> {/* points earned in the round */}
+                        </div>
                     </HoverCardContent>
                 </HoverCard>
-            ))}
+                );
+            })}
         </div>
     );
 };
