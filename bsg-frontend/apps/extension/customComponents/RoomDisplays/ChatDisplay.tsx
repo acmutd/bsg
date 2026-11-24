@@ -4,8 +4,13 @@ import { useUserStore } from '@/stores/useUserStore';
 import { useChatSocket } from '@/hooks/useChatSocket'
 import { Toast } from '@/customComponents/Toast';
 import { useState } from 'react';
+import { ProblemProgress } from '../Toolbar/ProblemProgress';
 
-export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
+type ChatDisplayProps = {
+    className?: string;
+};
+
+export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
 
     const {
         handleChange,
@@ -57,12 +62,14 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         : [];
 
     return (
-        <div className={`h-full flex flex-col ${(isActive) ? '' : 'hidden'}`}>
+        <div className={`h-full flex flex-col ${className}`}>
             <Toast message={toastMessage} onDismiss={dismissToast} />
             <div
                 ref={chatRef}
                 className="flex-1 flex flex-col relative overflow-y-auto"
             >
+                {/* Progress Bar */}
+                <ProblemProgress />
 
                 {/* Messages */}
                 <div className='flex-1 flex flex-col px-4 pt-4 gap-3'>

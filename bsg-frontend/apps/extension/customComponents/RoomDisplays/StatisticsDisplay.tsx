@@ -83,7 +83,11 @@ const PieTooltip = ({ active, payload }: any) => {
   );
 };
 
-export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
+type StatisticsDisplayProps = {
+  className?: string;
+};
+
+export const StatisticsDisplay = ({ className = '' }: StatisticsDisplayProps) => {
   const { participants, isLoading, error } = useLeaderboard();
   const { statistics, roundDetails } = useStatistics();
 
@@ -193,20 +197,24 @@ export const StatisticsDisplay = ({ isActive }: { isActive: boolean }) => {
     })).filter((d) => d.value > 0);
   }, [timePerDifficulty, diffCounts]);
 
-  if (!isActive) {
-    return <div className="hidden" />;
-  }
-
   if (isLoading && participants.length === 0) {
-    return <LoadingState />;
+    return (
+      <div className={className}>
+        <LoadingState />
+      </div>
+    );
   }
 
   if (error && participants.length === 0) {
-    return <EmptyState />;
+    return (
+      <div className={className}>
+        <EmptyState />
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col items-center p-4 pt-3 gap-4">
+    <div className={`flex flex-col items-center p-4 pt-3 gap-4 ${className}`}>
       {/* Player Tabs */}
       <div className="w-full flex gap-2 overflow-x-auto pb-2 border-b border-white/10">
         {participants.map((p, idx) => (

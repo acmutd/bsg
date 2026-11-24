@@ -11,8 +11,11 @@ const MIN_DURATION = 5;
 const MAX_DURATION = 120;
 const STEP = 5;
 
+type SettingsDisplayProps = {
+    className?: string;
+};
 
-export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
+export const SettingsDisplay = ({ className = '' }: SettingsDisplayProps) => {
 
     const roomId = useRoomStore(s => s.roomId);
     const isAdmin = useRoomStore(s => s.isAdmin);
@@ -35,14 +38,14 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
     const loadSettings = useSettingsStore(s => s.loadSettings);
 
     useEffect(() => {
-        if (isActive) loadSettings();
-    }, [isActive, loadSettings]);
+        loadSettings();
+    }, [loadSettings]);
 
     
     // Sync the working value when the stored duration changes or the tab reopens.
     useEffect(() => {
         if (roundDuration != null) setValue(roundDuration);
-    }, [roundDuration, isActive]);
+    }, [roundDuration]);
 
     const clamp = (n: number) => Math.max(MIN_DURATION, Math.min(MAX_DURATION, n));
     const change = (next: number) => {
@@ -93,7 +96,7 @@ export const SettingsDisplay = ({ isActive }: { isActive: boolean }) => {
     }, [saved]);
 
     return (
-        <div className={`flex flex-col h-full p-4 gap-4 ${(isActive) ? '' : 'hidden'}`}>
+        <div className={`flex flex-col h-full p-4 gap-4 ${className}`}>
             <div className="text-base font-medium">Settings</div>
 
             <div className="flex flex-col gap-2 w-full">

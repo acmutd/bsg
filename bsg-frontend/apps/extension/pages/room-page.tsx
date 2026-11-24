@@ -34,11 +34,11 @@ export default function RoomPage() {
                 </div>
             )}
             <div className="h-full">
-                <RoomInfoDisplay isActive={activeTab === 'roomInfo'}/>
-                <ChatDisplay isActive={activeTab === 'chat'}/>
-                <LeaderboardDisplay isActive={activeTab === 'leaderboard'}/>
-                <StatisticsDisplay isActive={activeTab === 'statistics'}/>
-                <SettingsDisplay isActive={activeTab === 'settings'}/>
+                <RoomInfoDisplay className={activeTab === 'roomInfo' ? '' : 'hidden'} />
+                <ChatDisplay className={activeTab === 'chat' ? '' : 'hidden'} />
+                <LeaderboardDisplay className={activeTab === 'leaderboard' ? '' : 'hidden'} />
+                <StatisticsDisplay className={activeTab === 'statistics' ? '' : 'hidden'} />
+                <SettingsDisplay className={activeTab === 'settings' ? '' : 'hidden'} />
             </div>
         </>
     );

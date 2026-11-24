@@ -4,8 +4,13 @@ import { HoverCard, HoverCardTrigger } from '@bsg/ui/hover-card';
 import { HoverCardContent } from '@bsg/components/HoverCardContent';
 import { useUserStore } from '@/stores/useUserStore';
 import { useRoomStore } from '@/stores/useRoomStore';
+import { ProblemProgress } from '../Toolbar/ProblemProgress';
 
-export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
+type RoomInfoDisplayProps = {
+    className?: string;
+};
+
+export const RoomInfoDisplay = ({ className = '' }: RoomInfoDisplayProps) => {
 
     const adminId = useRoomStore(s => s.adminId);
 
@@ -21,7 +26,11 @@ export const RoomInfoDisplay = ({ isActive }: { isActive: boolean }) => {
     const isConnected = true;
 
     return (
-        <div className={`px-2 pb-2 ${(isActive) ? '' : 'hidden'}`}>
+        <div className={`px-2 pb-2 ${className}`}>
+
+            {/* Progress Bar */}
+            <ProblemProgress />
+
             <div className='p-2 font-medium'>
                 Participants
             </div>

@@ -209,7 +209,11 @@ const LeaderboardSkeleton = () => (
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
+type LeaderboardDisplayProps = {
+    className?: string;
+};
+
+export const LeaderboardDisplay = ({ className = '' }: LeaderboardDisplayProps) => {
     const { participants, isLoading, error, refresh } = useLeaderboard();
 
     // Backend already returns entries sorted by rank; treat them as sorted.
@@ -222,7 +226,7 @@ export const LeaderboardDisplay = ({ isActive }: { isActive: boolean }) => {
     const rest = sorted.slice(3);
 
     return (
-        <div className={`h-full flex flex-col bg-bsg-bg ${isActive ? "" : "hidden"}`}>
+        <div className={`h-full flex flex-col bg-bsg-bg ${className}`}>
 
             {/* Header */}
             <div className="text-center py-4 px-4 flex-shrink-0">
