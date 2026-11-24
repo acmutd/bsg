@@ -33,7 +33,7 @@ export default function RoomPage() {
                     </div>
                 </div>
             )}
-            <div className="h-full pt-3 pb-3">
+            <div className="h-full">
                 <RoomInfoDisplay isActive={activeTab === 'roomInfo'}/>
                 <ChatDisplay isActive={activeTab === 'chat'}/>
                 <LeaderboardDisplay isActive={activeTab === 'leaderboard'}/>
