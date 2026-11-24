@@ -26,55 +26,57 @@ export const RoomInfoDisplay = ({ className = '' }: RoomInfoDisplayProps) => {
     const isConnected = true;
 
     return (
-        <div className={`px-2 pb-2 ${className}`}>
-
+        <div className={className}>
             {/* Progress Bar */}
             <ProblemProgress />
 
-            <div className='p-2 font-medium'>
-                Participants
-            </div>
+            <div className="px-2 pb-2">
 
-            {users.map((user) => (
-                <HoverCard>
-                    <HoverCardTrigger>
-                        <Button
-                            //onClick={}
-                            key={user.id}
-                            className="rounded-none p-2 pr-4 h-fit w-full flex items-center justify-between text-foreground/60 bg-transparent hover:bg-bsg-hover"
-                        >
-                            <div className='flex gap-2 items-center text-foreground/60'>
-                                <img
-                                    className='w-6 h-6 rounded-full bg-[#FFFFFF20]'
-                                    src={user.photo}
-                                />
+                <div className='p-2 font-medium'>
+                    Participants
+                </div>
 
-                                {user.name}
-
-                                {(user.id === adminId) && <svg
-                                    className="w-[1em] h-[1em] overflow-visible"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 35 27"
-                                    stroke="rgb(255,183,0)"
-                                    fill="none"
-                                >
-                                    <path
-                                        strokeWidth="3"
-                                        strokeLinejoin="round"
-                                        d="M4.5 20.5H30.5M5.5 25.5H29.5L33.5 5.5L24.5 13.5L17.5 1.5L10.5 13.5L1.5 5.5L5.5 25.5Z"
+                {users.map((user) => (
+                    <HoverCard>
+                        <HoverCardTrigger>
+                            <Button
+                                //onClick={}
+                                key={user.id}
+                                className="rounded-none p-2 pr-4 h-fit w-full flex items-center justify-between text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            >
+                                <div className='flex gap-2 items-center text-foreground/60'>
+                                    <img
+                                        className='w-6 h-6 rounded-full bg-[#FFFFFF20]'
+                                        src={user.photo}
                                     />
-                                </svg>}
-                            </div>
 
-                            <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
-                        </Button>
-                    </HoverCardTrigger>
+                                    {user.name}
 
-                    <HoverCardContent>
+                                    {(user.id === adminId) && <svg
+                                        className="w-[1em] h-[1em] overflow-visible"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 35 27"
+                                        stroke="rgb(255,183,0)"
+                                        fill="none"
+                                    >
+                                        <path
+                                            strokeWidth="3"
+                                            strokeLinejoin="round"
+                                            d="M4.5 20.5H30.5M5.5 25.5H29.5L33.5 5.5L24.5 13.5L17.5 1.5L10.5 13.5L1.5 5.5L5.5 25.5Z"
+                                        />
+                                    </svg>}
+                                </div>
 
-                    </HoverCardContent>
-                </HoverCard>
-            ))}
+                                <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
+                            </Button>
+                        </HoverCardTrigger>
+
+                        <HoverCardContent>
+
+                        </HoverCardContent>
+                    </HoverCard>
+                ))}
+            </div>
         </div>
     );
 };

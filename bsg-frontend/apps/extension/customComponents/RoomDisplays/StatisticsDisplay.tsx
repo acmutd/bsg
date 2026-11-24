@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { useStatistics } from '@/hooks/useStatistics';
+import { ProblemProgress } from '../Toolbar/ProblemProgress';
 
 const BSG_GREEN = '#72ab1c';
 const BSG_GREEN_DIM = '#4d7a10';
@@ -214,144 +215,148 @@ export const StatisticsDisplay = ({ className = '' }: StatisticsDisplayProps) =>
   }
 
   return (
-    <div className={`flex flex-col items-center p-4 pt-3 gap-4 ${className}`}>
-      {/* Player Tabs */}
-      <div className="w-full flex gap-2 overflow-x-auto pb-2 border-b border-white/10">
-        {participants.map((p, idx) => (
-          <button
-            key={p.id}
-            onClick={() => setSelectedIdx(idx)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${idx === selectedIdx
-              ? 'bg-primary/20 text-primary border border-primary/30'
-              : 'bg-[#333333] text-foreground/60 border border-transparent hover:bg-[#444444]'
-              }`}
-          >
-            {p.username}
-          </button>
-        ))}
-      </div>
+    <div className={className}>
+      {/* Progress Bar */}
+      <ProblemProgress />
+      <div className="flex flex-col items-center p-4 pt-3 gap-4">
+        {/* Player Tabs */}
+        <div className="w-full flex gap-2 overflow-x-auto pb-2 border-b border-white/10">
+          {participants.map((p, idx) => (
+            <button
+              key={p.id}
+              onClick={() => setSelectedIdx(idx)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${idx === selectedIdx
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'bg-[#333333] text-foreground/60 border border-transparent hover:bg-[#444444]'
+                }`}
+            >
+              {p.username}
+            </button>
+          ))}
+        </div>
 
-      <div className="w-full flex gap-4 justify-between">
-        <div className="flex flex-col gap-2 text-base font-medium">
-          Submission Details
-          <div className="flex rounded-lg text-sm border border-bsg-border">
-            <div className="flex flex-col gap-2 px-4 py-3 font-normal">
-              Solve Time
-              <div className="text-lg font-medium">{totalTimeStr}</div>
+        <div className="w-full flex gap-4 justify-between">
+          <div className="flex flex-col gap-2 text-base font-medium">
+            Submission Details
+            <div className="flex rounded-lg text-sm border border-bsg-border">
+              <div className="flex flex-col gap-2 px-4 py-3 font-normal">
+                Solve Time
+                <div className="text-lg font-medium">{totalTimeStr}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <StatCard icon={<TrophyIcon size={10} color={BSG_GREEN} />} label="Points" value={(statistics?.score ?? 0).toLocaleString()} valueColor="text-primary" />
+              <StatCard icon={<CheckCircle2 size={10} />} label="Solved" value={selected ? selectedSolvedIds.size : '—'} dim={!selected || selectedSolvedIds.size === 0} />
+              <StatCard icon={<Clock size={10} />} label="Total Time" value={totalTimeStr} dim={totalTimeStr === '—'} />
+
+              {diffCounts.Easy.total > 0 && (
+                <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Easy.color }} />} label="Easy" value={`${diffCounts.Easy.solved}/${diffCounts.Easy.total}`} dim={diffCounts.Easy.solved === 0} />
+              )}
+              {diffCounts.Medium.total > 0 && (
+                <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Medium.color }} />} label="Medium" value={`${diffCounts.Medium.solved}/${diffCounts.Medium.total}`} dim={diffCounts.Medium.solved === 0} />
+              )}
+              {diffCounts.Hard.total > 0 && (
+                <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Hard.color }} />} label="Hard" value={`${diffCounts.Hard.solved}/${diffCounts.Hard.total}`} dim={diffCounts.Hard.solved === 0} />
+              )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <StatCard icon={<TrophyIcon size={10} color={BSG_GREEN} />} label="Points" value={(statistics?.score ?? 0).toLocaleString()} valueColor="text-primary" />
-            <StatCard icon={<CheckCircle2 size={10} />} label="Solved" value={selected ? selectedSolvedIds.size : '—'} dim={!selected || selectedSolvedIds.size === 0} />
-            <StatCard icon={<Clock size={10} />} label="Total Time" value={totalTimeStr} dim={totalTimeStr === '—'} />
+        </div>
 
-            {diffCounts.Easy.total > 0 && (
-              <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Easy.color }} />} label="Easy" value={`${diffCounts.Easy.solved}/${diffCounts.Easy.total}`} dim={diffCounts.Easy.solved === 0} />
-            )}
-            {diffCounts.Medium.total > 0 && (
-              <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Medium.color }} />} label="Medium" value={`${diffCounts.Medium.solved}/${diffCounts.Medium.total}`} dim={diffCounts.Medium.solved === 0} />
-            )}
-            {diffCounts.Hard.total > 0 && (
-              <StatCard icon={<div className="w-2 h-2 rounded-full opacity-60" style={{ backgroundColor: difficultyConfig.Hard.color }} />} label="Hard" value={`${diffCounts.Hard.solved}/${diffCounts.Hard.total}`} dim={diffCounts.Hard.solved === 0} />
-            )}
+        <div className="w-full bg-[#333333] rounded-xl p-3 border border-white/10 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] text-foreground/50 uppercase tracking-widest font-medium">Time Distribution</span>
+            {pieData.length === 0 && <span className="text-[9px] text-foreground/40 border border-white/10 rounded px-1.5 py-0.5 font-mono">not tracked</span>}
+          </div>
+          <div className="flex items-center justify-center py-5">
+            <div className="relative" style={{ width: 80, height: 80 }}>
+              {pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 80, height: 80 }}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={24} outerRadius={38} paddingAngle={3} dataKey="value" stroke="none" />
+                    <Tooltip content={<PieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <>
+                  <svg viewBox="0 0 80 80" className="w-full h-full">
+                    <circle cx="40" cy="40" r="28" fill="none" stroke="#262626" strokeWidth="14" />
+                    <circle cx="40" cy="40" r="28" fill="none" stroke="#333333" strokeWidth="14" strokeDasharray="4 6" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[9px] text-foreground/40 font-mono">—</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="ml-4 flex flex-col gap-2">
+              {(['Easy', 'Medium', 'Hard'] as const).map((diff) => {
+                const secs = timePerDifficulty[diff];
+                const mins = Math.floor(secs / 60);
+                const s = secs % 60;
+                const timeStr = secs > 0 ? `${mins}m ${s}s` : '—';
+
+                return (
+                  <div key={diff} className="flex items-center gap-2 text-[9px]">
+                    <div className="w-2 h-2 rounded-full opacity-30" style={{ backgroundColor: difficultyConfig[diff].color }} />
+                    <span className="text-foreground/40">{diff}</span>
+                    <span className="font-mono text-foreground/30 ml-auto">{timeStr}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="w-full bg-[#333333] rounded-xl p-3 border border-white/10 relative overflow-hidden">
-        <div className="flex items-center justify-between">
-          <span className="text-[9px] text-foreground/50 uppercase tracking-widest font-medium">Time Distribution</span>
-          {pieData.length === 0 && <span className="text-[9px] text-foreground/40 border border-white/10 rounded px-1.5 py-0.5 font-mono">not tracked</span>}
-        </div>
-        <div className="flex items-center justify-center py-5">
-          <div className="relative" style={{ width: 80, height: 80 }}>
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 80, height: 80 }}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={24} outerRadius={38} paddingAngle={3} dataKey="value" stroke="none" />
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <>
-                <svg viewBox="0 0 80 80" className="w-full h-full">
-                  <circle cx="40" cy="40" r="28" fill="none" stroke="#262626" strokeWidth="14" />
-                  <circle cx="40" cy="40" r="28" fill="none" stroke="#333333" strokeWidth="14" strokeDasharray="4 6" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[9px] text-foreground/40 font-mono">—</span>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="ml-4 flex flex-col gap-2">
-            {(['Easy', 'Medium', 'Hard'] as const).map((diff) => {
-              const secs = timePerDifficulty[diff];
-              const mins = Math.floor(secs / 60);
-              const s = secs % 60;
-              const timeStr = secs > 0 ? `${mins}m ${s}s` : '—';
-
+        <div className="flex flex-col gap-1 w-full">
+          <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">Problem Breakdown</div>
+          <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden bg-[#333333]">
+            {roundDetails?.problems?.map((p) => {
+              const isSolved = selectedSolvedIds.has(p.id);
+              const timeStr = problemTimeMap.get(p.id) || '—';
               return (
-                <div key={diff} className="flex items-center gap-2 text-[9px]">
-                  <div className="w-2 h-2 rounded-full opacity-30" style={{ backgroundColor: difficultyConfig[diff].color }} />
-                  <span className="text-foreground/40">{diff}</span>
-                  <span className="font-mono text-foreground/30 ml-auto">{timeStr}</span>
+                <div key={p.id} className="flex justify-between items-center p-3 border-b border-white/10 last:border-0">
+                  <div className="flex items-center gap-3">
+                    {isSolved ? (
+                      <CheckCircle2 size={16} className="text-primary" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-white/20" />
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{p.name}</span>
+                      <span className="text-[10px]" style={{ color: difficultyConfig[p.difficulty as keyof typeof difficultyConfig]?.color }}>{p.difficulty}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs font-mono text-foreground/60">
+                    {isSolved ? timeStr : '—'}
+                  </div>
                 </div>
               );
             })}
+            {(!roundDetails?.problems || roundDetails.problems.length === 0) && (
+              <div className="p-4 text-center text-xs text-foreground/50">No problems found</div>
+            )}
           </div>
         </div>
-      </div>
 
-      <div className="flex flex-col gap-1 w-full">
-        <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">Problem Breakdown</div>
-        <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden bg-[#333333]">
-          {roundDetails?.problems?.map((p) => {
-            const isSolved = selectedSolvedIds.has(p.id);
-            const timeStr = problemTimeMap.get(p.id) || '—';
-            return (
-              <div key={p.id} className="flex justify-between items-center p-3 border-b border-white/10 last:border-0">
-                <div className="flex items-center gap-3">
-                  {isSolved ? (
-                    <CheckCircle2 size={16} className="text-primary" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border border-white/20" />
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{p.name}</span>
-                    <span className="text-[10px]" style={{ color: difficultyConfig[p.difficulty as keyof typeof difficultyConfig]?.color }}>{p.difficulty}</span>
-                  </div>
-                </div>
-                <div className="text-xs font-mono text-foreground/60">
-                  {isSolved ? timeStr : '—'}
-                </div>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">Room Statistics</div>
+          <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden">
+            <div className="p-4 overflow-x-auto">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 320, height: 256 }}>
+                  <BarChart accessibilityLayer data={scoreChartData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="username" tickLine={false} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="score" radius={[4, 4, 0, 0]}>
+                      {scoreChartData.map((_, i) => (
+                        <Cell key={`cell-${i}`} fill={i === safeIdx ? BSG_GREEN : BSG_GREEN_DIM} style={i === safeIdx ? { filter: 'none' } : { opacity: 0.6 }} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            );
-          })}
-          {(!roundDetails?.problems || roundDetails.problems.length === 0) && (
-            <div className="p-4 text-center text-xs text-foreground/50">No problems found</div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1 w-full">
-        <div className="flex gap-2 items-center text-sm text-foreground/60 font-medium">Room Statistics</div>
-        <div className="flex flex-col rounded-lg border border-[#454545] overflow-hidden">
-          <div className="p-4 overflow-x-auto">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 320, height: 256 }}>
-                <BarChart accessibilityLayer data={scoreChartData}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="username" tickLine={false} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="score" radius={[4, 4, 0, 0]}>
-                    {scoreChartData.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={i === safeIdx ? BSG_GREEN : BSG_GREEN_DIM} style={i === safeIdx ? { filter: 'none' } : { opacity: 0.6 }} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
             </div>
           </div>
         </div>
