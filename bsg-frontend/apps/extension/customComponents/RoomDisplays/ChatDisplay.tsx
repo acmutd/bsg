@@ -3,7 +3,7 @@ import { TooltipWrapper } from "@bsg/components/TooltipWrapper";
 import { useUserStore } from '@/stores/useUserStore';
 import { useChatSocket } from '@/hooks/useChatSocket'
 import { Toast } from '@/customComponents/Toast';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
 
@@ -16,6 +16,8 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         showJump,
         jumpToBottom,
         inputText,
+        containerRef,
+        counterRef,
         atLimit,
         toastMessage,
         dismissToast,
@@ -28,28 +30,8 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
         setEmojiSearch
     } = useChatSocket();
 
-    // Auto-recalculate textarea height when the extension or panel width changes
-    useEffect(() => {
-        const textarea = inputRef.current;
-        if (!textarea) return;
-
-        let lastWidth = textarea.clientWidth;
-
-        const observer = new ResizeObserver(() => {
-            if (textarea.clientWidth !== lastWidth) {
-                lastWidth = textarea.clientWidth;
-                textarea.style.height = 'auto';
-                textarea.style.height = `${textarea.scrollHeight}px`;
-            }
-        });
-
-        observer.observe(textarea);
-        return () => observer.disconnect();
-    }, [inputRef]);
-
     const username = useUserStore(s => s.username);
     const userId = useUserStore(s => s.userId)
-    const email = useUserStore(s => s.email);     // ← add this line
     const emojiMap = require('@bsg/ui-styles/assets/emojis.json') as Record<string, { emoji: string; name: string; keywords: string[] }[]>;
     const emojiList = Object.entries(emojiMap).flatMap(([category, emojis]) =>
         emojis.map(emoji => ({ ...emoji, category }))
@@ -150,13 +132,13 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                 <div className="sticky bottom-0 w-full flex flex-col">
 
                     {/*  */}
-                    <div className="relative flex flex-col items-center gap-1 px-4 pt-4 pb-1 bg-gradient-to-t from-[rgb(var(--bsg-bg))] to-transparent">
+                    <div className="relative flex justify-center p-4 bg-gradient-to-t from-[#262626] to-transparent">
                         {/* Jump to bottom (shows when scroll > 200px from bottom) */}
                         {showJump &&
                             <TooltipWrapper text="Jump to bottom">
                                 <Button
                                     onClick={jumpToBottom}
-                                    className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-bsg-surface hover:bg-bsg-hover text-foreground/60 border border-bsg-glass shadow-lg animate-bounce"
+                                    className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-[#333333] hover:bg-[#484848] text-foreground/60 border border-white/10 shadow-lg animate-bounce"
                                 >
                                     <svg
                                         className="w-4 h-4 overflow-visible"
@@ -170,10 +152,13 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             </TooltipWrapper>
                         }
 
-                        <div className='flex flex-col w-full bg-bsg-surface rounded-[21px] px-4 py-3 gap-2 border border-bsg-glass shadow-lg'>
+                        <div
+                            ref={containerRef}
+                            className='flex w-full bg-[#333333] rounded-[21px] px-4 py-3 gap-3 border border-white/10 shadow-lg items-center'
+                        >
                             <textarea
                                 ref={inputRef}
-                                className="w-full resize-none outline-none bg-transparent text-foreground placeholder-foreground/60 break-words [word-break:break-word] whitespace-pre-wrap leading-6 overflow-hidden"
+                                className="resize-none overflow-y-auto no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 w-full overflow-hidden"
                                 placeholder="Type a message"
                                 rows={1}
                                 value={inputText}
@@ -186,8 +171,11 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                                 }}
                             />
 
-                            <div className='flex justify-between items-center text-xs'>
-                                <div className={`transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}>
+                            <div className='flex justify-between'>
+                                <div
+                                    ref={counterRef}
+                                    className={`hidden transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}
+                                >
                                     {inputText.length}/{MAX_CHARS}
                                 </div>
 
@@ -227,9 +215,6 @@ export const ChatDisplay = ({ isActive }: { isActive: boolean }) => {
                             </div>
                         </div>
 
-                        <div className="text-xs text-foreground/60 text-center -py-2">
-                            Please note all chat messages are monitored.
-                        </div>
                     </div>
                 </div>
             </div>

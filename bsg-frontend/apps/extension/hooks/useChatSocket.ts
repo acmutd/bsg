@@ -39,6 +39,8 @@ export const useChatSocket = () => {
     const pendingRoomIDRef = useRef<string | null>(null);
     const joinedRoomIDRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const counterRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const chatRef = useRef<HTMLDivElement | null>(null);
     const isAtBottom = useRef<boolean>(true);
     const atLimitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,7 +116,10 @@ export const useChatSocket = () => {
                         if (message.userHandle === userId && messageText === pendingMessageRef.current) {
                             pendingMessageRef.current = null;
                             setInputText('');
-                            if (inputRef.current) inputRef.current.style.height = 'auto';
+                            if (inputRef.current) {
+                                inputRef.current.style.height = 'auto';
+                            }
+                            requestAnimationFrame(() => handleExpand());
                         }
 
                         // checks user handle to know if the message is sent by the user or received from others
@@ -285,10 +290,33 @@ export const useChatSocket = () => {
         }
     }, [userId]);
 
-    const adjustHeight = (el: HTMLTextAreaElement) => {
-        el.style.height = 'auto';
-        el.style.height = `${el.scrollHeight}px`;
-    };
+    const handleExpand = useCallback(() => {
+        const chat = chatRef.current;
+        const container = containerRef.current;
+        const textArea = inputRef.current;
+        const counter = counterRef.current;
+        if (!chat || !container || !textArea || !counter) return;
+
+        // Collapse container before measuring to keep line-height baseline stable.
+        counter.classList.add('hidden');
+        container.classList.remove('flex-col', 'gap-2');
+        container.classList.add('items-center', 'gap-3');
+
+        textArea.style.height = 'auto';
+        const lineHeight = parseFloat(getComputedStyle(textArea).lineHeight) || 24;
+        const isExpanded = textArea.scrollHeight > lineHeight;
+
+        counter.classList.toggle('hidden', !isExpanded);
+        container.classList.toggle('flex-col', isExpanded);
+        container.classList.toggle('gap-2', isExpanded);
+        container.classList.toggle('items-center', !isExpanded);
+        container.classList.toggle('gap-3', !isExpanded);
+
+        textArea.style.height = `${Math.min(textArea.scrollHeight, 8 * lineHeight)}px`;
+
+        if (isAtBottom.current) chat.scrollTop = chat.scrollHeight;
+        setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
+    }, []);
 
     const handleSubmit = () => {
         const chat = chatRef.current;
@@ -314,6 +342,9 @@ export const useChatSocket = () => {
             };
             socketRef.current.send(JSON.stringify(payload));
             pendingMessageRef.current = text;
+            setInputText('');
+            textArea.style.height = 'auto';
+            requestAnimationFrame(() => handleExpand());
             setShowJump(chat.scrollHeight - (chat.clientHeight + chat.scrollTop) >= 200);
         }
     };
@@ -337,7 +368,7 @@ export const useChatSocket = () => {
             atLimitTimeoutRef.current = setTimeout(() => setAtLimit(false), 500);
         }
 
-        adjustHeight(e.target);
+        handleExpand();
     }
 
     const insertEmoji = (emoji: string) => {
@@ -354,13 +385,13 @@ export const useChatSocket = () => {
                 textarea.selectionStart = start + emoji.length;
                 textarea.selectionEnd = start + emoji.length;
                 textarea.focus();
-                adjustHeight(textarea);
+                handleExpand();
             });
         } else if (inputText.length < MAX_CHARS) {
             setInputText(newText.substring(0, MAX_CHARS));
             requestAnimationFrame(() => {
                 textarea.focus();
-                adjustHeight(textarea);
+                handleExpand();
             });
 
             setAtLimit(true);
@@ -385,6 +416,19 @@ export const useChatSocket = () => {
             }
         }, 0);
     }
+
+    useEffect(() => {
+        const textArea = inputRef.current;
+        if (!textArea) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            handleExpand();
+        });
+
+        handleExpand();
+        resizeObserver.observe(textArea);
+        return () => resizeObserver.disconnect();
+    }, [handleExpand]);
 
     // Derived from messages so will persist between tabs as well
     // TODO: make O(1) by only adding messages
@@ -451,6 +495,8 @@ export const useChatSocket = () => {
         inputText,
         showJump,
         jumpToBottom,
+        containerRef,
+        counterRef,
         atLimit,
         toastMessage,
         dismissToast,
