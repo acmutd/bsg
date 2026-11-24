@@ -89,7 +89,7 @@ export const ProblemProgress = () => {
     if (problems.length === 0) return null;
 
     return (
-        <div className="flex gap-[4.5px] px-2 py-1.5 shrink-0">
+        <div className="flex gap-1 px-2 py-2 sticky top-0 z-10 bg-gradient-to-b from-[#262626] to-transparent">
             {problems.map((slug, i) => {
                 const { fill, stroke } = SEGMENT_STYLE[segmentState(slug)];
 
