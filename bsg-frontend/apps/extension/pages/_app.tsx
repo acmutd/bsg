@@ -208,9 +208,9 @@ export default function App({ Component, pageProps }: AppProps) {
       <div className={(isFolded) ? 'hidden' : 'flex flex-col h-screen'}>
         <HeaderBar isInRoom={isInRoom}/>
         <div className="flex-1 flex overflow-x-auto">
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-[24rem]">
             {isInRoom && <Toolbar/>}
-            <div ref={scrollRef} className="flex-1 overflow-auto">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto">
               <Component {...pageProps}/>
             </div>
             <Footer isInRoom={isInRoom}/>
