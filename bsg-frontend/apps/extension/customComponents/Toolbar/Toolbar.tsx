@@ -1,15 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TooltipWrapper } from '@bsg/components/TooltipWrapper';
 import { Button } from '@bsg/ui/button'
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useRoomEvents, parseProblemSlug, problemUrl } from '@/hooks/useRoomEvents';
 import { useRoomStore } from '@/stores/useRoomStore';
-import { ProblemProgress } from '@/customComponents/Toolbar/ProblemProgress';
 
 export const Toolbar = () => {
 
     const [isTimerVisible, setIsTimerVisible] = useState<boolean>(true);
     const { timeRemaining } = useRoundTimer();
+    const timerRef = useRef<HTMLDivElement>(null);
+    const [timerTextWidth, setTimerTextWidth] = useState(0);
+
+    useEffect(() => {
+        const timerElement = timerRef.current;
+        if (!timerElement) return;
+
+        const context = document.createElement('canvas').getContext('2d');
+        if (!context) throw new Error('Canvas 2D context is unavailable');
+
+        context.font = window.getComputedStyle(timerElement).font;
+        setTimerTextWidth(context.measureText(timeRemaining).width);
+    }, [timeRemaining]);
 
     const isAdmin = useRoomStore(s => s.isAdmin);
     const isRoundStarted = useRoomStore(s => s.isRoundStarted);
@@ -59,7 +71,7 @@ export const Toolbar = () => {
                         <Button
                             onClick={() => stepProblem(-1)}
                             disabled={currIndex === -2 || currIndex === 0}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="w-[1em] h-[1em] overflow-visible"
@@ -75,7 +87,7 @@ export const Toolbar = () => {
                         <Button
                             onClick={() => stepProblem(1)}
                             disabled={currIndex === -2 || currIndex === problems.length - 1}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="w-[1em] h-[1em] overflow-visible"
@@ -92,7 +104,7 @@ export const Toolbar = () => {
                             <TooltipWrapper text="End Round">
                                 <Button
                                     onClick={handleEndRound}
-                                    className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                                    className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                                 >
                                     <svg
                                         className="w-[1em] h-[1em] overflow-visible"
@@ -111,7 +123,7 @@ export const Toolbar = () => {
                             <TooltipWrapper text="Start Round">
                                 <Button
                                     onClick={handleStartRound}
-                                    className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                                    className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                                 >
                                     <svg
                                         className="w-[1em] h-[1em] overflow-visible"
@@ -130,11 +142,11 @@ export const Toolbar = () => {
                 </div>
 
                 <div className="flex gap-1">
-                    <div className="flex gap-[1px] rounded-[5px] overflow-hidden">
+                    <div className={`flex rounded-[5px] overflow-hidden ${isTimerVisible ? "gap-[1px]" : ""}`}>
                         <TooltipWrapper text={(isTimerVisible) ? 'Hide Timer' : 'Show Timer'}>
                             <Button
                                 onClick={() => setIsTimerVisible(!isTimerVisible)}
-                                className={`rounded-none p-0 h-6 w-6 flex items-center justify-center text-foreground/60 hover:bg-bsg-hover ${(isTimerVisible) ? 'bg-bsg-glass' : 'bg-transparent'}`}
+                                className={`rounded-none p-0 h-6 w-6 flex items-center justify-center text-muted-foreground ${(isTimerVisible) ? 'bg-bsg-glass hover:bg-[#484848]' : 'bg-transparent hover:bg-bsg-hover'}`}
                             >
                                 <svg
                                     className="w-4 h-4 overflow-visible"
@@ -147,7 +159,13 @@ export const Toolbar = () => {
                             </Button>
                         </TooltipWrapper>
 
-                        <div className={`flex px-1.5 items-center bg-bsg-glass text-foreground/60 text-sm shrink-0 ${(isTimerVisible) ? '' : 'hidden'}`}>{timeRemaining}</div>
+                        <div
+                            ref={timerRef}
+                            className={`flex items-center justify-center text-foreground text-sm whitespace-nowrap shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isTimerVisible ? 'bg-bsg-glass' : 'bg-transparent'}`}
+                            style={{ width: isTimerVisible ? `calc(${timerTextWidth}px + 1rem)` : '0px' }}
+                        >
+                            {timeRemaining}
+                        </div>
                     </div>
 
                     <TooltipWrapper text="Settings">
@@ -159,7 +177,7 @@ export const Toolbar = () => {
                                     setActiveTab('settings');
                                 }
                             }}
-                            className={`rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 hover:bg-bsg-hover ${activeTab === 'settings' ? 'bg-bsg-glass' : 'bg-transparent'}`}
+                            className={`rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground hover:bg-bsg-hover ${activeTab === 'settings' ? 'bg-bsg-glass' : 'bg-transparent'}`}
                         >
                             <svg
                                 className="w-4 h-4 overflow-visible"
@@ -175,7 +193,7 @@ export const Toolbar = () => {
                     <TooltipWrapper text="Leave Room">
                         <Button
                             onClick={handleLeaveRoom}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="w-4 h-4 overflow-visible"
