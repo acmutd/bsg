@@ -1,20 +1,22 @@
 import React from 'react'
-import {Poppins} from 'next/font/google'
-import {useRouter} from 'next/router'
-import {Button} from '@bsg/ui/button'
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faDoorOpen, faPlus} from '@fortawesome/free-solid-svg-icons'
-import {useJoinRoom} from "@/hooks/useJoinRoom";
-import {pushRoute} from "@/utils/navigation";
+import { Poppins } from 'next/font/google'
+import { useRouter } from 'next/router'
+import { Button } from '@bsg/ui/button'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faDoorOpen, faPlus, faRightFromBracket } from '@fortawesome/free-solid-svg-icons'
+import { useJoinRoom } from "@/hooks/useJoinRoom";
+import { useLogin } from "@/hooks/useLogin";
+import { pushRoute } from "@/utils/navigation";
 
-const poppins = Poppins({weight: '400', subsets: ['latin']})
+const poppins = Poppins({ weight: '400', subsets: ['latin'] })
 
 interface RoomChoiceProps {
     onJoin: (roomCode: string) => Promise<{ success: true } | { success: false; message: string }>
 }
 
-export default function RoomChoice({onJoin}: RoomChoiceProps) {
+export default function RoomChoice({ onJoin }: RoomChoiceProps) {
     const router = useRouter()
+    const { logout } = useLogin()
 
     const {
         handleJoinRoom,
@@ -23,7 +25,7 @@ export default function RoomChoice({onJoin}: RoomChoiceProps) {
         formError,
         setFormError,
         isSubmittingJoin,
-    } = useJoinRoom({onJoin})
+    } = useJoinRoom({ onJoin })
 
     return (
         <div
@@ -37,20 +39,20 @@ export default function RoomChoice({onJoin}: RoomChoiceProps) {
 
             {/* Main card */}
             <div
-                className="relative m-auto rounded-2xl ">
-                <h1 className="text-lg text-foreground font-semibold mb-4 text-center">Create a room or join one</h1>
+                className="flex flex-col relative m-auto rounded-2xl gap-8">
+                <h1 className="text-lg text-foreground font-semibold text-center">Create a room or join one</h1>
 
-                <div className="space-y-4">
+                <div className="flex flex-col gap-2">
                     {/* Create Room */}
                     <Button
                         onClick={() => {
                             setFormError(null)
                             pushRoute(router, '/create-room-page').catch(error => console.error('Failed to open room creation', error))
                         }}
-                        className="w-full px-4 py-2 gap-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
+                        className="w-full p-2 gap-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                     >
                         <p>Create</p>
-                        <FontAwesomeIcon icon={faPlus}/>
+                        <FontAwesomeIcon icon={faPlus} />
                     </Button>
 
                     {/* Join Room */}
@@ -74,7 +76,7 @@ export default function RoomChoice({onJoin}: RoomChoiceProps) {
                             className="px-4 py-2 shrink-0 flex items-center gap-2 text-white bg-[hsl(90,72%,39%)] hover:bg-[hsl(90,72%,30%)] transition-colors"
                         >
                             <p>{isSubmittingJoin ? 'Joining...' : 'Join'}</p>
-                            <FontAwesomeIcon icon={faDoorOpen}/>
+                            <FontAwesomeIcon icon={faDoorOpen} />
                         </Button>
                     </div>
 
@@ -95,6 +97,15 @@ export default function RoomChoice({onJoin}: RoomChoiceProps) {
                         </div>
                     )}
                 </div>
+
+                <Button
+                    onClick={() => logout()}
+                    className="w-full p-2 gap-2 text-white bg-bsg-surface hover:bg-[#4B2828] transition-colors"
+                >
+                    Sign Out
+
+                    <FontAwesomeIcon icon={faRightFromBracket} />
+                </Button>
             </div>
         </div>
     )
