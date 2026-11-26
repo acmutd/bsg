@@ -233,31 +233,6 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                 {/* Fade */}
                 <div className="w-8 h-full bg-[linear-gradient(to_left,rgb(var(--bsg-surface))_33.3%,transparent)]" />
 
-                {/* Logout Button (visible when logged in and not in a room) */}
-                {!isInRoom && isLoggedIn && (
-                    <TooltipWrapper text="Sign out">
-                        <Button
-                            onClick={() => logout()}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-bsg-surface pointer-events-auto hover:bg-bsg-hover"
-                        >
-                            <svg
-                                className="h-[1em] w-[1em] overflow-visible"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 39 36"
-                                fill="none"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeWidth="3.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M16 2H8C4.68629 2 2 4.68629 2 8V28C2 31.3137 4.68629 34 8 34H16M14 13.5V22.5H26V28.5L36.5 18L26 7.5V13.5H14Z"
-                                />
-                            </svg>
-                        </Button>
-                    </TooltipWrapper>
-                )}
-
                 <div className={`flex h-full z-1000 items-center gap-1 px-2 bg-bsg-surface pointer-events-auto ${(isPanelHovered) ? '' : 'hidden'}`}>
 
                     {/* Maximize / Exit Button */}
