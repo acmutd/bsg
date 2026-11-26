@@ -39,7 +39,7 @@ module.exports = {
                 },
                 muted: {
                     DEFAULT: "rgba(var(--muted))",
-                    foreground: "rgba(var(--muted-foreground))",
+                    foreground: "var(--muted-foreground)",
                 },
                 accent: {
                     DEFAULT: "rgba(var(--accent))",

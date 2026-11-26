@@ -21,10 +21,10 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           <TooltipWrapper text={(isCopied) ? 'Copied' : 'Copy room code'}>
             <Button
               onClick={() => copyRoomCode(roomCode)}
-              className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-[#484848] ${(isInRoom) ? '' : 'invisible'}`}
+              className={`rounded-lg flex h-7 pl-2 pr-1.5 gap-2 items-center bg-transparent hover:bg-bsg-hover ${(isInRoom) ? '' : 'invisible'}`}
             >
               <div className={`w-1.5 h-1.5 rounded-full ${(isConnected) ? 'bg-green-500' : 'bg-red-500'}`} />
-              <div className="flex gap-1.5 items-center text-foreground/60 text-sm font-medium">
+              <div className="flex gap-1.5 items-center text-muted-foreground text-sm font-medium">
                 {roomCode}
                 <svg
                   className="w-[1em] h-[1em] overflow-visible"
@@ -43,7 +43,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           <TooltipWrapper text="Rate our extension">
             <Button
               onClick={() => window.open('https://chromewebstore.google.com/detail/bsg/mnllpknljobnjmbaognpclblmpfcllmc', '_blank')}
-              className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+              className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
             >
               <svg
                 className="w-4 h-4 overflow-visible"
@@ -60,7 +60,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
           <TooltipWrapper text="Give us feedback">
             <Button
               onClick={() => window.open(`https://acmutd.typeform.com/to/R0knpSwj`)}
-              className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-[#484848]"
+              className="rounded-lg p-0 h-7 w-7 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
             >
               <svg
                 className="w-4 h-4 overflow-visible"
@@ -78,7 +78,7 @@ export const Footer = ({ isInRoom }: { isInRoom: boolean }) => {
             <Button
 
               onClick={!isLoggedIn ? () => {} : github.connected ? () => window.open(`https://github.com/${github.username}/BSG-Submissions`) : github.connect}
-              className={`rounded-lg p-0 h-7 w-7 flex items-center justify-center bg-transparent hover:bg-[#484848] ${github.connected ? 'text-green-500' : 'text-foreground/60'}`}
+              className={`rounded-lg p-0 h-7 w-7 flex items-center justify-center bg-transparent hover:bg-bsg-hover ${github.connected ? 'text-green-500' : 'text-muted-foreground'}`}
             >
               <svg
                 className="w-4 h-4"

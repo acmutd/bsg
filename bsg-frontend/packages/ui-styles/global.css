@@ -21,7 +21,7 @@
     --secondary-foreground: 17 24 39;
 
     --muted: 244 245 247;
-    --muted-foreground: 107 114 128;
+    --muted-foreground: hsl(0 0% 66%);
 
     --accent: 244 245 247;
     --accent-foreground: 17 24 39;
@@ -48,7 +48,7 @@
     --bsg-surface-input: 60 60 60;
     --bsg-border: 69 69 69;
     --bsg-separator: 80 80 80;
-    --bsg-hover: 72 72 72;
+    --bsg-hover: #ffffff1a;
     --bsg-hover-subtle: 67 67 67;
     --bsg-dark: 26 26 26;
     --bsg-glass: rgba(255 255 255 / 0.1);
@@ -74,7 +74,7 @@
     --secondary-foreground: 17 24 39;
 
     --muted: 240 240 240;
-    --muted-foreground: 87 87 87;
+    --muted-foreground: hsl(0 0% 34.1%);
 
     --accent: 238 238 238;
     --accent-foreground: 17 24 39;
@@ -99,7 +99,7 @@
     --bsg-surface-input: 232 232 232;
     --bsg-border: 212 212 212;
     --bsg-separator: 212 212 212;
-    --bsg-hover: 224 224 224;
+    --bsg-hover: #ffffff1a;
     --bsg-hover-subtle: 224 224 224;
     --bsg-dark: 240 240 240;
     --bsg-glass: rgba(0 0 0 / 0.08);

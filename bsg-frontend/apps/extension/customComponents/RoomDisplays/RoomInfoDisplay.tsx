@@ -42,9 +42,9 @@ export const RoomInfoDisplay = ({ className = '' }: RoomInfoDisplayProps) => {
                             <Button
                                 //onClick={}
                                 key={user.id}
-                                className="rounded-none p-2 pr-4 h-fit w-full flex items-center justify-between text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                                className="rounded-none p-2 pr-4 h-fit w-full flex items-center justify-between text-muted-foreground bg-transparent hover:bg-bsg-hover"
                             >
-                                <div className='flex gap-2 items-center text-foreground/60'>
+                                <div className='flex gap-2 items-center text-muted-foreground'>
                                     <img
                                         className='w-6 h-6 rounded-full bg-[#FFFFFF20]'
                                         src={user.photo}

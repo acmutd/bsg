@@ -39,7 +39,7 @@ const config: Config = {
                 },
                 muted: {
                     DEFAULT: "rgba(var(--muted))",
-                    foreground: "rgba(var(--muted-foreground))",
+                    foreground: "var(--muted-foreground)",
                 },
                 accent: {
                     DEFAULT: "rgba(var(--accent))",
@@ -60,7 +60,7 @@ const config: Config = {
                 "bsg-surface-input": "rgb(var(--bsg-surface-input))",
                 "bsg-border": "rgb(var(--bsg-border))",
                 "bsg-separator": "rgb(var(--bsg-separator))",
-                "bsg-hover": "rgb(var(--bsg-hover))",
+                "bsg-hover": "var(--bsg-hover)",
                 "bsg-hover-subtle": "rgb(var(--bsg-hover-subtle))",
                 "bsg-dark": "rgb(var(--bsg-dark))",
                 "bsg-glass": "var(--bsg-glass)",

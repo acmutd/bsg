@@ -80,7 +80,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                                 // System Message
                                 <div
                                     key={i}
-                                    className="flex justify-center p-2 text-foreground/60 text-sm text-center max-w-full break-words"
+                                    className="flex justify-center p-2 text-muted-foreground text-sm text-center max-w-full break-words"
                                 >
                                     {group[0].data}
                                 </div>
@@ -145,7 +145,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                             <TooltipWrapper text="Jump to bottom">
                                 <Button
                                     onClick={jumpToBottom}
-                                    className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-[#333333] hover:bg-[#484848] text-foreground/60 border border-white/10 shadow-lg animate-bounce"
+                                    className="absolute top-[-2rem] rounded-full w-8 h-8 items-center justify-center bg-[#333333] hover:bg-[#484848] text-muted-foreground border border-white/10 shadow-lg animate-bounce"
                                 >
                                     <svg
                                         className="w-4 h-4 overflow-visible"
@@ -165,7 +165,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                         >
                             <textarea
                                 ref={inputRef}
-                                className="resize-none overflow-y-auto no-scrollbar outline-none bg-transparent text-foreground placeholder-foreground/60 w-full overflow-hidden"
+                                className="resize-none overflow-y-auto no-scrollbar outline-none bg-transparent text-foreground placeholder-muted-foreground w-full overflow-hidden"
                                 placeholder="Type a message"
                                 rows={1}
                                 value={inputText}
@@ -181,7 +181,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                             <div className='flex justify-between'>
                                 <div
                                     ref={counterRef}
-                                    className={`hidden transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-foreground/60'}`}
+                                    className={`hidden transition ease-out duration-500 ${(atLimit) ? 'text-red-500' : 'text-muted-foreground'}`}
                                 >
                                     {inputText.length}/{MAX_CHARS}
                                 </div>
@@ -190,7 +190,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                                     <TooltipWrapper text="Emojis">
                                         <Button
                                             onClick={() => setDisplayEmojis(!displayEmojis)}
-                                            className="rounded-full w-auto h-auto p-0 items-center justify-center bg-transparent hover:bg-transparent text-foreground/60 hover:text-foreground"
+                                            className="rounded-full w-auto h-auto p-0 items-center justify-center bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground"
                                         >
                                             <svg
                                                 className="w-4 h-4 overflow-visible"
@@ -206,7 +206,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                                     <TooltipWrapper text="Send Message">
                                         <Button
                                             onClick={handleSubmit}
-                                            className="rounded-full w-auto h-auto p-0 items-center justify-center bg-transparent hover:bg-transparent text-foreground/60 hover:text-foreground"
+                                            className="rounded-full w-auto h-auto p-0 items-center justify-center bg-transparent hover:bg-transparent text-muted-foreground hover:text-foreground"
                                         >
                                             <svg
                                                 className="w-4 h-4 overflow-visible"
@@ -230,7 +230,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${displayEmojis ? 'h-[10.25rem]' : 'h-0'}`}>
                 <div className="flex h-9 px-3 gap-2 items-center border-t border-bsg-glass bg-bsg-bg" >
                     <svg
-                        className="w-[1em] h-[1em] overflow-visible text-foreground/60"
+                        className="w-[1em] h-[1em] overflow-visible text-muted-foreground"
                         viewBox="0 0 21 21"
                         fill="none"
                         stroke="currentColor"
@@ -243,7 +243,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                         placeholder='Find an emoji'
                         value={emojiSearch}
                         onChange={e => setEmojiSearch(e.target.value)}
-                        className="text-foreground placeholder-foreground/60 w-full bg-transparent outline-none"
+                        className="text-foreground placeholder-muted-foreground w-full bg-transparent outline-none"
                     />
                 </div>
 
@@ -256,7 +256,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                             <Button
                                 key="recent"
                                 onClick={() => scrollToCategory("recent")}
-                                className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover text-foreground/60 hover:text-foreground"
+                                className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover text-muted-foreground hover:text-foreground"
                             >
                                 <svg className="h-[1em] w-[1em]" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M12 23a11 11 0 1 0 0-22 11 11 0 0 0 0 22Zm1-18a1 1 0 1 0-2 0v7c0 .27.1.52.3.7l3 3a1 1 0 0 0 1.4-1.4L13 11.58V5Z" clip-rule="evenodd"></path></svg>
                             </Button>
@@ -270,7 +270,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                                 <Button
                                     key={category.key}
                                     onClick={() => scrollToCategory(category.key)}
-                                    className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover text-foreground/60 hover:text-foreground"
+                                    className="p-0 w-[1.75rem] flex rounded-[5px] items-center justify-center text-xl aspect-square bg-transparent hover:bg-bsg-hover text-muted-foreground hover:text-foreground"
                                 >
                                     {category.icon}
                                 </Button>
@@ -288,7 +288,7 @@ export const ChatDisplay = ({ className = '' }: ChatDisplayProps) => {
                                 ref={el => { categoryRefs.current[category.key] = el }}
                                 className="flex flex-col p-1 gap-1"
                             >
-                                <div className="flex items-center text-foreground/60 px-1 gap-2">
+                                <div className="flex items-center text-muted-foreground px-1 gap-2">
                                     {category.name}
                                     <div className="flex-1 border-t border-bsg-glass" />
                                 </div>

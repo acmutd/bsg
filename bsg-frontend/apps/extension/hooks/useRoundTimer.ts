@@ -4,11 +4,11 @@ import { useRoomStore } from "@/stores/useRoomStore";
 export function useRoundTimer() {
     
     const roundEndTime = useRoomStore(s => s.roundEndTime);
-    const [ timeRemaining, setTimeRemaining ] = useState<string>("00:00");
+    const [ timeRemaining, setTimeRemaining ] = useState<string>("0");
 
     useEffect(() => {
         if (!roundEndTime) {
-            setTimeRemaining("00:00");
+            setTimeRemaining("--:--");
             return;
         }
 
@@ -17,14 +17,20 @@ export function useRoundTimer() {
             const diff = roundEndTime - now;
 
             if (diff <= 0) {
-                setTimeRemaining("00:00");
+                setTimeRemaining("0");
                 // onEndRound(); // timer expired — end the round
             } else {
                 const hours = Math.floor(diff / 3600000);
                 const minutes = Math.floor((diff % 3600000) / 60000);
                 const seconds = Math.floor((diff % 60000) / 1000);
-                setTimeRemaining(
-                    `${hours > 0 ? `${hours}:` : ''}${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
+                const paddedSeconds = String(seconds).padStart(2, '0');
+                const paddedMinutes = String(minutes).padStart(2, '0');
+
+                setTimeRemaining(hours > 0
+                    ? `${hours}:${paddedMinutes}:${paddedSeconds}`
+                    : minutes > 0
+                        ? `${minutes}:${paddedSeconds}`
+                        : String(seconds)
                 );
             }
         };

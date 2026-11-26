@@ -238,7 +238,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text="Sign out">
                         <Button
                             onClick={() => logout()}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-bsg-surface pointer-events-auto hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-bsg-surface pointer-events-auto hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em] overflow-visible"
@@ -264,7 +264,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text={isMaximized ? "Exit" : "Maximize"} shortcuts={["Alt", "+"]}>
                         <Button
                             onClick={() => messageScript('MAXIMIZE')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <MaximizeIcon maximized={isMaximized} />
                         </Button>
@@ -274,7 +274,7 @@ export const HeaderBar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text="Fold" shortcuts={["Alt", "-"]}>
                         <Button
                             onClick={() => messageScript('FOLD')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em]"

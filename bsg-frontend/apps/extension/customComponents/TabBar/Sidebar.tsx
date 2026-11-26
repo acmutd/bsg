@@ -255,7 +255,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text={isMaximized ? "Exit" : "Maximize"} shortcuts={["Alt", "+"]}>
                         <Button
                             onClick={() => messageScript('MAXIMIZE')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <MaximizeIcon maximized={isMaximized} />
                         </Button>
@@ -265,7 +265,7 @@ export const Sidebar = ({ isInRoom }: { isInRoom: boolean }) => {
                     <TooltipWrapper text="Unfold" shortcuts={["Alt", "-"]}>
                         <Button
                             onClick={() => messageScript('UNFOLD')}
-                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-foreground/60 bg-transparent hover:bg-bsg-hover"
+                            className="rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground bg-transparent hover:bg-bsg-hover"
                         >
                             <svg
                                 className="h-[1em] w-[1em]"
