@@ -12,10 +12,11 @@ import (
 // Struct for the new-submission request.
 // Request when a user made a new submission.
 type NewSubmissionRequest struct {
-	UserHandle string `json:"userHandle" validate:"required"`
-	RoomID     string `json:"roomID" validate:"required"`
-	ProblemID  string `json:"problemID" validate:"required"`
-	Verdict    string `json:"verdict" validate:"required"`
+	UserHandle  string `json:"userHandle" validate:"required"`
+	RoomID      string `json:"roomID" validate:"required"`
+	ProblemID   string `json:"problemID" validate:"required"`
+	ProblemName string `json:"problemName"`
+	Verdict     string `json:"verdict" validate:"required"`
 }
 
 func init() {
@@ -63,7 +64,10 @@ func (r *NewSubmissionRequest) Handle(m *Message) (response.ResponseType, string
 		return r.responseType(), "", r.RoomID, nil
 	}
 
-	problemName := strings.ReplaceAll(r.ProblemID, "-", " ")
+	problemName := r.ProblemName
+	if problemName == "" {
+		problemName = strings.ReplaceAll(r.ProblemID, "-", " ")
+	}
 	message := fmt.Sprintf("%s solved %s", r.UserHandle, problemName)
 	return r.responseType(), message, r.RoomID, nil
 }

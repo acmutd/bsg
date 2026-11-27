@@ -604,10 +604,11 @@ func (service *RoundService) CreateRoundSubmission(
 			userHandle = submissionAuthor
 		}
 		newSubmissionReq := requests.NewSubmissionRequest{
-			UserHandle: userHandle,
-			RoomID:     round.RoomID.String(),
-			ProblemID:  problem.Slug,
-			Verdict:    submissionParams.Verdict,
+			UserHandle:  userHandle,
+			RoomID:      round.RoomID.String(),
+			ProblemID:   problem.Slug,
+			ProblemName: problem.Name,
+			Verdict:     submissionParams.Verdict,
 		}
 		if _, err := service.rtcClient.SendMessage("new-submission", newSubmissionReq); err != nil {
 			log.Printf("Error sending new-submission message: %v", err)
