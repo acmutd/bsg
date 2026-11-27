@@ -5,7 +5,7 @@ export const useIsFolded = () => {
 
     useEffect(() => {
         const observer = new ResizeObserver(([element]) => {
-            setFolded(element.contentRect.width <= 36);
+            setFolded(element.contentRect.width <= 37.1);
         });
 
         observer.observe(document.documentElement);
