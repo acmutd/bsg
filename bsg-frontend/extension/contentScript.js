@@ -110,10 +110,6 @@
     // shrinks proportionally when the window is resized horizontally (matching
     // how LeetCode's own panels behave).
     const MIN_PANEL_WIDTH = 36;
-    // Below this width the panel is not usable, so snap it to the 2.25rem sidebar.
-    const COLLAPSE_WIDTH = 120;
-    // Guarantees Unfold expands past the collapse threshold even on small windows.
-    const MIN_EXPAND_WIDTH = COLLAPSE_WIDTH + 40;
     let panelFolded = false;
     let panelMaximized = false;
     let preMaximizeFraction = 0.25;
@@ -142,7 +138,7 @@
       }
 
       const expandedPx = Math.round(panelWidthFraction * window.innerWidth);
-      if (isPanelFolded || expandedPx <= COLLAPSE_WIDTH) {
+      if (isPanelFolded) {
         panelFolded = true;
         return `${MIN_PANEL_WIDTH / 16}rem`;
       }
@@ -187,17 +183,6 @@
       });
     }
 
-    // The single decision point for panel width: if the requested width is too
-    // narrow to be usable, snap to the 2.25rem sidebar instead of leaving the
-    // layout squeezed in the dead zone between 36px and COLLAPSE_WIDTH.
-    function requestWidth(px) {
-      if (px <= COLLAPSE_WIDTH) {
-        setPanelWidth(MIN_PANEL_WIDTH, true);
-      } else {
-        setPanelWidth(px, false);
-      }
-    }
-
     // Set the panel width (pixels) and persist it as a window-relative fraction.
     // When folding, the last expanded fraction is preserved so Unfold can restore it.
     function setPanelWidth(px, isFolded) {
@@ -230,7 +215,7 @@
         panel.style.height = `${window.innerHeight - top}px`;
         return;
       }
-      requestWidth(Math.round(panelWidthFraction * window.innerWidth));
+      setPanelWidth(Math.round(panelWidthFraction * window.innerWidth), false);
     }
 
     // Create the main panel
@@ -401,7 +386,7 @@
       try {
         const rightEdge = panelWrapper.getBoundingClientRect().right;
         const widthPx = clampWidth(rightEdge - e.clientX);
-        requestWidth(widthPx);
+        setPanelWidth(widthPx, false);
       } catch (err) {
         // ignore
       }
@@ -452,7 +437,7 @@
       const rightEdge = panelWrapper.getBoundingClientRect().right;
       // left boundary = pointer x, width = rightEdge - pointerX
       const widthPx = clampWidth(rightEdge - e.clientX);
-      requestWidth(widthPx);
+      setPanelWidth(widthPx, false);
     });
 
     // End drag on pointerup or when pointer leaves
@@ -540,7 +525,7 @@
           panelWidthFraction = preMaximizeFraction;
           handle.style.display = 'flex';
           panel.style.transition = 'none';
-          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
+          const target = Math.max(MIN_PANEL_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
           const targetHeight = Math.max(0, Math.min(qd.getBoundingClientRect().height, window.innerHeight));
           Object.assign(panel.style, {
             width: `${target}px`,
@@ -568,8 +553,8 @@
           }
           panelFolded = false;
           chrome.storage.local.set({ isPanelFolded: false });
-          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(panelWidthFraction * window.innerWidth));
-          requestWidth(target);
+          const target = Math.max(MIN_PANEL_WIDTH, Math.round(panelWidthFraction * window.innerWidth));
+          setPanelWidth(target, false);
         });
       }
 
@@ -596,7 +581,7 @@
           panelWidthFraction = preMaximizeFraction;
           handle.style.display = 'flex';
           panel.style.transition = 'none';
-          const target = Math.max(MIN_EXPAND_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
+          const target = Math.max(MIN_PANEL_WIDTH, Math.round(preMaximizeFraction * window.innerWidth));
           const targetHeight = Math.max(0, Math.min(qd.getBoundingClientRect().height, window.innerHeight));
           Object.assign(panel.style, {
             width: `${target}px`,
