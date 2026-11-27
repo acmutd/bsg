@@ -177,7 +177,7 @@ export const Toolbar = () => {
                                     setActiveTab('settings');
                                 }
                             }}
-                            className={`rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground hover:bg-bsg-hover ${activeTab === 'settings' ? 'bg-bsg-glass' : 'bg-transparent'}`}
+                            className={`rounded-[5px] p-0 h-6 w-6 flex items-center justify-center text-muted-foreground ${activeTab === 'settings' ? 'bg-bsg-glass hover:bg-[#484848]' : 'bg-transparent hover:bg-bsg-hover'}`}
                         >
                             <svg
                                 className="w-4 h-4 overflow-visible"
